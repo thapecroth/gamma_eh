@@ -1,0 +1,13 @@
+node_modules/
+.venv/
+dist/
+data/generated/
+models/checkpoints/
+__pycache__/
+.pytest_cache/
+*.pyc
+test-results/
+playwright-report/
+.env
+.env.*
+.DS_Store
