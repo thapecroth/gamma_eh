@@ -2,12 +2,16 @@ node_modules/
 .venv/
 dist/
 data/generated/
+data/teacher/
+data/imported/
+data/prepared/
 models/checkpoints/
 __pycache__/
 .pytest_cache/
 *.pyc
 test-results/
 playwright-report/
+artifacts/
 .env
 .env.*
 .DS_Store

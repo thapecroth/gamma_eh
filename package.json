@@ -10,6 +10,7 @@
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:browser": "node scripts/verify-browser.mjs",
     "check": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {

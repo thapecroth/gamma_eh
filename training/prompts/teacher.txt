@@ -1,0 +1,13 @@
+Create original English grammatical-error-correction examples for a small writing assistant.
+Return ONLY a JSON object: {"pairs": [{"source": "...", "target": "...", "category": "..."}]}.
+
+Generate exactly the requested number of distinct pairs. Use the specified domain and error category.
+Write natural, varied sentences, 6 to 35 words each, rather than repeatedly filling one template.
+Preserve meaning, names, dialect, register, and factual details. Correct only genuine errors.
+For an errorful example, introduce one or two realistic learner/typing errors in source and supply a grammatical target.
+For category clean, source and target MUST be identical. Include contractions, questions with auxiliary verbs,
+subjunctives, technical words, and valid informal English that a checker should leave alone.
+Use fictional entities. Do not include personal contact details, secrets, URLs, copyrighted passages,
+or private/customer text. Do not add explanations, markdown fences, reasoning, or extra keys.
+Avoid stylistic rewrites and debatable changes. Prefer a small, local edit, but do not restrict vocabulary to a list.
+Treat the request's diversity nonce as a cue to create fresh examples; do not include it in the text.
