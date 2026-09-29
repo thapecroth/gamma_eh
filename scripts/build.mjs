@@ -3,11 +3,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build as buildScripts } from 'esbuild';
 import { build as buildWeb } from 'vite';
+import { buildPaths } from './paths.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const webOutput = join(root, 'dist/web');
-const extensionOutput = join(root, 'dist/extension');
-const modelDirectory = join(root, 'models/browser');
+const {webOutput, extensionOutput, modelDirectory} = buildPaths(root);
 const runtimeDirectory = join(root, 'node_modules/onnxruntime-web/dist');
 const requiredModels = ['model.onnx', 'model_quantized.onnx', 'vocab.txt', 'labels.json', 'manifest.json', 'config.json'];
 // ORT1.30's native WebGPU runtime uses asyncify. jsep belongs to the older
@@ -23,7 +22,7 @@ for (const filename of requiredRuntime) {
   catch { throw new Error(`Missing ONNX runtime asset ${filename}. Install dependencies before building.`); }
 }
 
-await buildWeb({ configFile: join(root, 'apps/web/vite.config.ts') });
+await buildWeb({ configFile: join(root, 'apps/web/vite.config.ts'), build: {outDir: webOutput, emptyOutDir: true} });
 await rm(extensionOutput, { recursive: true, force: true });
 await mkdir(extensionOutput, { recursive: true });
 

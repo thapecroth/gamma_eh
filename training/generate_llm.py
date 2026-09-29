@@ -111,6 +111,16 @@ def open_ledger(path, fingerprint):
     return db
 
 
+def acquire_run_lock(path):
+    lock = sqlite3.connect(path, timeout=0)
+    try:
+        lock.execute("BEGIN EXCLUSIVE")
+    except sqlite3.OperationalError:
+        lock.close()
+        raise RuntimeError("Another generator is using this output directory") from None
+    return lock
+
+
 def generate(args):
     if not 1 <= args.concurrency <= 16 or not 1 <= args.batch_size <= 50 or args.pairs < 1:
         raise ValueError("Use positive pairs, batch size1..50, and concurrency1..16")
@@ -134,7 +144,12 @@ def generate(args):
         raise ValueError(f"Set {args.api_key_env} in the environment")
     args.output.mkdir(parents=True, exist_ok=True)
     fingerprint = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()
-    db = open_ledger(args.output / "ledger.sqlite3", fingerprint)
+    lock = acquire_run_lock(args.output / "run-lock.sqlite3")
+    try:
+        db = open_ledger(args.output / "ledger.sqlite3", fingerprint)
+    except Exception:
+        lock.close()
+        raise
     rejected = Counter()
     try:
         waiting = iter(j for j in jobs if db.execute("SELECT status FROM jobs WHERE id=?", (j["id"],)).fetchone() != ('done',))
@@ -168,6 +183,9 @@ def generate(args):
                     db.rollback()
                     db.execute("UPDATE jobs SET status='failed',error='request_or_output_validation_failed' WHERE id=?", (job["id"],))
                 db.commit()
+                print(json.dumps({"completed_job": job["id"],
+                                  "status": db.execute("SELECT status FROM jobs WHERE id=?", (job["id"],)).fetchone()[0],
+                                  "accepted_so_far": db.execute("SELECT count(*) FROM pairs").fetchone()[0]}), flush=True)
                 submit_one()
         # Deterministic materialization after completion; SQLite is the durable
         # commit point, so interruption cannot create duplicated JSONL records.
@@ -191,6 +209,7 @@ def generate(args):
         if statuses.get("failed", 0): raise RuntimeError("Some teacher jobs failed; rerun the identical command to retry unfinished jobs")
     finally:
         db.close()
+        lock.close()
 
 
 if __name__ == "__main__":

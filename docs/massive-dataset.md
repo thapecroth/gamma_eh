@@ -2,9 +2,9 @@
 
 The first checkpoint validates the end-to-end pipeline. For useful broader
 coverage, combine teacher-generated examples with a bounded public GEC corpus
-and independently reviewed evaluation data. No teacher endpoint has been called
-in this initial implementation; credentials are provided later through environment
-variables and never written into the repository or run ledger.
+and independently reviewed evaluation data. The live CLIProxyAPI pilot is
+documented in [End-to-end pilot](live-pilot.md). Credentials are provided through
+environment variables and never written into the repository or run ledger.
 
 ## Teacher generation
 
@@ -43,6 +43,8 @@ Finished jobs are skipped on resume. JSONL is deterministically materialized
 from the ledger after each invocation. An interrupted provider request may have
 been billed even if its response was not committed: this does not promise
 provider-level exactly-once billing.
+An exclusive local SQLite run lock prevents two generators from consuming the
+same directory concurrently; a crashed process releases the lock automatically.
 
 Schema checks reject missing fields, truncated output, wrong batch counts,
 incorrect clean/category structure, oversized text, and contact/secret patterns.
@@ -105,6 +107,10 @@ pairs are train-only. If a reviewed clean group lands in dev/test, its unreviewe
 variants are dropped from training. Without reviewed dev/test examples, the
 script prepares train data but reports `evaluation_ready: false`; it does not
 manufacture a natural evaluation set from teacher responses.
+For private local experiments only, `--allow-unverified-teacher-terms` together
+with `--allow-weak-train` retains the unverified license and sets
+`publication_allowed: false`. It does not grant rights or make teacher output
+reviewed. The exported experimental model retains that publication restriction.
 
 Train/test vocabulary coverage and unsupported-example rejection counts are
 reported, because scoring only the representable subset can inflate results.

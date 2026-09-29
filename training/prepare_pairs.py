@@ -24,7 +24,8 @@ def reconstruct(words, tags):
     return render(result)
 
 
-def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_labels=4096):
+def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_labels=4096,
+            allow_unverified_teacher_terms=False):
     if teacher_license is not None and teacher_license not in LICENSES:
         raise ValueError("Unsupported teacher output license")
     if max_labels < 2: raise ValueError("max-labels must be at least2")
@@ -49,8 +50,11 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
                         row = validate_pair(raw)
                         license_id = raw.get("license")
                         if raw.get("origin") == "llm-teacher" and teacher_license: license_id = teacher_license
-                        if license_id not in LICENSES: raise ValueError("license_unverified")
-                        reviewed = raw.get("review_status") == "human-reviewed"
+                        local_teacher = (allow_unverified_teacher_terms and allow_weak_train
+                                         and raw.get("origin") == "llm-teacher"
+                                         and license_id == "provider-terms-unverified")
+                        if license_id not in LICENSES and not local_teacher: raise ValueError("license_unverified")
+                        reviewed = raw.get("review_status") == "human-reviewed" and not local_teacher
                         if not reviewed and not allow_weak_train: raise ValueError("unreviewed")
                         words, tags = edit_tags(row["source"], row["target"])
                         if all(tag == 'KEEP' for tag in tags) and normalized(row['source']) != normalized(row['target']):
@@ -127,6 +131,7 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
         manifest = {"schema": 1, "kind": "prepared-edit-tags", "inputs": [str(path) for path in inputs],
                     "counts": dict(counts), "origins_before_vocabulary_filter": dict(origins),
                     "licenses": dict(license_counts), "weak_labels_train_only": True,
+                    "publication_allowed": "provider-terms-unverified" not in license_counts,
                     "label_count": len(labels), "splits": coverage,
                     "evaluation_ready": all(coverage[s]["accepted"] > 0 for s in ["dev", "test"])}
         (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
@@ -144,6 +149,9 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, default=Path("data/prepared/run-001"))
     parser.add_argument("--allow-weak-train", action="store_true")
     parser.add_argument("--teacher-license", choices=sorted(LICENSES), help="Only after checking your model provider's output terms")
+    parser.add_argument("--allow-unverified-teacher-terms", action="store_true",
+                        help="Local experiments only: retain unverified terms and block publication; requires --allow-weak-train")
     parser.add_argument("--max-labels", type=int, default=4096)
     args = parser.parse_args()
-    prepare(args.input, args.output, args.allow_weak_train, args.teacher_license, args.max_labels)
+    prepare(args.input, args.output, args.allow_weak_train, args.teacher_license, args.max_labels,
+            args.allow_unverified_teacher_terms)

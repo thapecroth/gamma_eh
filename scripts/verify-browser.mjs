@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { access, cp, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
@@ -7,10 +8,11 @@ import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { chromium } from '@playwright/test';
+import { buildPaths } from './paths.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const temporary = await mkdtemp(join(tmpdir(), 'gamma-browser-check-'));
-const artifactDir = join(root, 'artifacts');
+const {artifactDir, webOutput, extensionOutput} = buildPaths(root);
 await mkdir(artifactDir, {recursive: true});
 const failures = [];
 const evidence = {web: {}, model: {}, extension: {}, network: []};
@@ -74,7 +76,16 @@ async function acceptFirst(page) {
 try {
   await build({entryPoints: [join(root, 'packages/engine/src/index.ts')], outfile: join(temporary, 'test-engine.mjs'),
     bundle: true, format: 'esm', platform: 'browser', target: 'chrome116'});
-  const webDir = join(root, 'dist/web');
+  const webDir = webOutput;
+  const modelManifest = JSON.parse(await readFile(join(webDir, 'models/manifest.json'), 'utf8'));
+  for (const filename of ['model.onnx', 'model_quantized.onnx']) {
+    for (const directory of [webDir, extensionOutput]) {
+      const bytes = await readFile(join(directory, 'models', filename));
+      assert.equal(createHash('sha256').update(bytes).digest('hex'), modelManifest.files[filename].sha256,
+        'Built apps must contain the exact exported weights');
+    }
+  }
+  evidence.model.builtWeightHashesVerified = true;
   const types = {'.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.wasm': 'application/wasm'};
   server = createServer(async (request, response) => {
     const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
@@ -91,7 +102,10 @@ try {
       createReadStream(filename).pipe(response);
     } catch { response.writeHead(404).end(); }
   });
-  await new Promise(resolveReady => server.listen(0, '127.0.0.1', resolveReady));
+  await new Promise((resolveReady, rejectListen) => {
+    server.once('error', rejectListen);
+    server.listen(0, '127.0.0.1', resolveReady);
+  });
   const address = server.address();
   const origin = `http://127.0.0.1:${address.port}`;
 
@@ -99,7 +113,7 @@ try {
   // pipeline without automating Chrome's native permission dialog. The shipping
   // manifest is checked below and is never altered.
   const extensionDir = join(temporary, 'extension');
-  await cp(join(root, 'dist/extension'), extensionDir, {recursive: true});
+  await cp(extensionOutput, extensionDir, {recursive: true});
   const shippingManifest = JSON.parse(await readFile(join(extensionDir, 'manifest.json'), 'utf8'));
   assert.equal(shippingManifest.host_permissions, undefined);
   assert.equal(shippingManifest.content_scripts, undefined);
@@ -117,6 +131,11 @@ try {
   const page = await context.newPage();
   page.on('pageerror', error => failures.push(error.message));
   await page.goto(origin);
+  evidence.model.manifest = await page.evaluate(async () => {
+    const response = await fetch('/models/manifest.json');
+    if (!response.ok) throw new Error('Model manifest unavailable');
+    return response.json();
+  });
   await page.getByRole('checkbox').focus();
   await page.getByRole('checkbox').press('Space');
   await page.getByRole('status').filter({hasText: /Local AI|Local rules/u}).first().waitFor({timeout: 90_000});
@@ -146,7 +165,7 @@ try {
   await page.screenshot({path: join(artifactDir, 'editor-mobile.png'), fullPage: true});
 
   const regression = JSON.parse(await readFile(join(root, 'data/regression.json'), 'utf8'));
-  evidence.model = await page.evaluate(async ({origin, cases}) => {
+  Object.assign(evidence.model, await page.evaluate(async ({origin, cases}) => {
     const engine = await import(origin + '/test-engine.mjs');
     const rows = [];
     for (const item of cases) {
@@ -158,7 +177,7 @@ try {
     const gpu = await engine.analyzeText('The students has a notebook.', {modelBaseUrl: origin + '/models/', wasmBaseUrl: origin + '/runtime/', preferWebGPU: true});
     return {rows, preferredBackend: gpu.backend, preferredCorrection: engine.applySuggestions(gpu.text, gpu.suggestions),
       hasWebGPU: 'gpu' in navigator, modelError: gpu.modelError};
-  }, {origin, cases: regression.cases});
+  }, {origin, cases: regression.cases}));
   assert(evidence.model.rows.every(row => row.backend === 'wasm' && !row.modelError), 'All regression checks must execute actual WASM model');
   evidence.model.exactMatches = evidence.model.rows.filter(row => row.actual === row.target).length;
   evidence.model.total = evidence.model.rows.length;
@@ -243,10 +262,14 @@ try {
   assert.deepEqual(failures, [], 'Browser must have no uncaught page exceptions');
   evidence.passed = true;
   console.log(JSON.stringify(evidence, null, 2));
+} catch (error) {
+  evidence.passed = false;
+  failures.push(error instanceof Error ? error.message : 'Browser check failed');
+  throw error;
 } finally {
   await writeFile(join(artifactDir, 'browser-smoke.json'), JSON.stringify({...evidence, errors: failures}, null, 2));
   if (context) await context.close();
-  if (server) await new Promise(resolveClosed => server.close(resolveClosed));
+  if (server?.listening) await new Promise(resolveClosed => server.close(resolveClosed));
   // This directory was created by mkdtemp for this run only.
   if (dirname(temporary) === tmpdir() && temporary.startsWith(join(tmpdir(), 'gamma-browser-check-'))) await rm(temporary, {recursive: true, force: true});
 }

@@ -85,6 +85,18 @@ def test_failed_jobs_are_retryable(tmp_path, monkeypatch):
     assert json.loads((tmp_path / "manifest.json").read_text())["status_counts"] == {"done": 1}
 
 
+def test_only_one_generator_can_use_a_run_directory(tmp_path):
+    path = tmp_path / "run-lock.sqlite3"
+    first = generate_llm.acquire_run_lock(path)
+    try:
+        with pytest.raises(RuntimeError, match="Another generator"):
+            generate_llm.acquire_run_lock(path)
+    finally:
+        first.close()
+    next_run = generate_llm.acquire_run_lock(path)
+    next_run.close()
+
+
 def test_import_is_bounded_and_preserves_attribution(tmp_path):
     rows = [{"input": f"She have a book for project {i}.", "output": f"She has a book for project {i}."} for i in range(10)]
     manifest = materialize(rows, tmp_path, limit=3, max_scanned=5)

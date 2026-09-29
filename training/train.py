@@ -84,6 +84,8 @@ class ExportModel(torch.nn.Module):
 
 
 def main(args):
+    if args.epochs < 1 or args.batch_size < 1 or args.max_length < 4 or args.learning_rate <= 0:
+        raise ValueError("Training requires positive epochs, batch size, learning rate, and max-length >=4")
     torch.set_num_threads(4)
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -91,6 +93,7 @@ def main(args):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"device={device}", flush=True)
     labels = json.loads((args.data / "labels.json").read_text())
+    dataset_manifest = json.loads((args.data / "manifest.json").read_text())
     label_to_id = {label: i for i, label in enumerate(labels)}
     tokenizer = AutoTokenizer.from_pretrained(BASE, revision=REVISION, use_fast=True)
     model = AutoModelForTokenClassification.from_pretrained(
@@ -141,7 +144,8 @@ def main(args):
               "training_seconds": round(time.monotonic() - started, 2), "epochs": history,
               "calibration": {"candidates": thresholds, "selected": chosen, "split": "dev"},
               "test": metrics(test_logits, test_gold, chosen["threshold"]),
-              "scope": "Synthetic in-distribution edit-tag benchmark; not real-world GEC quality."}
+              "scope": dataset_manifest.get("evaluation_scope", "Synthetic in-distribution edit-tag benchmark; not real-world GEC quality."),
+              "publication_allowed": dataset_manifest.get("publication_allowed", True)}
     args.output.mkdir(parents=True, exist_ok=True)
     model = model.cpu().eval()
     wrapper = ExportModel(model)
@@ -158,6 +162,7 @@ def main(args):
     tokenizer.save_pretrained(args.output)
     shutil.copyfile(args.data / "labels.json", args.output / "labels.json")
     model.config.save_pretrained(args.output)
+    shutil.copyfile(args.data / "manifest.json", args.output / "dataset-manifest.json")
     # Check both full-precision and quantized exports against the complete held-out split.
     session_options = ort.SessionOptions()
     session_options.intra_op_num_threads = 4
@@ -175,7 +180,9 @@ def main(args):
                              "max_logit_difference": (onnx_logits - test_logits).abs().max().item(),
                              "argmax_agreement": (onnx_logits.argmax(-1) == test_logits.argmax(-1))[test_gold != -100].float().mean().item()}
     report["exports"] = exports
-    manifest = {"schema": 1, "name": "gamma-eh-tiny-edit-v1", "model_license": "Apache-2.0",
+    manifest = {"schema": 1, "name": "gamma-eh-tiny-edit-v1",
+                "model_license": "Apache-2.0" if report["publication_allowed"] else "provider-terms-unverified",
+                "publication_allowed": report["publication_allowed"],
                 "base_model": BASE, "base_revision": REVISION, "parameters": report["parameters"],
                 "confidenceThreshold": chosen["threshold"], "maxSequenceLength": args.max_length,
                 "experimental": True, "files": {}}
@@ -185,7 +192,6 @@ def main(args):
                                            "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
     (args.output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     (args.output / "evaluation.json").write_text(json.dumps(report, indent=2) + "\n")
-    shutil.copyfile(args.data / "manifest.json", args.output / "dataset-manifest.json")
     print(json.dumps({"test": report["test"], "exports": exports}), flush=True)
 
 

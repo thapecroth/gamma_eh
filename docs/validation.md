@@ -12,6 +12,11 @@ The model card and committed evaluation JSON report exact model/dataset evidence
 - The extension fixture grants localhost in a temporary test-only manifest copy. The shipping manifest has only optional site permissions. Chrome's native permission dialog was not automated.
 - The pinned C4 mirror streamed 1,000 valid pairs from 1,013 rows and exited normally after synchronous-reader repair. Preparation reports its limited edit alignment coverage and correctly leaves dev/test empty for unreviewed data.
 - A million-pair teacher generation dry run planned 50,000 requests without calling any model endpoint.
+- A subsequent [live GLM teacher pilot](live-pilot.md) generated 80 candidates,
+  prepared 79 train-only pairs, trained/exported a separate capped student, and
+  passed 18 JavaScript/17 Python tests. Its browser test is blocked at localhost
+  `listen EPERM` after the sandbox switch; the fresh model has no browser-pass
+  receipt and does not replace the previously verified shipped baseline.
 
 Browser screenshots and detailed smoke results are produced under Git-ignored
 `artifacts/`. See [model limitations](../models/MODEL_CARD.md) and
