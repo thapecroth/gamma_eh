@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title description">
+  <title id="title">Gamma EH — Your words. Your device.</title>
+  <desc id="description">An open-source writing assistant with a tiny transformer running locally through WebGPU.</desc>
+  <rect width="1200" height="360" rx="28" fill="#f5f2eb"/>
+  <circle cx="1070" cy="58" r="165" fill="#e9e3ee"/>
+  <circle cx="1130" cy="354" r="170" fill="#e4e9df"/>
+  <rect x="60" y="49" width="42" height="42" rx="13" fill="#76609b"/>
+  <text x="71" y="79" font-family="Georgia, serif" font-size="31" fill="#fff">g</text>
+  <text x="115" y="79" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#36312e">gamma eh</text>
+  <text x="60" y="164" font-family="Georgia, serif" font-size="54" fill="#36312e">Your words. Your device.</text>
+  <text x="62" y="208" font-family="Arial, sans-serif" font-size="21" fill="#625e58">A little clarity. A tiny transformer. Entirely local.</text>
+  <rect x="62" y="252" width="171" height="38" rx="19" fill="#76609b"/>
+  <text x="87" y="277" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#fff">Runs on WebGPU</text>
+  <rect x="247" y="252" width="150" height="38" rx="19" fill="#e4e9df"/>
+  <text x="273" y="277" font-family="Arial, sans-serif" font-size="15" fill="#475943">Open source</text>
+  <rect x="850" y="94" width="242" height="179" rx="22" fill="#fff" stroke="#d7d0df" stroke-width="2"/>
+  <rect x="884" y="130" width="111" height="10" rx="5" fill="#d6cce2"/>
+  <rect x="884" y="154" width="169" height="10" rx="5" fill="#e8e5de"/>
+  <rect x="884" y="178" width="138" height="10" rx="5" fill="#e8e5de"/>
+  <path d="M887 216l10 10 21-23" fill="none" stroke="#879879" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="929" y="226" font-family="Arial, sans-serif" font-size="16" fill="#625e58">Keep your voice.</text>
+</svg>

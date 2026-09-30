@@ -8,5 +8,6 @@
 - [Initial validation](validation.md): local checks, browser execution, and known verification limits.
 - [Browser verification](browser-testing.md): capability preflight, hosted E2E lane, strict correction checks, and remaining verification gates.
 - [Frontend toolchain](toolchain.md): project-local Vite+, version alignment, and web/extension packaging.
+- [Releases](releases.md): ready-built Chrome/web ZIPs, checksums, installation, and gated publication.
 - [Chrome extension](../apps/extension/README.md): unpacked installation and site permissions.
 - [Model card](../models/MODEL_CARD.md): trained checkpoint scope and measured results.

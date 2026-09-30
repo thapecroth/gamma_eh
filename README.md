@@ -1,88 +1,199 @@
-# Gamma EH
+![Gamma EH — Your words. Your device.](docs/assets/readme-banner.svg)
 
-An open-source English writing assistant: a web editor, Chrome extension, and
-tiny transformer correction engine. Text stays on your device. Suggestions are
-applied only when you accept them.
+<h1 align="center">Gamma EH</h1>
+<p align="center">An open-source English writing assistant.<br>A tiny transformer, running in your browser with WebGPU. Your text stays yours.</p>
 
-**Experimental baseline:** the first model is fine-tuned on original synthetic
-templates. It demonstrates local model training and browser inference; it is
-not yet a general Grammarly replacement. See the [model card](models/MODEL_CARD.md).
+<p align="center">
+  <a href="https://github.com/thapecroth/gamma_eh/actions/workflows/check.yml"><img alt="Checks" src="https://github.com/thapecroth/gamma_eh/actions/workflows/check.yml/badge.svg"></a>
+  <a href="#yes-we-ran-the-model-on-webgpu"><img alt="WebGPU execution verified" src="https://img.shields.io/badge/WebGPU-execution_verified-76609b"></a>
+  <a href="models/MODEL_CARD.md"><img alt="4.38 million parameter model" src="https://img.shields.io/badge/model-4.38M_parameters-879879"></a>
+  <a href="LICENSE"><img alt="Apache 2.0 license" src="https://img.shields.io/badge/license-Apache_2.0-625e58"></a>
+</p>
 
-## Run the editor
+<p align="center">
+  <a href="https://github.com/thapecroth/gamma_eh/releases">Downloads</a> ·
+  <a href="#quickstart">Quickstart</a> ·
+  <a href="#chrome-extension">Chrome extension</a> ·
+  <a href="docs/README.md">Docs</a> ·
+  <a href="#contributing">Contributing</a>
+</p>
 
-Requires Node.js 24.11+ (24.x) and npm. The project-local Vite+ toolchain requires
-no global installation. The trained model and browser runtime are bundled
-by the build script.
+Write freely. Review a suggestion. Keep what sounds like you.
+
+Gamma EH combines spelling and grammar rules with a small, locally executed
+transformer. Try it in the web editor or take it along with the Chrome extension.
+Nothing changes until you accept a suggestion.
+
+> [!IMPORTANT]
+> Early, experimental software. The shipped model is trained on original synthetic
+> templates, not a representative real-world grammar corpus. It proves the training
+> and local-inference pipeline; it is not yet a general Grammarly replacement.
+> Rules are on by default. **Local AI is opt-in.** Read the [model card](models/MODEL_CARD.md).
+
+## Why Gamma EH?
+
+| | What you get |
+| --- | --- |
+| **Local by design** | Bundled model and runtime. No account, API key, or inference server. |
+| **WebGPU + WASM** | WebGPU where available; quantized CPU inference as a fallback. |
+| **A genuinely tiny model** | 4.38M parameters; about 4.46 MB of INT8 weights. Runtime assets add to download size. |
+| **You stay in control** | Accept or dismiss edits; source offsets and stale-text checks protect your draft. |
+| **Permission per site** | Enable the extension only where you want it. Sensitive fields are excluded. |
+
+<details>
+<summary>See the editor — an actual local preview</summary>
+
+![Gamma EH editor showing a fictional draft and spelling suggestions](docs/assets/editor-desktop.png)
+
+This preview shows the default rules mode. Enable **Local AI** to try the
+transformer; the interface reports the active WebGPU or WASM backend.
+
+</details>
+
+## Yes, we ran the model on WebGPU
+
+Our trained ONNX model executed through the **WebGPU execution provider** in
+both the web editor's worker and the Chrome extension's offscreen inference path.
+That is verified execution, not just a `navigator.gpu` availability check.
+
+[View the successful hosted E2E run](https://github.com/thapecroth/gamma_eh/actions/runs/36652624194)
+at commit `6ef90a1`:
+
+- A model-origin correction: “The students has a notebook.” → “The students have a notebook.”
+- WASM fallback exercised; all 15 engine smoke cases matched the expected text.
+- Extension edits, opt-out fields, pause/resume, and no external browser requests checked.
+- 28 app tests and 17 dataset tests passed alongside lint, typecheck, and both builds.
+
+> [!NOTE]
+> The hosted WebGPU adapter was **SwiftShader software**, not a physical GPU.
+> This verifies the WebGPU inference path, not hardware acceleration or latency.
+> The 15 cases are engine smoke tests, not model-only or real-world accuracy scores.
+> See [browser testing and remaining verification gates](docs/browser-testing.md).
+
+## Quickstart
+
+Requires **Node.js 24.11+ (24.x)** and npm. Vite+ is project-local; no global
+installation is needed. The pretrained baseline is included.
 
 ```sh
+git clone https://github.com/thapecroth/gamma_eh.git
+cd gamma_eh
 npm ci
 npm run build
 npm run dev
 ```
 
-Open the local address printed by Vite+. Local AI uses WebGPU where available
-and falls back to a quantized CPU model. Rules are enabled by default; explicitly
-switch on experimental Local AI in the editor or extension popup to try the model.
-No API keys, accounts, or inference server are needed.
-
-For browser verification, run `npm run check:environment` and see
-[Browser testing](docs/browser-testing.md). Hosted PR checks include actual
-WASM/WebGPU inference in the web editor and Chrome extension.
+Open the address printed by Vite+. Flip **Local AI** on to try the experimental
+model. Inference assets are local; executable code is never fetched from a CDN.
 
 ## Chrome extension
 
+### Download and install
+
+Ready-built packages belong on the [Releases page](https://github.com/thapecroth/gamma_eh/releases).
+When a release is available, download **`gamma-eh-chrome-vX.Y.Z.zip`** from its
+Assets section — not GitHub's automatically generated “Source code” ZIP.
+No Node.js or build step is needed for the extension package.
+
+1. Extract the ZIP into a folder you will keep on your computer.
+2. Open `chrome://extensions` in Chrome 116 or newer and enable **Developer mode**.
+3. Choose **Load unpacked** and select the extracted folder containing `manifest.json`.
+4. Open a regular website, click the Gamma EH toolbar button, and choose **Enable on this site**.
+5. Write in a textarea or plain-text contenteditable. Enable **Local AI** in the popup if desired.
+
+This is a developer-mode installation, not a Chrome Web Store listing or a
+one-click CRX installer. See [installation and updates](apps/extension/README.md)
+and [release packaging](docs/releases.md).
+
+### Build from source
+
+After `npm ci` and `npm run build`, load `dist/extension` with the same steps.
+The model and browser runtime are included in that folder.
+
+The extension currently supports plain fields in the top frame. Google Docs,
+rich document editors, shadow roots, and nested frames are not supported.
+Page text is not uploaded or stored in extension settings.
+
+## Inside the model
+
+| Component | Baseline |
+| --- | --- |
+| Architecture | BERT-Tiny edit classifier: 2 layers, hidden size 128, 2 attention heads |
+| Parameters | 4,377,793 |
+| Edits | 65 token-edit labels, confidence-gated suggestions |
+| Context | Up to 64 WordPiece tokens per inference |
+| Browser exports | FP32 ONNX for WebGPU; INT8 ONNX for WASM fallback |
+| Training data | Original, deterministic CC0 synthetic templates |
+
+The shared engine combines model suggestions with rules and checks UTF-16
+offsets before applying an edit. Workers keep inference off the UI thread.
+
+[Architecture](docs/research-and-architecture.md) ·
+[Training and provenance](docs/dataset-and-training.md) ·
+[Model card and evaluation limits](models/MODEL_CARD.md)
+
+## Development
+
 ```sh
-npm ci
-npm run build
+npm run check                 # lint → typecheck → tests → release tests → build
+npx playwright install chromium
+GAMMA_TEST_WEBGPU=1 npm run check:environment
+GAMMA_TEST_WEBGPU=1 npm run test:browser
 ```
 
-In `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and
-select `dist/extension`. Open the extension popup on a regular website and grant
-checking for that site. See the [extension instructions](apps/extension/README.md).
+Run heavy jobs sequentially. Browser tests need a host that can launch Chromium
+and bind localhost; see [the capability preflight](docs/browser-testing.md).
+Use `npm run build`, not bare `vp build`, to bundle both apps and inference assets.
 
-The first extension supports textarea and plain contenteditable fields in the
-top frame. Rich document editors, Google Docs, shadow roots, and nested frames
-are not supported. Password and sensitive fields are excluded. No page text is
-sent over the network or stored in extension settings.
-
-## Develop and train
-
-For large teacher-generated runs or ready-made C4 pairs, see
-[Scaling the dataset](docs/massive-dataset.md). The resumable generator supports
-OpenAI-compatible and Anthropic endpoints; it defaults to a dry run.
+<details>
+<summary>Train or generate a larger dataset</summary>
 
 ```sh
-npm run check
 uv venv --python 3.10
 uv pip install --python .venv/bin/python -r training/requirements.txt
 .venv/bin/python training/data.py
-.venv/bin/python -m pytest training/test_data.py
+.venv/bin/python -m pytest training
 .venv/bin/python training/train.py --epochs 8
 npm run build
 ```
 
-Heavy jobs run sequentially on a shared machine. Model training automatically
-uses CUDA when available. The seed, base revision, dataset hashes, calibration,
-test results, and quantization comparison are recorded beside the browser model.
+Training uses CUDA when available. Seeds, source revisions, dataset hashes,
+calibration, and evaluation evidence are recorded with the model.
 
-The frontend uses Vite+ for development, linting, tests, and the Vite core build.
-`npm run build` also packages the extension and local inference assets; bare
-`vp build` is not a replacement for it. See [Frontend toolchain](docs/toolchain.md).
+For large teacher-generated runs, the resumable generator supports
+OpenAI-compatible and Anthropic endpoints and defaults to a dry run.
+[Scaling the dataset](docs/massive-dataset.md) covers generation and C4 imports.
+Keep provider terms, provenance, and held-out evaluation separate; private pilot
+datasets and checkpoints are not public release assets.
 
-## Layout
+</details>
+
+### Project map
 
 | Path | Purpose |
 | --- | --- |
-| `apps/web` | React editor; inference in a dedicated worker |
-| `apps/extension` | Manifest V3 popup, content script, offscreen inference worker |
-| `packages/engine` | Rules, offset-safe edit operations, BERT tokenization, ONNX inference |
-| `training` | Dataset generator, training, export, corpus safety tests |
-| `models/browser` | Trained weights, tokenizer, manifest, evaluation evidence |
-| `docs` | Research, architecture, data provenance, roadmap |
+| `apps/web` | React editor and inference worker |
+| `apps/extension` | Manifest V3 popup, content script, offscreen inference |
+| `packages/engine` | Rules, safe edit operations, tokenization, ONNX inference |
+| `training` | Dataset generation, training, export, corpus safety tests |
+| `models/browser` | Public baseline weights and provenance |
+| `docs` | Research, validation, release runbook, roadmap |
 
-[Documentation index](docs/README.md) · [Research](docs/research-and-architecture.md)
-· [Dataset/training](docs/dataset-and-training.md) · [Roadmap](docs/roadmap.md)
+## Contributing
 
-Code and trained derivative model: Apache-2.0. Original generated corpus:
-CC0-1.0. Google's base checkpoint retains its Apache-2.0 attribution. See
-[NOTICE](NOTICE). This independent project is not affiliated with Grammarly.
+This is an early open-source project. Help with grammar coverage, accessible
+interfaces, independent evaluation, and browser compatibility is welcome.
+
+- Start with the [roadmap](docs/roadmap.md) and [documentation index](docs/README.md).
+- [Report an issue](https://github.com/thapecroth/gamma_eh/issues) with a minimal,
+  fictional example. Please don't include private drafts or credentials.
+- Use a branch and pull request, Conventional Commits, and focused tests.
+  Document new infrastructure under `docs/`.
+
+## License
+
+Code and trained derivative model: [Apache-2.0](LICENSE). Original generated
+corpus: CC0-1.0. Google's base checkpoint and bundled dependencies retain their
+attributions; see [NOTICE](NOTICE).
+
+An independent project, not affiliated with or endorsed by Grammarly.
