@@ -52,6 +52,7 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:release
+      - run: npm run test:agents
       - run: pip install pytest==8.4.2
       - run: python -m pytest training
       - run: npx playwright install --with-deps chromium
@@ -69,6 +70,7 @@ jobs:
           unzip -q "artifacts/releases/$GAMMA_RELEASE_TAG/gamma-eh-chrome-$GAMMA_RELEASE_TAG.zip" -d dist/extension
           unzip -q "artifacts/releases/$GAMMA_RELEASE_TAG/gamma-eh-web-$GAMMA_RELEASE_TAG.zip" -d dist/web
           npm run test:browser
+          npm run test:extension
       - uses: actions/upload-artifact@v4
         with:
           name: release-assets
@@ -85,6 +87,9 @@ jobs:
             artifacts/browser-smoke.json
             artifacts/editor-desktop.png
             artifacts/editor-mobile.png
+            artifacts/agents/extension-*/browser.json
+            artifacts/agents/extension-*/*.png
+            artifacts/agents/extension-*/trace.zip
           if-no-files-found: warn
           retention-days: 7
 

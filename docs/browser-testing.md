@@ -56,6 +56,12 @@ or establish general grammar quality.
 
 ## Scope and remaining gates
 
+The additional `npm run test:extension` suite exercises real popup activation
+and settings, stale edits, emoji offsets, dismissing and protected fields. It
+runs in hosted browser and release jobs and saves traces and screenshots under
+`artifacts/agents/extension-*/`. For Luna-driven scenarios and the Codex repair
+loop, see [agentic development](agentic-development.md).
+
 Hosted CI only uses the public Apache-2.0 baseline and original fictional
 fixtures. It does not upload the private, output-terms-unverified GLM corpus or
 student weights, store teacher credentials, or connect back to the development
