@@ -1,17 +1,33 @@
 # Chrome extension
 
-Run `npm install` and `npm run build` at the repository root. The build bundles
-the runtime, model, and extension scripts into `dist/extension/`.
+## Download a built package
+
+When available, download `gamma-eh-chrome-vX.Y.Z.zip` from the
+[Releases page](https://github.com/thapecroth/gamma_eh/releases), then extract it
+into a permanent folder. Use the folder containing `manifest.json` in the steps
+below. No Node.js or build step is needed. Do not download the automatic source
+ZIP for installation. Packages contain the runtime, model, and licenses.
+
+To build from source instead, run `npm ci` and `npm run build` at the repository
+root, then use `dist/extension/` as the installation folder.
+
+## Install
 
 1. Open `chrome://extensions` in a recent Chrome version with offscreen-document
    support (Chrome 116 or newer).
 2. Enable **Developer mode**, choose **Load unpacked**, and select
-   `dist/extension/`.
+   the extracted release folder (or `dist/extension/` for a source build).
 3. Open a website, select the Gamma EH toolbar button, and choose **Enable on
    this site**. Chrome requests access to that site only.
 4. Focus an ordinary textarea or plain-text contenteditable field. Suggestions
    appear in a small panel. Choose **Accept** or **Dismiss**; close the panel to
    pause that field.
+
+Keep the extracted folder on disk. To update, remove the old unpacked extension,
+extract the new release, and load its folder. Re-enable the desired sites; this
+resets preferences. Unpacked installs do not auto-update. This is developer-mode
+installation, not a Chrome Web Store or one-click CRX installer. See the
+[release runbook](../../docs/releases.md) for checksums and publication details.
 
 The popup can pause suggestions everywhere, disable experimental local AI, or
 remove a site's permission. Password inputs, payment/authentication fields,
