@@ -41,8 +41,15 @@ export function summarizeCapabilities(checks, teacherRequired) {
     blocked: required.filter(name => checks[name]?.status !== 'passed')};
 }
 
-async function withLocalHttp(operation) {
-  const server = createServer((_request, response) => response.end('gamma-environment-ok'));
+export async function withLocalHttp(operation, serverFactory = createServer) {
+  const server = serverFactory((_request, response) => response.end('gamma-environment-ok'));
+  // Chromium may preconnect without sending a request. server.close() alone
+  // waits for those sockets, while the browser is only closed after this helper.
+  const sockets = new Set();
+  server.on('connection', socket => {
+    sockets.add(socket);
+    socket.once('close', () => sockets.delete(socket));
+  });
   try {
     await new Promise((resolveReady, rejectListen) => {
       server.once('error', rejectListen);
@@ -50,7 +57,10 @@ async function withLocalHttp(operation) {
     });
     return await operation(`http://127.0.0.1:${server.address().port}/`);
   } finally {
-    if (server.listening) await new Promise(resolveClosed => server.close(resolveClosed));
+    if (server.listening) await new Promise(resolveClosed => {
+      server.close(resolveClosed);
+      for (const socket of sockets) socket.destroy();
+    });
   }
 }
 
@@ -75,15 +85,23 @@ export async function probeChromium(environment = process.env) {
     const result = {status: 'passed', version: context.browser()?.version() ?? 'unknown'};
     if (environment.GAMMA_TEST_WEBGPU === '1') {
       const adapter = await withLocalHttp(async origin => {
-        await page.goto(origin);
+        await page.goto(origin, {timeout: 5000});
         return page.evaluate(async () => {
-          const adapter = await navigator.gpu?.requestAdapter();
-          if (!adapter) return null;
-          return {vendor: adapter.info.vendor, architecture: adapter.info.architecture,
-            isFallbackAdapter: adapter.info.isFallbackAdapter};
+          let timer;
+          try {
+            const result = await Promise.race([
+              Promise.resolve(navigator.gpu?.requestAdapter()).then(adapter => adapter ? {
+                vendor: adapter.info.vendor, architecture: adapter.info.architecture,
+                isFallbackAdapter: adapter.info.isFallbackAdapter,
+              } : null),
+              new Promise(resolve => { timer = setTimeout(() => resolve({timedOut: true}), 10000); }),
+            ]);
+            return result;
+          } finally { clearTimeout(timer); }
         });
       });
-      if (!adapter) throw new Error('Required WebGPU adapter unavailable');
+      if (adapter?.timedOut) throw Object.assign(new Error('WebGPU adapter probe timed out'), {code: 'WEBGPU_TIMEOUT'});
+      if (!adapter) throw Object.assign(new Error('Required WebGPU adapter unavailable'), {code: 'WEBGPU_UNAVAILABLE'});
       result.adapter = adapter;
     }
     return result;

@@ -1,7 +1,24 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { browserArguments, capabilityFailure, checkEnvironment, summarizeCapabilities, teacherCatalogUrl } from '../scripts/browser-environment.mjs';
+import { EventEmitter } from 'node:events';
+import { browserArguments, capabilityFailure, checkEnvironment, summarizeCapabilities, teacherCatalogUrl, withLocalHttp } from '../scripts/browser-environment.mjs';
 
 describe('browser/pipeline prerequisites', () => {
+  it('closes speculative browser sockets before waiting for its own HTTP server', async () => {
+    const server = new EventEmitter();
+    const socket = new EventEmitter();
+    let destroyed = false;
+    socket.destroy = () => { destroyed = true; socket.emit('close'); };
+    server.listen = (_port, _host, ready) => {
+      server.listening = true;
+      server.emit('connection', socket);
+      ready();
+    };
+    server.address = () => ({port: 12345});
+    server.close = closed => { server.listening = false; socket.once('close', closed); };
+    expect(await withLocalHttp(async origin => origin, () => server)).toBe('http://127.0.0.1:12345/');
+    expect(destroyed).toBe(true);
+    expect(server.listening).toBe(false);
+  });
   it('does not confuse browser readiness with teacher availability', () => {
     const checks = {localHttp: {status: 'passed'}, chromium: {status: 'passed'}, teacher: {status: 'not-requested'}};
     expect(summarizeCapabilities(checks, false)).toMatchObject({passed: true, scope: 'browser-prerequisites', blocked: []});

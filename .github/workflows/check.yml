@@ -43,6 +43,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Check browser runtime capabilities
+        timeout-minutes: 2
         run: npm run check:environment
       - run: npm run build
       - name: Verify local model, web editor, and Chrome extension

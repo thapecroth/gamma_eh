@@ -15,6 +15,10 @@ Chromium startup. With `GAMMA_TEST_WEBGPU=1` it also requests an adapter from a
 localhost page. It collects all failures instead of stopping at the first one,
 and writes sanitized, scoped evidence to `artifacts/environment.json`.
 No sandbox, firewall, proxy, or host configuration is changed by the preflight.
+Local server cleanup explicitly closes its own speculative browser connections
+before waiting for shutdown. Navigation and adapter acquisition have bounded
+timeouts; an unavailable or stalled adapter fails readiness rather than passing
+via CPU fallback.
 
 To check the full live-pipeline prerequisites, securely set `TEACHER_API_KEY` and:
 

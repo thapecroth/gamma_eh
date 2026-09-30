@@ -20,7 +20,7 @@ const habitualVerbs: Record<string, string> = {
   run: 'runs', study: 'studies', watch: 'watches',
 };
 const habitualAgreement = new RegExp(
-  `(^|[.!?]\\s+)((?:my|your|our|his|her|their|the|a)[ \\t]+(?:friend|teacher|neighbor|student|child|colleague|manager))([ \\t]+)(${Object.keys(habitualVerbs).join('|')})\\b(?=[^.!?\\n]*\\bevery[ \\t]+(?:morning|day|evening|night|week)\\b[^.!?\\n]*(?:\\.|$))`, 'gimu');
+  `(^|[.!?]\\s+)((?:my|your|our|his|her|their|the|a)[ \\t]+(?:friend|teacher|neighbor|student|child|colleague|manager))([ \\t]+)(${Object.keys(habitualVerbs).join('|')})\\b(?=[^.!?\\n]*\\bevery[ \\t]+(?:morning|day|evening|night|week)\\b[^.!?\\n]*(?:\\.|$))`, 'giu');
 
 export function canonicalSpelling(word: string): string {
   return spelling[word.toLowerCase()] ?? word.toLowerCase();
@@ -48,7 +48,7 @@ export function analyzeRules(text: string): Suggestion[] {
   }
   // Restrict rules to sentence-initial subjects. "Does she have" and "I insist
   // that he have" must not become "has"; model suggestions handle other contexts.
-  for (const match of text.matchAll(/(^|[.!?]\s+)(I|he|she|it|we|they|you)([ \t]+)(is|are|am|has|have)\b/gimu)) {
+  for (const match of text.matchAll(/(^|[.!?]\s+)(I|he|she|it|we|they|you)([ \t]+)(is|are|am|has|have)\b/giu)) {
     const subject = match[2].toLowerCase();
     const verb = match[4].toLowerCase();
     const singular = ['he', 'she', 'it'].includes(subject);

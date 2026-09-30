@@ -33,6 +33,9 @@ describe('correction safety', () => {
     const text = '```\nMy friend go to school every morning.\n```';
     expect(analyzeRules(text)).toEqual([]);
   });
+  it('does not mistake wrapped subjunctives or questions for new sentences', () => {
+    expect(analyzeRules('I insist that\nmy friend go every morning. I insist that\nhe have a chance. My friend go every morning\n?')).toEqual([]);
+  });
   it('inserts missing words without deleting neighbors', () => {
     const edit: Suggestion = {id: 'insert', start: 6, end: 6, original: '', replacement: ' a',
       message: '', category: 'grammar', confidence: .99, source: 'model'};
