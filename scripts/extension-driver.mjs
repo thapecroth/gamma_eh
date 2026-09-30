@@ -17,7 +17,7 @@ const stepSchema = {type: 'object', additionalProperties: false, required: ['act
 export const planSchema = {type: 'object', additionalProperties: false, required: ['reason', 'scenarios'], properties: {
   reason: {type: 'string'}, scenarios: {type: 'array', minItems: 1, maxItems: 4, items: {
     type: 'object', additionalProperties: false, required: ['id', 'steps'], properties: {
-      id: {type: 'string'}, steps: {type: 'array', minItems: 2, maxItems: 20, items: stepSchema},
+      id: {type: 'string', pattern: '^[a-z][a-z0-9-]{0,63}$'}, steps: {type: 'array', minItems: 2, maxItems: 20, items: stepSchema},
     },
   }},
 }};

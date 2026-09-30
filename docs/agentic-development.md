@@ -93,7 +93,8 @@ creates at most three coding attempts, running checks sequentially. Codex may
 edit product apps/packages, regression tests and documentation; changes to
 automation, package scripts, credentials, model assets or datasets stop the run.
 Staged edits are checked too. Authentication/model failures stop rather than
-triggering product repairs. No-op tasks produce no PR.
+triggering product repairs. Malformed Luna plans also stop without coding retries;
+the output schema requires lowercase, hyphenated scenario IDs. No-op tasks produce no PR.
 
 Append **`--publish`** when you want a verified change committed, pushed and
 opened as a draft PR. PR publication requires matching source evidence from
