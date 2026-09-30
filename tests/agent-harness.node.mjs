@@ -115,18 +115,19 @@ test('shared locks reject another run and validate inherited ownership', () => f
 
 test('nonzero processes and log failures reject before a retry can start', async () => {
   await assert.rejects(runCommand(process.execPath, ['-e', 'process.exit(7)']), error => error.result?.code === 7);
+  await assert.rejects(runCommand(process.execPath, ['-e', 'process.exit(130)']), error => error.result?.interrupted === true);
   const directory = await mkdtemp(join(tmpdir(), 'gamma-process-unit-'));
   try {
     await assert.rejects(runCommand(process.execPath, ['-e', 'setInterval(()=>{},1000)'], {log: join(directory, 'missing', 'log.txt'), timeoutMs: 3000}), error => error.code === 'ENOENT');
   } finally { await rm(directory, {recursive: true, force: true}); }
 });
 
-test('timeouts stop descendants even when the leader exits first', {skip: process.platform === 'win32'}, async () => {
+test('timeouts stop detached descendants even when the leader exits first', {skip: process.platform !== 'linux'}, async () => {
   const directory = await mkdtemp(join(tmpdir(), 'gamma-process-tree-'));
   const pidPath = join(directory, 'pid');
   let pid;
   try {
-    const program = `const {spawn}=require('node:child_process'); const {writeFileSync}=require('node:fs'); const child=spawn(process.execPath,['-e','process.on("SIGTERM",()=>{});setInterval(()=>{},1000)'],{stdio:'ignore'});writeFileSync(${JSON.stringify(pidPath)},String(child.pid));setInterval(()=>{},1000);`;
+    const program = `const {spawn}=require('node:child_process'); const {writeFileSync}=require('node:fs'); const child=spawn(process.execPath,['-e','process.on("SIGTERM",()=>{});setInterval(()=>{},1000)'],{stdio:'ignore',detached:true});writeFileSync(${JSON.stringify(pidPath)},String(child.pid));setInterval(()=>{},1000);`;
     await assert.rejects(runCommand(process.execPath, ['-e', program], {timeoutMs: 700}), error => error.result?.timedOut === true);
     pid = Number(await readFile(pidPath, 'utf8'));
     const end = Date.now() + 2000;
@@ -138,6 +139,24 @@ test('timeouts stop descendants even when the leader exits first', {skip: proces
       await new Promise(ready => setTimeout(ready, 25));
     }
     assert.fail('Timed-out descendant remained alive');
+  } finally {
+    if (pid) try { process.kill(pid, 'SIGKILL'); } catch { /* already stopped */ }
+    await rm(directory, {recursive: true, force: true});
+  }
+});
+
+test('immediate launcher exit cannot orphan a detached process between samples', {skip: process.platform !== 'linux'}, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'gamma-fast-process-'));
+  let pid;
+  try {
+    const pidPath = join(directory, 'pid');
+    const program = `const {spawn}=require('node:child_process'); const {writeFileSync}=require('node:fs'); const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore',detached:true});writeFileSync(${JSON.stringify(pidPath)},String(child.pid));process.exit(0);`;
+    await runCommand(process.execPath, ['-e', program]);
+    pid = Number(await readFile(pidPath, 'utf8'));
+    try {
+      const stat = await readFile(`/proc/${pid}/stat`, 'utf8');
+      assert.match(stat, /\) [ZX] /u, 'Detached orphan must be stopped before the command resolves');
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
   } finally {
     if (pid) try { process.kill(pid, 'SIGKILL'); } catch { /* already stopped */ }
     await rm(directory, {recursive: true, force: true});

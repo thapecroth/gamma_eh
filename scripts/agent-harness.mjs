@@ -17,7 +17,7 @@ const discoverySchema = {type: 'object', additionalProperties: false, required: 
 
 export function parseOptions(args) {
   const options = {mode: args.shift(), iterations: 2, codingModel: process.env.GAMMA_CODEX_MODEL ?? 'gpt-6-sol', publish: false, verifyOnly: false};
-  if (!['e2e', 'loop'].includes(options.mode)) throw new Error('Usage: agent-harness.mjs e2e|loop [--task text] [--max-iterations 1..3] [--base ref] [--coding-model name] [--verify-only] [--publish]');
+  if (!['e2e', 'loop'].includes(options.mode)) throw new Error('Usage: agent-harness.mjs e2e|loop [--task text] [--focus text] [--max-iterations 1..3] [--base ref] [--coding-model name] [--verify-only] [--publish]');
   while (args.length) {
     const flag = args.shift();
     if (flag === '--publish') options.publish = true;
@@ -58,11 +58,13 @@ export async function runAgentE2E({root, directory, build = true, focus = '', to
         environment: token ? {GAMMA_AGENT_LOCK_TOKEN: token} : {}});
     } catch (error) {
       if (error.result?.code !== 1 || error.result?.timedOut || error.result?.interrupted) throw error;
-      await readFile(join(browserDir, 'browser.json')); // Only a recorded assertion failure may proceed to review.
+      const failed = JSON.parse(await readFile(join(browserDir, 'browser.json'), 'utf8')); // Only a recorded assertion failure may proceed to review.
+      if (failed.interrupted) { error.result.interrupted = true; throw error; }
     } finally {
       for (const name of await readdir(browserDir)) if (name.startsWith('session-')) await rm(join(browserDir, name), {recursive: true, force: true});
     }
     const evidence = JSON.parse(await readFile(join(browserDir, 'browser.json'), 'utf8'));
+    if (evidence.interrupted) throw Object.assign(new Error('Extension driver interrupted'), {result: {interrupted: true}});
     report.machinePassed = evidence.passed;
     // Review even failed browser runs, but no agent can waive machine failures.
     report.phase = 'luna-review';

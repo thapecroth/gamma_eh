@@ -18,9 +18,14 @@ flowchart LR
 
 ## Setup
 
-Use Node 24.11+ in the 24.x line, npm, Git and the Codex CLI. Publication also
+Use Node 24.11+ in the 24.x line, Python 3, npm, Git and the Codex CLI. Publication also
 requires authenticated `gh` and push permission. The harness was validated with
-Codex CLI 0.157.1 on Linux; process-group cleanup targets POSIX systems.
+Codex CLI 0.157.1 on Linux. The npm scripts use a small Python launcher to enable
+[Linux child-subreaper ownership](https://man7.org/linux/man-pages/man2/PR_SET_CHILD_SUBREAPER.2const.html),
+which survives execution of the Node supervisor. Linux supervision tracks descendant PID/start-time
+identities, including Chromium's separate process group, and awaits shutdown.
+Even children whose launcher exits immediately remain owned by the supervisor.
+Other POSIX systems use process-group signals and require separate validation.
 
 ```sh
 npm ci
@@ -63,7 +68,9 @@ Luna produces an allowlisted JSON action plan, limited to four scenarios and
 and screenshots. Agent claims cannot waive failed browser assertions, missing
 required cases, source changes or stale evidence. The browser has a four-minute
 watchdog and a five-minute supervisor timeout. Agent calls and commands have
-separate finite timeouts. Interrupting a run stops the active process group.
+separate finite timeouts. Interrupting a run stops the active command and its
+owned descendants. A driver-only cancellation also stops the loop without a
+coding retry.
 
 To supervise the complete loop without asking for edits, use a clean checkout:
 
@@ -105,7 +112,8 @@ Each run prints its unique directory under `artifacts/agents/`. Inspect:
 
 Open a trace with `npx playwright show-trace <path-to-trace.zip>`. Private command
 logs stay local with restricted permissions and are never put in a PR body.
-Git ignores artifacts. Temporary browser profiles are removed, including after
+Git ignores artifacts, and app test discovery is scoped to `tests/` so retained
+worktrees cannot become extra test suites. Temporary browser profiles are removed, including after
 a managed timeout. A shared lock in the Git common directory rejects overlapping
 runs across worktrees. If a machine crash leaves `gamma-agent.lock`, inspect
 `owner.json` and verify that its recorded process has stopped before removing it;
@@ -122,7 +130,12 @@ rules-only crash for `Constructor is a valid term.`, the browser gate failed,
 and Codex repaired the inherited dictionary lookup in an isolated worktree.
 App and browser gates then passed; Luna's new scenarios and screenshot review
 accepted the repaired extension. A deliberately interrupted Luna run recorded
-the cancellation and released the shared lock. The failed runs were retained
+the cancellation and released the shared lock. A separate real-Chromium canary
+froze the browser to force shutdown escalation; the supervisor stopped its
+separate process group before returning. Signaling only the extension driver
+also produced an interrupted result and removed its temporary profile. An
+immediate-exit detached-child regression verifies kernel orphan adoption.
+The failed runs were retained
 as evidence and did not publish. Hosted WebGPU/local WebGPU checks used the
 SwiftShader software adapter, so this is functional execution evidence.
 

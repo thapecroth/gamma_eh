@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { execFile, spawn } from 'node:child_process';
+import { readFileSync, readdirSync } from 'node:fs';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -63,21 +64,69 @@ export async function acquireLock(root, token = process.env.GAMMA_AGENT_LOCK_TOK
   }};
 }
 
-// Every child is a process group: interruption/timeout also stops descendants.
+// Chromium starts its own process group. Remember descendant identities on Linux
+// so a driver exiting first cannot leave its browser running or kill a reused PID.
+function ownedProcesses(pid) {
+  const owned = new Map();
+  const info = id => {
+    try {
+      const stat = readFileSync(`/proc/${id}/stat`, 'utf8');
+      const fields = stat.slice(stat.lastIndexOf(') ') + 2).split(' ');
+      return {pid: Number(id), state: fields[0], parent: Number(fields[1]), group: Number(fields[2]), started: fields[19]};
+    } catch (error) { if (['ENOENT', 'ESRCH', 'EACCES', 'EPERM'].includes(error.code)) return null; throw error; }
+  };
+  const leader = info(pid);
+  if (leader) owned.set(pid, leader);
+  const alive = () => [...owned.values()].filter(row => {
+    const current = info(row.pid);
+    return current && current.started === row.started && !['Z', 'X'].includes(current.state);
+  });
+  const capture = () => {
+    // The launcher makes this process a kernel subreaper: even immediate
+    // double-fork exits are adopted here instead of escaping between samples.
+    const parents = new Set([process.pid, ...alive().map(row => row.pid)]);
+    const rows = readdirSync('/proc').filter(name => /^\d+$/u.test(name)).map(info).filter(Boolean);
+    let added;
+    do {
+      added = false;
+      for (const row of rows) if (parents.has(row.parent) && !parents.has(row.pid)) {
+        owned.set(row.pid, row); parents.add(row.pid); added = true;
+      }
+    } while (added);
+  };
+  const signal = value => {
+    for (const row of alive()) {
+      // Only a verified owned group leader may address a whole process group.
+      try { process.kill(row.group === row.pid ? -row.pid : row.pid, value); }
+      catch (error) { if (error.code !== 'ESRCH') throw error; }
+    }
+  };
+  return {capture, signal, alive};
+}
+
+// Await cleanup before another heavy job or retry can begin.
 export async function runCommand(command, args, {cwd, timeoutMs = 600_000, log, input, environment = {}} = {}) {
+  if (process.platform === 'linux' && process.env.GAMMA_LINUX_SUBREAPER !== String(process.pid)) {
+    throw new Error('Run managed commands through python3 scripts/agent-supervisor.py (npm agent/test scripts do this automatically)');
+  }
   const {createWriteStream} = await import('node:fs');
   const stream = log ? createWriteStream(log, {mode: 0o600}) : null;
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(command, args, {cwd, env: {...process.env, ...environment}, detached: process.platform !== 'win32', stdio: ['pipe', 'pipe', 'pipe']});
+    const owned = process.platform === 'linux' && child.pid ? ownedProcesses(child.pid) : null;
+    const monitor = owned ? setInterval(() => owned.capture(), 100) : null;
+    monitor?.unref();
     let timedOut = false;
     let interrupted = false;
     let forceTimer;
     let logError;
+    const signal = value => {
+      if (owned) { owned.capture(); owned.signal(value); }
+      else try { process.kill(process.platform === 'win32' ? child.pid : -child.pid, value); } catch { /* already stopped */ }
+    };
     const stop = () => {
-      try { process.kill(process.platform === 'win32' ? child.pid : -child.pid, 'SIGTERM'); } catch { /* already stopped */ }
-      forceTimer ??= setTimeout(() => {
-        try { process.kill(process.platform === 'win32' ? child.pid : -child.pid, 'SIGKILL'); } catch { /* already stopped */ }
-      }, 2000);
+      signal('SIGTERM');
+      forceTimer ??= setTimeout(() => signal('SIGKILL'), 2000);
       forceTimer.unref();
     };
     const onSignal = () => { interrupted = true; stop(); };
@@ -85,7 +134,7 @@ export async function runCommand(command, args, {cwd, timeoutMs = 600_000, log, 
     process.on('SIGTERM', onSignal);
     const timer = setTimeout(() => { timedOut = true; stop(); }, timeoutMs);
     const cleanup = () => {
-      clearTimeout(timer); clearTimeout(forceTimer);
+      clearTimeout(timer); clearTimeout(forceTimer); clearInterval(monitor);
       process.off('SIGINT', onSignal); process.off('SIGTERM', onSignal);
     };
     stream?.on('error', error => { logError = error; stop(); });
@@ -93,17 +142,29 @@ export async function runCommand(command, args, {cwd, timeoutMs = 600_000, log, 
     child.stderr.on('data', chunk => stream?.write(chunk));
     child.stdin.on('error', () => {});
     child.on('error', error => { cleanup(); stream?.end(); rejectRun(error); });
-    child.on('close', (code, signal) => {
-      if (timedOut || interrupted || logError) {
-        // The leader may exit on SIGTERM while a descendant ignores it.
-        try { process.kill(process.platform === 'win32' ? child.pid : -child.pid, 'SIGKILL'); } catch { /* group stopped */ }
+    child.on('close', async (code, exitSignal) => {
+      interrupted ||= code === 130 || ['SIGINT', 'SIGTERM'].includes(exitSignal);
+      // Also clean up owned detached descendants after direct driver signals.
+      if (owned || timedOut || interrupted || logError) signal('SIGKILL');
+      clearInterval(monitor); clearTimeout(timer); clearTimeout(forceTimer);
+      if (owned) {
+        const deadline = Date.now() + 2000;
+        for (;;) {
+          // A dying descendant may have just forked an adopted child. Discover
+          // it before deciding the drain is complete, including the first pass.
+          owned.capture();
+          if (!owned.alive().length) break;
+          if (Date.now() >= deadline) { logError = new Error('Owned command descendants did not stop'); break; }
+          owned.signal('SIGKILL');
+          await new Promise(ready => setTimeout(ready, 25));
+        }
       }
       cleanup();
-      const result = {command, args, code, signal, timedOut, interrupted};
+      const result = {command, args, code, signal: exitSignal, timedOut, interrupted};
       const finish = () => {
         if (logError) rejectRun(logError);
         else if (code === 0 && !timedOut && !interrupted) resolveRun(result);
-        else rejectRun(Object.assign(new Error(timedOut ? `${command} timed out` : interrupted ? `${command} interrupted` : `${command} failed (${code ?? signal})`), {result}));
+        else rejectRun(Object.assign(new Error(timedOut ? `${command} timed out` : interrupted ? `${command} interrupted` : `${command} failed (${code ?? exitSignal})`), {result}));
       };
       if (stream && !stream.destroyed) stream.end(finish); else finish();
     });
