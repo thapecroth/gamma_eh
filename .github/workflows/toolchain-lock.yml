@@ -27,3 +27,14 @@ jobs:
           name: toolchain-lockfile
           path: package-lock.json
           retention-days: 3
+      - name: Print generated public dependency lock for review
+        run: |
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            import { createHash } from "node:crypto";
+            const lock = readFileSync("package-lock.json", "utf8");
+            for (let offset = 0; offset < lock.length; offset += 1000) {
+              console.log("GAMMA_LOCKFILE_CHUNK " + JSON.stringify(lock.slice(offset, offset + 1000)));
+            }
+            console.log("GAMMA_LOCKFILE_SHA256 " + createHash("sha256").update(lock).digest("hex"));
+          '
