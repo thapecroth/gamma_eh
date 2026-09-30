@@ -1,0 +1,286 @@
+{
+  "base_model": "google/bert_uncased_L-2_H-128_A-2",
+  "base_revision": "30b0a37ccaaa32f332884b96992754e246e48c5f",
+  "seed": 42,
+  "device": "cuda",
+  "parameters": 4377793,
+  "training_seconds": 28.21,
+  "epochs": [
+    {
+      "epoch": 1,
+      "loss": 0.4337954338830758,
+      "dev": {
+        "threshold": 0.8,
+        "edit_precision": 0.9935191186001296,
+        "edit_recall": 0.8876664736537349,
+        "edit_f0_5": 0.9703759969616408,
+        "sentence_tag_accuracy": 0.8999828696250916,
+        "clean_sentence_false_positive_rate": 0.0006443298771046102,
+        "true_positive_edits": 4599,
+        "false_positive_edits": 30,
+        "missed_edits": 582,
+        "sentences": 5839
+      }
+    },
+    {
+      "epoch": 2,
+      "loss": 0.06767536757006799,
+      "dev": {
+        "threshold": 0.8,
+        "edit_precision": 0.9983693436608235,
+        "edit_recall": 0.9453773402817989,
+        "edit_f0_5": 0.9873009473896391,
+        "sentence_tag_accuracy": 0.9505051970481873,
+        "clean_sentence_false_positive_rate": 0.0006443298771046102,
+        "true_positive_edits": 4898,
+        "false_positive_edits": 8,
+        "missed_edits": 283,
+        "sentences": 5839
+      }
+    },
+    {
+      "epoch": 3,
+      "loss": 0.031939996500572346,
+      "dev": {
+        "threshold": 0.8,
+        "edit_precision": 0.9937803692905733,
+        "edit_recall": 0.9868751206330825,
+        "edit_f0_5": 0.9923915997049805,
+        "sentence_tag_accuracy": 0.984757661819458,
+        "clean_sentence_false_positive_rate": 0.0,
+        "true_positive_edits": 5113,
+        "false_positive_edits": 32,
+        "missed_edits": 68,
+        "sentences": 5839
+      }
+    },
+    {
+      "epoch": 4,
+      "loss": 0.019764203045421813,
+      "dev": {
+        "threshold": 0.8,
+        "edit_precision": 0.9949855351976856,
+        "edit_recall": 0.9957537154989384,
+        "edit_f0_5": 0.9951390764245205,
+        "sentence_tag_accuracy": 0.9929782748222351,
+        "clean_sentence_false_positive_rate": 0.0006443298771046102,
+        "true_positive_edits": 5159,
+        "false_positive_edits": 26,
+        "missed_edits": 22,
+        "sentences": 5839
+      }
+    },
+    {
+      "epoch": 5,
+      "loss": 0.013731127436338067,
+      "dev": {
+        "threshold": 0.8,
+        "edit_precision": 0.9992229992229992,
+        "edit_recall": 0.9928585215209419,
+        "edit_f0_5": 0.9979435843712413,
+        "sentence_tag_accuracy": 0.9931495189666748,
+        "clean_sentence_false_positive_rate": 0.0,
+        "true_positive_edits": 5144,
+        "false_positive_edits": 4,
+        "missed_edits": 37,
+        "sentences": 5839
+      }
+    },
+    {
+      "epoch": 6,
+      "loss": 0.010814022793713204,
+      "dev": {
+        "threshold": 0.8,
+        "edit_precision": 0.9980665119876256,
+        "edit_recall": 0.9963327542945377,
+        "edit_f0_5": 0.9977192779001894,
+        "sentence_tag_accuracy": 0.9950333833694458,
+        "clean_sentence_false_positive_rate": 0.0012886597542092204,
+        "true_positive_edits": 5162,
+        "false_positive_edits": 10,
+        "missed_edits": 19,
+        "sentences": 5839
+      }
+    },
+    {
+      "epoch": 7,
+      "loss": 0.009209213333111508,
+      "dev": {
+        "threshold": 0.8,
+        "edit_precision": 0.9978780864197531,
+        "edit_recall": 0.9984558965450685,
+        "edit_f0_5": 0.9979935949376857,
+        "sentence_tag_accuracy": 0.9967460036277771,
+        "clean_sentence_false_positive_rate": 0.0,
+        "true_positive_edits": 5173,
+        "false_positive_edits": 11,
+        "missed_edits": 8,
+        "sentences": 5839
+      }
+    },
+    {
+      "epoch": 8,
+      "loss": 0.008387671164149102,
+      "dev": {
+        "threshold": 0.8,
+        "edit_precision": 0.9996124031007751,
+        "edit_recall": 0.995560702567072,
+        "edit_f0_5": 0.9987994268231284,
+        "sentence_tag_accuracy": 0.9958897233009338,
+        "clean_sentence_false_positive_rate": 0.0,
+        "true_positive_edits": 5158,
+        "false_positive_edits": 2,
+        "missed_edits": 23,
+        "sentences": 5839
+      }
+    }
+  ],
+  "calibration": {
+    "candidates": [
+      {
+        "threshold": 0.6,
+        "edit_precision": 0.999033629686896,
+        "edit_recall": 0.9976838448176027,
+        "edit_f0_5": 0.9987633806082623,
+        "sentence_tag_accuracy": 0.997259795665741,
+        "clean_sentence_false_positive_rate": 0.0,
+        "true_positive_edits": 5169,
+        "false_positive_edits": 5,
+        "missed_edits": 12,
+        "sentences": 5839
+      },
+      {
+        "threshold": 0.7,
+        "edit_precision": 0.9994191674733786,
+        "edit_recall": 0.9963327542945377,
+        "edit_f0_5": 0.9988003560233737,
+        "sentence_tag_accuracy": 0.9964035153388977,
+        "clean_sentence_false_positive_rate": 0.0,
+        "true_positive_edits": 5162,
+        "false_positive_edits": 3,
+        "missed_edits": 19,
+        "sentences": 5839
+      },
+      {
+        "threshold": 0.8,
+        "edit_precision": 0.9996124031007751,
+        "edit_recall": 0.995560702567072,
+        "edit_f0_5": 0.9987994268231284,
+        "sentence_tag_accuracy": 0.9958897233009338,
+        "clean_sentence_false_positive_rate": 0.0,
+        "true_positive_edits": 5158,
+        "false_positive_edits": 2,
+        "missed_edits": 23,
+        "sentences": 5839
+      },
+      {
+        "threshold": 0.85,
+        "edit_precision": 0.9998060512024826,
+        "edit_recall": 0.9949816637714727,
+        "edit_f0_5": 0.9988374346056966,
+        "sentence_tag_accuracy": 0.99537593126297,
+        "clean_sentence_false_positive_rate": 0.0,
+        "true_positive_edits": 5155,
+        "false_positive_edits": 1,
+        "missed_edits": 26,
+        "sentences": 5839
+      },
+      {
+        "threshold": 0.9,
+        "edit_precision": 0.9998058252427184,
+        "edit_recall": 0.9938235861802741,
+        "edit_f0_5": 0.9986036228230093,
+        "sentence_tag_accuracy": 0.9943483471870422,
+        "clean_sentence_false_positive_rate": 0.0,
+        "true_positive_edits": 5149,
+        "false_positive_edits": 1,
+        "missed_edits": 32,
+        "sentences": 5839
+      },
+      {
+        "threshold": 0.95,
+        "edit_precision": 0.9998052201012856,
+        "edit_recall": 0.9907353792704111,
+        "edit_f0_5": 0.9979779912120387,
+        "sentence_tag_accuracy": 0.9916081428527832,
+        "clean_sentence_false_positive_rate": 0.0,
+        "true_positive_edits": 5133,
+        "false_positive_edits": 1,
+        "missed_edits": 48,
+        "sentences": 5839
+      },
+      {
+        "threshold": 0.98,
+        "edit_precision": 1.0,
+        "edit_recall": 0.9859100559737503,
+        "edit_f0_5": 0.9971498848241128,
+        "sentence_tag_accuracy": 0.9878403544425964,
+        "clean_sentence_false_positive_rate": 0.0,
+        "true_positive_edits": 5108,
+        "false_positive_edits": 0,
+        "missed_edits": 73,
+        "sentences": 5839
+      }
+    ],
+    "selected": {
+      "threshold": 0.85,
+      "edit_precision": 0.9998060512024826,
+      "edit_recall": 0.9949816637714727,
+      "edit_f0_5": 0.9988374346056966,
+      "sentence_tag_accuracy": 0.99537593126297,
+      "clean_sentence_false_positive_rate": 0.0,
+      "true_positive_edits": 5155,
+      "false_positive_edits": 1,
+      "missed_edits": 26,
+      "sentences": 5839
+    },
+    "split": "dev"
+  },
+  "test": {
+    "threshold": 0.85,
+    "edit_precision": 0.9990960043391792,
+    "edit_recall": 0.9967532467532467,
+    "edit_f0_5": 0.9986265722133875,
+    "sentence_tag_accuracy": 0.9965925812721252,
+    "clean_sentence_false_positive_rate": 0.0,
+    "true_positive_edits": 5526,
+    "false_positive_edits": 5,
+    "missed_edits": 18,
+    "sentences": 6163
+  },
+  "scope": "Synthetic in-distribution edit-tag benchmark; not real-world GEC quality.",
+  "exports": {
+    "model.onnx": {
+      "metrics": {
+        "threshold": 0.85,
+        "edit_precision": 0.9990960043391792,
+        "edit_recall": 0.9967532467532467,
+        "edit_f0_5": 0.9986265722133875,
+        "sentence_tag_accuracy": 0.9965925812721252,
+        "clean_sentence_false_positive_rate": 0.0,
+        "true_positive_edits": 5526,
+        "false_positive_edits": 5,
+        "missed_edits": 18,
+        "sentences": 6163
+      },
+      "max_logit_difference": 2.002716064453125e-05,
+      "argmax_agreement": 1.0
+    },
+    "model_quantized.onnx": {
+      "metrics": {
+        "threshold": 0.85,
+        "edit_precision": 0.9992762800796092,
+        "edit_recall": 0.9962121212121212,
+        "edit_f0_5": 0.9986619412700709,
+        "sentence_tag_accuracy": 0.9962680339813232,
+        "clean_sentence_false_positive_rate": 0.0,
+        "true_positive_edits": 5523,
+        "false_positive_edits": 4,
+        "missed_edits": 21,
+        "sentences": 6163
+      },
+      "max_logit_difference": 3.8109917640686035,
+      "argmax_agreement": 0.9999164938926697
+    }
+  }
+}

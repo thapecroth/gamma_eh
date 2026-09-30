@@ -1,0 +1,21 @@
+{
+  "license": "CC0-1.0",
+  "description": "Original human-written smoke cases, independent from corpus generation. Not a quality benchmark or a training input.",
+  "cases": [
+    {"source": "She have a book.", "target": "She has a book."},
+    {"source": "They is ready.", "target": "They are ready."},
+    {"source": "My friend go to school every morning.", "target": "My friend goes to school every morning."},
+    {"source": "I bought an book.", "target": "I bought a book."},
+    {"source": "The students has a notebook.", "target": "The students have a notebook."},
+    {"source": "I recieved your message.", "target": "I received your message."},
+    {"source": "This is is a test.", "target": "This is a test."},
+    {"source": "Your friend is ready.", "target": "Your friend is ready."},
+    {"source": "You're welcome to join us.", "target": "You're welcome to join us."},
+    {"source": "They are waiting for their teacher.", "target": "They are waiting for their teacher."},
+    {"source": "I saw her duck.", "target": "I saw her duck."},
+    {"source": "If I were you, I would wait.", "target": "If I were you, I would wait."},
+    {"source": "The code is `teh = 1`.", "target": "The code is `teh = 1`."},
+    {"source": "She had had enough.", "target": "She had had enough."},
+    {"source": "I knew that that was fine.", "target": "I knew that that was fine."}
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "name": "gamma-eh-tiny-edit-v1",
+  "model_license": "Apache-2.0",
+  "base_model": "google/bert_uncased_L-2_H-128_A-2",
+  "base_revision": "30b0a37ccaaa32f332884b96992754e246e48c5f",
+  "parameters": 4377793,
+  "confidenceThreshold": 0.85,
+  "maxSequenceLength": 64,
+  "experimental": true,
+  "files": {
+    "config.json": {
+      "bytes": 3975,
+      "sha256": "2f47b19261f36429d7a1c8da75c681a21b8cc0abf5e51322ea01a28ba004d900"
+    },
+    "labels.json": {
+      "bytes": 1230,
+      "sha256": "15f3cdbfab2f70f5b78259a6f792461e8efc2d1f36fd26b1b125dec1895a954d"
+    },
+    "model.onnx": {
+      "bytes": 17552569,
+      "sha256": "cb3280db7b33a7273ae75e87c8c5d432c63f9bdac89101d93dda72c776b38266"
+    },
+    "model_quantized.onnx": {
+      "bytes": 4463879,
+      "sha256": "f0b3fa8fb4fdff669937aa16390081f25fe30c4261104e5a8ffb0e57e9345cd5"
+    },
+    "special_tokens_map.json": {
+      "bytes": 125,
+      "sha256": "b6d346be366a7d1d48332dbc9fdf3bf8960b5d879522b7799ddba59e76237ee3"
+    },
+    "tokenizer.json": {
+      "bytes": 711396,
+      "sha256": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66"
+    },
+    "tokenizer_config.json": {
+      "bytes": 1300,
+      "sha256": "e711904cac23112776b678356ccf702cf934babaa01125f698ac43bf9ad38e73"
+    },
+    "vocab.txt": {
+      "bytes": 231508,
+      "sha256": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+    }
+  }
+}

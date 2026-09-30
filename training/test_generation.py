@@ -1,0 +1,181 @@
+from argparse import Namespace
+import json
+from pathlib import Path
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import threading
+
+import pytest
+
+import generate_llm
+from generate_llm import endpoint, generate, plan_jobs
+from import_c4 import materialize
+from pairs import group_id, validate_pair
+from prepare_pairs import prepare
+
+
+def args_for(path, **overrides):
+    values = dict(base_url="http://localhost:8000/v1", provider="openai-compatible", model="test-teacher",
+                  pairs=4, batch_size=2, concurrency=2, seed=42, max_tokens=1024,
+                  retries=1, timeout=10, api_key_env="GAMMA_TEST_KEY", output=path, execute=True)
+    values.update(overrides)
+    return Namespace(**values)
+
+
+def test_plan_is_deterministic_and_bounds_partial_batch():
+    a = plan_jobs(81, 20, 42)
+    assert a == plan_jobs(81, 20, 42)
+    assert sum(job["count"] for job in a) == 81
+    assert a[-1]["count"] == 1
+    assert a[3]["category"] == "clean"
+    assert len({job["nonce"] for job in a}) == len(a)
+
+
+def test_validator_rejects_secret_pattern_wrong_clean_and_schema():
+    for row in [{"source": "Contact me at person@example.test", "target": "Hello there."},
+                {"source": "She have a book.", "target": "She has a book.", "category": "clean"},
+                {"source": "Same text.", "target": "Same text.", "category": "agreement"},
+                {"source": 3, "target": "A book."}]:
+        with pytest.raises(ValueError): validate_pair(row)
+
+
+def test_endpoint_rejects_embedded_keys_and_plaintext_remote():
+    assert endpoint("http://localhost:8000/v1", "openai-compatible").endswith('/v1/chat/completions')
+    assert endpoint("https://api.example.test/v1", "anthropic").endswith('/v1/messages')
+    for value in ["http://remote.example.test/v1", "https://user:secret@example.test/v1", "https://api.example.test/v1?key=secret"]:
+        with pytest.raises(ValueError): endpoint(value, "openai-compatible")
+
+
+def test_generation_resumes_without_duplicate_completed_requests(tmp_path, monkeypatch):
+    calls = []
+    def teacher(job, settings, prompt, key):
+        calls.append(job["id"])
+        assert "preserve" in prompt.lower()
+        rows = [{"source": f"She have a book for task {job['id']} example {i}.",
+                 "target": f"She has a book for task {job['id']} example {i}.",
+                 "category": job["category"]} for i in range(job["count"])]
+        return rows, {"prompt_tokens": 10, "untrusted": "do-not-store"}
+    monkeypatch.setattr(generate_llm, "request_teacher", teacher)
+    monkeypatch.setenv("GAMMA_TEST_KEY", "test-only-key-never-save")
+    args = args_for(tmp_path)
+    generate(args)
+    first = (tmp_path / "candidates.jsonl").read_bytes()
+    generate(args)
+    assert len(calls) == 2
+    assert (tmp_path / "candidates.jsonl").read_bytes() == first
+    assert len(first.splitlines()) == 4
+    for path in tmp_path.iterdir():
+        if path.is_file():
+            assert b"test-only-key-never-save" not in path.read_bytes()
+            assert b"do-not-store" not in path.read_bytes()
+    with pytest.raises(ValueError, match="settings changed"):
+        generate(args_for(tmp_path, model="another-teacher"))
+
+
+def test_failed_jobs_are_retryable(tmp_path, monkeypatch):
+    def fail(*_): raise RuntimeError("private provider body must not be stored")
+    monkeypatch.setattr(generate_llm, "request_teacher", fail)
+    with pytest.raises(RuntimeError): generate(args_for(tmp_path, pairs=2))
+    manifest = (tmp_path / "manifest.json").read_text()
+    assert "private provider" not in manifest
+    assert json.loads(manifest)["status_counts"] == {"failed": 1}
+    def success(job, *_):
+        return [{"source": f"She have book {i}.", "target": f"She has book {i}.", "category": job["category"]} for i in range(2)], {}
+    monkeypatch.setattr(generate_llm, "request_teacher", success)
+    generate(args_for(tmp_path, pairs=2))
+    assert json.loads((tmp_path / "manifest.json").read_text())["status_counts"] == {"done": 1}
+
+
+def test_only_one_generator_can_use_a_run_directory(tmp_path):
+    path = tmp_path / "run-lock.sqlite3"
+    first = generate_llm.acquire_run_lock(path)
+    try:
+        with pytest.raises(RuntimeError, match="Another generator"):
+            generate_llm.acquire_run_lock(path)
+    finally:
+        first.close()
+    next_run = generate_llm.acquire_run_lock(path)
+    next_run.close()
+
+
+def test_import_is_bounded_and_preserves_attribution(tmp_path):
+    rows = [{"input": f"She have a book for project {i}.", "output": f"She has a book for project {i}."} for i in range(10)]
+    manifest = materialize(rows, tmp_path, limit=3, max_scanned=5)
+    assert manifest["counts"]["accepted"] == 3
+    assert manifest["counts"]["scanned"] == 3
+    assert "Stahlberg" in manifest["attribution"]
+    records = [json.loads(line) for line in (tmp_path / "candidates.jsonl").read_text().splitlines()]
+    assert all(row["review_status"] == "unreviewed" for row in records)
+    with pytest.raises(ValueError, match="already exists"): materialize(rows, tmp_path, 3, 5)
+
+
+def test_import_closes_early_stopped_reader(tmp_path):
+    closed = []
+    def rows():
+        try:
+            for i in range(100):
+                yield {'input': f'She have book {i}.', 'output': f'She has book {i}.'}
+        finally:
+            closed.append(True)
+    materialize(rows(), tmp_path, limit=2, max_scanned=10)
+    assert closed == [True]
+
+
+def test_weak_pairs_never_leak_reviewed_heldout_targets(tmp_path):
+    target = next(f"She has a book for project {i}." for i in range(1000)
+                  if int(group_id(f"She has a book for project {i}.")[:8], 16) % 100 >= 90)
+    inputs = tmp_path / "input.jsonl"
+    records = [
+        {"source": target.replace("has", "have"), "target": target, "category": "agreement", "review_status": "human-reviewed", "license": "CC0-1.0"},
+        {"source": target.replace("a book", "an book"), "target": target, "category": "articles", "review_status": "unreviewed", "license": "CC0-1.0"},
+        {"source": "She have a pen.", "target": "She has a pen.", "category": "agreement", "review_status": "unreviewed", "license": "CC0-1.0"},
+        {"source": "Hello , friend.", "target": "Hello, friend.", "category": "punctuation", "review_status": "unreviewed", "license": "CC0-1.0"},
+    ]
+    inputs.write_text("".join(json.dumps(row) + "\n" for row in records))
+    manifest = prepare([inputs], tmp_path / "prepared", allow_weak_train=True)
+    assert manifest["counts"]["weak_heldout_group_dropped"] == 1
+    assert manifest["counts"]["rejected"] == 1
+    train = (tmp_path / "prepared/train.jsonl").read_text()
+    assert target not in train
+    assert "weak-supervision" in train
+    assert "human-reviewed" in (tmp_path / "prepared/test.jsonl").read_text()
+
+
+def test_actual_http_adapter_retries_rate_limit_and_parses_both_protocols(monkeypatch):
+    calls = []
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *_): pass
+        def do_POST(self):
+            body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+            calls.append((self.path, body))
+            if len(calls) == 1:
+                self.send_response(429)
+                self.send_header('Retry-After', '0')
+                self.end_headers()
+                return
+            content = json.dumps({'pairs': [{'source': 'She have a book.', 'target': 'She has a book.', 'category': 'agreement'}]})
+            if self.path.endswith('/messages'):
+                assert self.headers['anthropic-version'] == '2023-06-01'
+                response = {'content': [{'type': 'text', 'text': content}], 'stop_reason': 'end_turn', 'usage': {'output_tokens': 20}}
+            else:
+                assert self.headers['Authorization'] == 'Bearer test-only-key'
+                response = {'choices': [{'message': {'content': content}, 'finish_reason': 'stop'}], 'usage': {'completion_tokens': 20}}
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode())
+    server = HTTPServer(('127.0.0.1', 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        job = {'count': 1, 'category': 'agreement', 'domain': 'work email', 'nonce': 'test-1'}
+        for provider in ['openai-compatible', 'anthropic']:
+            settings = {'provider': provider, 'model': 'test-teacher', 'max_tokens': 100,
+                        'endpoint': endpoint(f'http://127.0.0.1:{server.server_port}/v1', provider), 'retries': 1, 'timeout': 5}
+            rows, usage = generate_llm.request_teacher(job, settings, 'A test prompt.', 'test-only-key')
+            assert rows[0]['target'] == 'She has a book.'
+            assert usage
+        assert len(calls) == 3
+    finally:
+        server.shutdown()
+        thread.join(timeout=5)
+        server.server_close()
