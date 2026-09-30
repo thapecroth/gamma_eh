@@ -23,6 +23,12 @@ root, then use `dist/extension/` as the installation folder.
    appear in a small panel. Choose **Accept** or **Dismiss**; close the panel to
    pause that field.
 
+Installing alone does not enable checking. The toolbar popup controls site
+access and preferences; spelling and grammar suggestions appear in a separate
+panel at the bottom-right of the page after you focus a nonempty supported
+field. The extension does not draw red underlines. Single-line `<input>` fields
+are not currently supported.
+
 Keep the extracted folder on disk. To update, remove the old unpacked extension,
 extract the new release, and load its folder. Re-enable the desired sites; this
 resets preferences. Unpacked installs do not auto-update. This is developer-mode

@@ -61,6 +61,23 @@ async function acceptFirst(page) {
   await element.session.detach();
 }
 
+async function enableSite(page, background, extensionId) {
+  const popup = await context.newPage();
+  try {
+    // Keep the fixture active while opening the real popup document in a
+    // background tab. Site access is pre-granted only in the test manifest.
+    await background.evaluate(async (url) => {
+      const [tab] = await chrome.tabs.query({url});
+      await chrome.tabs.update(tab.id, {active: true});
+    }, page.url());
+    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+    await popup.locator('#enable-site:not([disabled])').waitFor();
+    await popup.locator('#enable-site').click();
+    await popup.waitForFunction(() => document.querySelector('#status')?.textContent?.startsWith('Ready.'));
+    await popup.locator('#enable-site[disabled]').waitFor();
+  } finally { await popup.close(); }
+}
+
 try {
   await build({entryPoints: [join(root, 'packages/engine/src/index.ts')], outfile: join(temporary, 'test-engine.mjs'),
     bundle: true, format: 'esm', platform: 'browser', target: 'chrome116'});
@@ -96,8 +113,9 @@ try {
   });
   const address = server.address();
   const origin = `http://127.0.0.1:${address.port}`;
+  const insecureOrigin = `http://gamma-http.test:${address.port}`;
 
-  // Test-only copy gets localhost permission to exercise the real extension
+  // Test-only copy gets fixture permissions to exercise the real extension
   // pipeline without automating Chrome's native permission dialog. The shipping
   // manifest is checked below and is never altered.
   const extensionDir = join(temporary, 'extension');
@@ -105,15 +123,16 @@ try {
   const shippingManifest = JSON.parse(await readFile(join(extensionDir, 'manifest.json'), 'utf8'));
   assert.equal(shippingManifest.host_permissions, undefined);
   assert.equal(shippingManifest.content_scripts, undefined);
-  await writeFile(join(extensionDir, 'manifest.json'), JSON.stringify({...shippingManifest, host_permissions: ['http://127.0.0.1/*']}));
+  await writeFile(join(extensionDir, 'manifest.json'), JSON.stringify({...shippingManifest, host_permissions: ['http://127.0.0.1/*', 'http://gamma-http.test/*']}));
   context = await chromium.launchPersistentContext(join(temporary, 'profile'), {
     channel: 'chromium', executablePath: await findChromium(), headless: true,
-    args: [`--disable-extensions-except=${extensionDir}`, `--load-extension=${extensionDir}`, ...browserArguments()],
+    args: [`--disable-extensions-except=${extensionDir}`, `--load-extension=${extensionDir}`,
+      '--host-resolver-rules=MAP gamma-http.test 127.0.0.1', '--proxy-bypass-list=gamma-http.test', ...browserArguments()],
     viewport: {width: 1440, height: 1050},
   });
   context.on('request', request => {
     const url = request.url();
-    if (!url.startsWith(origin) && !url.startsWith('chrome-extension://') && !url.startsWith('data:')) evidence.network.push(url);
+    if (!url.startsWith(origin) && !url.startsWith(insecureOrigin) && !url.startsWith('chrome-extension://') && !url.startsWith('data:')) evidence.network.push(url);
   });
   const page = await context.newPage();
   page.on('pageerror', error => failures.push(error.message));
@@ -188,17 +207,14 @@ try {
   let background = context.serviceWorkers().find(worker => worker.url().includes('background.mjs'));
   if (!background) background = await context.waitForEvent('serviceworker', {predicate: worker => worker.url().includes('background.mjs')});
   const extensionId = new URL(background.url()).hostname;
-  await background.evaluate(async () => {
-    let hash = 2166136261;
-    const pattern = 'http://127.0.0.1/*';
-    for (const char of pattern) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
-    await chrome.storage.local.set({enabled: true, useAI: true});
-    await chrome.scripting.registerContentScripts([{id: `gamma-site-${(hash >>> 0).toString(16)}`, matches: [pattern], js: ['content.js'], allFrames: false, runAt: 'document_idle'}]);
-  });
+  await background.evaluate(() => chrome.storage.local.set({enabled: true, useAI: true}));
   const fixture = await context.newPage();
   fixture.on('pageerror', error => failures.push(error.message));
   await fixture.goto(origin + '/fixture.html');
   await fixture.locator('#draft').focus();
+  assert.equal(await fixture.locator('[data-gamma-ignore]').count(), 0, 'Permission alone must not activate suggestions');
+  await enableSite(fixture, background, extensionId);
+  evidence.extension.popupActivation = true;
   await fixture.waitForFunction(() => Boolean(document.querySelector('[data-gamma-ignore]')), {timeout: 30_000});
   // CDP lets this test inspect the closed shadow panel without changing the
   // shipping extension to expose page text or private suggestion state.
@@ -208,6 +224,24 @@ try {
   await acceptFirst(fixture);
   assert.equal(await fixture.locator('#draft').inputValue(), 'She has a friend.');
   evidence.extension.textareaCorrection = true;
+  const insecureFixture = await context.newPage();
+  insecureFixture.on('pageerror', error => failures.push(error.message));
+  await insecureFixture.goto(insecureOrigin + '/fixture.html');
+  assert.equal(await insecureFixture.evaluate(() => isSecureContext), false, 'HTTP regression fixture must not be a secure context');
+  assert.equal(await insecureFixture.evaluate(() => typeof crypto.randomUUID), 'undefined');
+  await insecureFixture.locator('#draft').focus();
+  await enableSite(insecureFixture, background, extensionId);
+  await waitPanel(insecureFixture, /2 suggestions.*Local AI/u);
+  await acceptFirst(insecureFixture);
+  await waitPanel(insecureFixture, /1 suggestion/u);
+  await acceptFirst(insecureFixture);
+  assert.equal(await insecureFixture.locator('#draft').inputValue(), 'She has a friend.');
+  await insecureFixture.reload();
+  await insecureFixture.locator('#draft').focus();
+  await waitPanel(insecureFixture, /2 suggestions.*Local AI/u);
+  evidence.extension.insecureHttpActivation = true;
+  evidence.extension.registeredScriptAfterReload = true;
+  await insecureFixture.close();
   for (const id of ['private', 'payment', 'optout']) {
     await fixture.locator('#' + id).focus();
     await fixture.waitForFunction(() => !document.querySelector('[data-gamma-ignore]'));
@@ -244,7 +278,7 @@ try {
   const offscreen = await background.evaluate(() => chrome.runtime.getContexts({contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT]}));
   assert.equal(offscreen.length, 1);
   evidence.extension.offscreenContext = true;
-  evidence.extension.nativePermissionDialog = 'Not automated; test-only copy grants localhost. Shipping manifest remains optional-site-only.';
+  evidence.extension.nativePermissionDialog = 'Not automated; test-only copy grants local fixtures. Real popup activation is exercised; shipping manifest remains optional-site-only.';
   evidence.extension.extensionId = extensionId;
   assert.deepEqual(evidence.network, [], 'Browser checks must not send external requests');
   assert.deepEqual(failures, [], 'Browser must have no uncaught page exceptions');

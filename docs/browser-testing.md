@@ -61,7 +61,17 @@ fixtures. It does not upload the private, output-terms-unverified GLM corpus or
 student weights, store teacher credentials, or connect back to the development
 machine. A hosted app pass cannot prove the unfinished live teacher pipeline.
 
-The extension fixture still grants localhost in a test-only manifest copy.
+The extension fixtures grant localhost and `gamma-http.test` in a test-only
+manifest copy. Both point to the same local server; the latter is an ordinary
+insecure HTTP origin. The actual popup document enables each site and injects
+the content script into an already-focused field, then the test accepts local
+model/rule corrections. Reloading the HTTP fixture also verifies persisted
+content-script registration. Session identifiers use `crypto.getRandomValues`,
+which is available on HTTP pages; using secure-context-only
+`crypto.randomUUID` previously stopped startup before any panel or listeners
+were attached. The browser assertion checks that the HTTP fixture is insecure
+and has no `randomUUID`, so a localhost-only test cannot mask this regression.
+
 Chrome's native installation and optional-site permission dialog require a
 separate interactive verification with the unchanged shipping manifest. Rich
 editors and nested/shadow frames are still unsupported, not claimed as tested

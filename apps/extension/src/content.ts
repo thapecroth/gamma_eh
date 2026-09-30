@@ -20,7 +20,8 @@ function start() {
   let stopped = false;
   const ignored = new WeakSet<HTMLElement>();
   const dismissed = new Set<string>();
-  const sessionId = crypto.randomUUID();
+  // Content scripts also run on HTTP sites, where randomUUID is unavailable.
+  const sessionId = crypto.getRandomValues(new Uint32Array(4)).join('-');
   const host = document.createElement('div');
   host.setAttribute('data-gamma-ignore', '');
   host.setAttribute('contenteditable', 'false');
