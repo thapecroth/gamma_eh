@@ -52,9 +52,3 @@ or establish grammar quality.
 References: [Project-local CLI](https://viteplus.dev/guide/local-cli),
 [Migration rules](https://viteplus.dev/guide/migrate-rules), and
 [Vitest 5 compatibility](https://viteplus.dev/guide/vitest-v5).
-
-The lockfile workflow resolves dependencies on a hosted runner
-and returns `package-lock.json` as a short-lived artifact. It never commits,
-pushes, grants write permissions, or packages private models. Review and commit
-the generated lockfile before release. Normal app and browser checks still use
-`npm ci`, so a manifest/lockfile mismatch fails those gates.
