@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 import { applySuggestion, applySuggestions } from '../packages/engine/src/edits';
-import { analyzeRules } from '../packages/engine/src/rules';
+import { analyzeRules, canonicalSpelling } from '../packages/engine/src/rules';
 import { splitWords, WordPieceTokenizer } from '../packages/engine/src/tokenizer';
 import type { Suggestion } from '../packages/engine/src/types';
 import { validArticleEdit } from '../packages/engine/src/guards';
@@ -13,6 +13,27 @@ describe('correction safety', () => {
   it('preserves case and does not edit protected content', () => {
     const text = 'TEH `teh` https://example.test/teh teh@example.test';
     expect(applySuggestions(text, analyzeRules(text))).toBe('THE `teh` https://example.test/teh teh@example.test');
+  });
+  it('leaves valid constructor words unchanged in rules-only checks', () => {
+    for (const word of ['Constructor', 'CONSTRUCTOR', 'constructor']) {
+      expect(analyzeRules(word)).toEqual([]);
+    }
+  });
+  it('keeps own spelling corrections and their case beside constructor words', () => {
+    const text = 'Constructor recieved. CONSTRUCTOR RECIEVED. constructor Recieved.';
+    const suggestions = analyzeRules(text);
+    expect(suggestions.map(({ original, replacement, category }) => ({ original, replacement, category }))).toEqual([
+      { original: 'recieved', replacement: 'received', category: 'spelling' },
+      { original: 'RECIEVED', replacement: 'RECEIVED', category: 'spelling' },
+      { original: 'Recieved', replacement: 'Received', category: 'spelling' },
+    ]);
+    expect(applySuggestions(text, suggestions)).toBe('Constructor received. CONSTRUCTOR RECEIVED. constructor Received.');
+  });
+  it('normalizes prototype names without treating inherited properties as corrections', () => {
+    for (const word of ['Constructor', 'CONSTRUCTOR', 'constructor', '__proto__', 'toString', 'hasOwnProperty']) {
+      expect(canonicalSpelling(word)).toBe(word.toLowerCase());
+    }
+    expect(canonicalSpelling('Freind')).toBe('friend');
   });
   it('does not flag valid agreement or valid repeated constructions', () => {
     expect(analyzeRules('I am ready. They have books. She is here. She had had enough. I knew that that was fine. Does she have time? Would he have time? I insist that he have a chance.')).toEqual([]);

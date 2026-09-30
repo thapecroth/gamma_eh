@@ -115,6 +115,17 @@ CI and release packaging run the deterministic suite without Codex credentials.
 Only its fictional browser evidence is uploaded. Local model/agent failures
 remain visible separately from hosted browser checks.
 
+## Supervised validation
+
+On 2026-09-30, a live manual cycle verified the full handoff: Luna reproduced a
+rules-only crash for `Constructor is a valid term.`, the browser gate failed,
+and Codex repaired the inherited dictionary lookup in an isolated worktree.
+App and browser gates then passed; Luna's new scenarios and screenshot review
+accepted the repaired extension. A deliberately interrupted Luna run recorded
+the cancellation and released the shared lock. The failed runs were retained
+as evidence and did not publish. Hosted WebGPU/local WebGPU checks used the
+SwiftShader software adapter, so this is functional execution evidence.
+
 ## Boundaries
 
 The test-only extension copy has a static localhost host grant; its source and

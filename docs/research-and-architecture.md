@@ -60,6 +60,14 @@ known misspellings, narrow pronoun agreement, and duplicate tokens. Model
 inference splits at sentence boundaries and within long sentences to fit the
 checkpoint context budget. Oversized individual tokens are skipped. Sentence
 chunks lose context across windows; this is a stated baseline limitation.
+
+Spelling lookups accept only dictionary-owned entries. JavaScript prototype
+names such as `constructor` and `__proto__` therefore cannot become spelling
+replacements. In rules-only checks, `Constructor`, `CONSTRUCTOR`, and
+`constructor` remain unchanged while known misspellings retain their case;
+`canonicalSpelling` applies the same lookup rule. Focused engine regression
+tests cover both paths.
+
 Input is capped at 20,000 characters in the engine and 6,000 per extension field
 to bound CPU work. Concurrent workers run inference away from the UI thread.
 

@@ -11,6 +11,11 @@ const spelling: Record<string, string> = {
   peopel: 'people', buisness: 'business', importent: 'important', teh: 'the',
 };
 
+function spellingCorrection(lowercaseWord: string): string | undefined {
+  return Object.prototype.hasOwnProperty.call(spelling, lowercaseWord)
+    ? spelling[lowercaseWord] : undefined;
+}
+
 // A bounded fallback for simple singular subjects in explicitly habitual
 // present-tense statements. Exclude ambiguous past forms such as "read" and
 // require the time cue so questions, commands, and subjunctives stay untouched.
@@ -23,7 +28,8 @@ const habitualAgreement = new RegExp(
   `(^|[.!?]\\s+)((?:my|your|our|his|her|their|the|a)[ \\t]+(?:friend|teacher|neighbor|student|child|colleague|manager))([ \\t]+)(${Object.keys(habitualVerbs).join('|')})\\b(?=[^.!?\\n]*\\bevery[ \\t]+(?:morning|day|evening|night|week)\\b[^.!?\\n]*(?:\\.|$))`, 'giu');
 
 export function canonicalSpelling(word: string): string {
-  return spelling[word.toLowerCase()] ?? word.toLowerCase();
+  const lowercaseWord = word.toLowerCase();
+  return spellingCorrection(lowercaseWord) ?? lowercaseWord;
 }
 
 // Protect URLs, email addresses, inline/fenced code from deterministic edits.
@@ -42,7 +48,7 @@ export function analyzeRules(text: string): Suggestion[] {
       original: text.slice(start, end), replacement, message, category, confidence: 1, source: 'rule' });
   };
   for (const match of text.matchAll(/\b[A-Za-z]+\b/gu)) {
-    const replacement = spelling[match[0].toLowerCase()];
+    const replacement = spellingCorrection(match[0].toLowerCase());
     if (replacement) add(match.index, match.index + match[0].length,
       preserveCase(match[0], replacement), 'Check the spelling of this word.', 'spelling');
   }
