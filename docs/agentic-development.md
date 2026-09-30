@@ -33,6 +33,10 @@ Codex authentication stays in your existing local configuration. The harness
 does not copy credentials into worktrees. It uses `codex exec` with ephemeral
 sessions, structured output and explicit models; unrelated user MCP servers are
 disabled with `--ignore-user-config`. There is no silent model fallback.
+The coding default is `gpt-6-sol`, verified with this ChatGPT login on 2026-09-30.
+The same login rejected `gpt-6.1-sol`; a cached model listing did not establish
+account access. Use `--coding-model` or `GAMMA_CODEX_MODEL` to choose another
+explicit, account-supported coding model. Luna stays pinned to `gpt-6-luna/max`.
 See [official Codex CLI documentation](https://learn.chatgpt.com/docs/developer-commands#codex-exec)
 and [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna).
 

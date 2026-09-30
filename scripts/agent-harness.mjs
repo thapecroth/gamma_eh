@@ -16,7 +16,7 @@ const discoverySchema = {type: 'object', additionalProperties: false, required: 
 }};
 
 export function parseOptions(args) {
-  const options = {mode: args.shift(), iterations: 2, codingModel: process.env.GAMMA_CODEX_MODEL ?? 'gpt-6.1-sol', publish: false, verifyOnly: false};
+  const options = {mode: args.shift(), iterations: 2, codingModel: process.env.GAMMA_CODEX_MODEL ?? 'gpt-6-sol', publish: false, verifyOnly: false};
   if (!['e2e', 'loop'].includes(options.mode)) throw new Error('Usage: agent-harness.mjs e2e|loop [--task text] [--max-iterations 1..3] [--base ref] [--coding-model name] [--verify-only] [--publish]');
   while (args.length) {
     const flag = args.shift();
