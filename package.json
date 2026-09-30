@@ -11,12 +11,16 @@
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "vp lint apps packages scripts tests",
-    "test": "vp test run",
+    "test": "vp test run --dir tests",
     "test:release": "node --test --test-isolation=none tests/release.node.mjs",
     "test:browser": "node scripts/verify-browser.mjs",
+    "test:agents": "python3 scripts/agent-supervisor.py node --test --test-isolation=none tests/agent-harness.node.mjs",
+    "test:extension": "python3 scripts/agent-supervisor.py node scripts/extension-driver.mjs",
+    "agent:e2e": "python3 scripts/agent-supervisor.py node scripts/agent-harness.mjs e2e",
+    "agent:loop": "python3 scripts/agent-supervisor.py node scripts/agent-harness.mjs loop",
     "release:package": "node scripts/package-release.mjs",
     "check:environment": "node scripts/check-environment.mjs",
-    "check": "npm run lint && npm run typecheck && npm test && npm run test:release && npm run build"
+    "check": "npm run lint && npm run typecheck && npm test && npm run test:release && npm run test:agents && npm run build"
   },
   "dependencies": {
     "onnxruntime-web": "1.30.0",
