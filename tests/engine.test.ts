@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { applySuggestion, applySuggestions } from '../packages/engine/src/edits';
 import { analyzeRules } from '../packages/engine/src/rules';
 import { splitWords, WordPieceTokenizer } from '../packages/engine/src/tokenizer';
@@ -21,6 +21,17 @@ describe('correction safety', () => {
     const edits = analyzeRules('She have a freind.');
     expect(() => applySuggestion('She has a freind.', edits[0])).toThrow(/changed/u);
     expect(() => applySuggestions('She have a freind.', [edits[0], edits[0]])).toThrow(/Overlapping/u);
+  });
+  it('corrects simple habitual noun-subject agreement with exact UTF-16 offsets', () => {
+    const text = '😀. My friend go to school every morning. Our teacher study every day.';
+    expect(applySuggestions(text, analyzeRules(text))).toBe('😀. My friend goes to school every morning. Our teacher studies every day.');
+  });
+  it('leaves questions, plural/compound subjects, ambiguous tense and subjunctives alone', () => {
+    expect(analyzeRules('Does my friend go every morning? My friend go every morning? My friends go every day. My friend and I go every day. I insist that my friend go every day. My friend read the paper every morning. My friend go home.')).toEqual([]);
+  });
+  it('does not edit habitual agreement inside protected code', () => {
+    const text = '```\nMy friend go to school every morning.\n```';
+    expect(analyzeRules(text)).toEqual([]);
   });
   it('inserts missing words without deleting neighbors', () => {
     const edit: Suggestion = {id: 'insert', start: 6, end: 6, original: '', replacement: ' a',

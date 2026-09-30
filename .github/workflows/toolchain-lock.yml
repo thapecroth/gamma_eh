@@ -1,0 +1,29 @@
+name: Toolchain lockfile
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - package.json
+      - .github/workflows/toolchain-lock.yml
+permissions:
+  contents: read
+concurrency:
+  group: toolchain-lock-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Resolve the pinned toolchain without running package scripts
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Preserve generated lockfile for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: toolchain-lockfile
+          path: package-lock.json
+          retention-days: 3

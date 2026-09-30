@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { buildPaths } from '../scripts/paths.mjs';
 
 describe('isolated model experiments', () => {

@@ -10,7 +10,8 @@ not yet a general Grammarly replacement. See the [model card](models/MODEL_CARD.
 
 ## Run the editor
 
-Requires Node.js 24+ and npm. The trained model and browser runtime are bundled
+Requires Node.js 24.11+ (24.x) and npm. The project-local Vite+ toolchain requires
+no global installation. The trained model and browser runtime are bundled
 by the build script.
 
 ```sh
@@ -19,10 +20,14 @@ npm run build
 npm run dev
 ```
 
-Open the local address printed by Vite. Local AI uses WebGPU where available
+Open the local address printed by Vite+. Local AI uses WebGPU where available
 and falls back to a quantized CPU model. Rules are enabled by default; explicitly
 switch on experimental Local AI in the editor or extension popup to try the model.
 No API keys, accounts, or inference server are needed.
+
+For browser verification, run `npm run check:environment` and see
+[Browser testing](docs/browser-testing.md). Hosted PR checks include actual
+WASM/WebGPU inference in the web editor and Chrome extension.
 
 ## Chrome extension
 
@@ -59,6 +64,10 @@ npm run build
 Heavy jobs run sequentially on a shared machine. Model training automatically
 uses CUDA when available. The seed, base revision, dataset hashes, calibration,
 test results, and quantization comparison are recorded beside the browser model.
+
+The frontend uses Vite+ for development, linting, tests, and the Vite core build.
+`npm run build` also packages the extension and local inference assets; bare
+`vp build` is not a replacement for it. See [Frontend toolchain](docs/toolchain.md).
 
 ## Layout
 

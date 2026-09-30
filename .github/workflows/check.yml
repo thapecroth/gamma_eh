@@ -1,9 +1,13 @@
 name: Check
 on:
   push:
+    branches: [main]
   pull_request:
 permissions:
   contents: read
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   app:
     runs-on: ubuntu-latest
@@ -24,3 +28,34 @@ jobs:
           python-version: '3.10'
       - run: pip install pytest==8.4.2
       - run: python -m pytest training
+  browser-e2e:
+    needs: [app, data]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GAMMA_TEST_WEBGPU: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Check browser runtime capabilities
+        run: npm run check:environment
+      - run: npm run build
+      - name: Verify local model, web editor, and Chrome extension
+        run: npm run test:browser
+      - name: Preserve E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-e2e-evidence
+          path: |
+            artifacts/environment.json
+            artifacts/browser-smoke.json
+            artifacts/editor-desktop.png
+            artifacts/editor-mobile.png
+          if-no-files-found: warn
+          retention-days: 7

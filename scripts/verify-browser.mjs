@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { access, cp, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { access, cp, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
-import { homedir, tmpdir } from 'node:os';
+import { tmpdir } from 'node:os';
 import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { chromium } from '@playwright/test';
 import { buildPaths } from './paths.mjs';
+import { browserArguments, findChromium } from './browser-environment.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const temporary = await mkdtemp(join(tmpdir(), 'gamma-browser-check-'));
@@ -18,19 +19,6 @@ const failures = [];
 const evidence = {web: {}, model: {}, extension: {}, network: []};
 let context;
 let server;
-
-async function chromePath() {
-  if (process.env.GAMMA_CHROME_PATH) return process.env.GAMMA_CHROME_PATH;
-  try { await access(chromium.executablePath()); return chromium.executablePath(); } catch { /* choose an existing local test browser */ }
-  const cache = join(homedir(), '.cache/ms-playwright');
-  for (const entry of (await readdir(cache)).filter(name => /^chromium-\d+$/u.test(name)).sort((a, b) => Number(b.split('-')[1]) - Number(a.split('-')[1]))) {
-    for (const relative of ['chrome-linux64/chrome', 'chrome-linux/chrome']) {
-      const executable = join(cache, entry, relative);
-      try { await access(executable); return executable; } catch { /* next candidate */ }
-    }
-  }
-  throw new Error('Install Chromium with npx playwright install chromium, or set GAMMA_CHROME_PATH.');
-}
 
 async function shadowElement(page, selector) {
   const session = await context.newCDPSession(page);
@@ -119,9 +107,8 @@ try {
   assert.equal(shippingManifest.content_scripts, undefined);
   await writeFile(join(extensionDir, 'manifest.json'), JSON.stringify({...shippingManifest, host_permissions: ['http://127.0.0.1/*']}));
   context = await chromium.launchPersistentContext(join(temporary, 'profile'), {
-    executablePath: await chromePath(), headless: true,
-    args: [`--disable-extensions-except=${extensionDir}`, `--load-extension=${extensionDir}`, '--no-sandbox',
-      ...(process.env.GAMMA_TEST_WEBGPU === '1' ? ['--enable-unsafe-webgpu'] : [])],
+    channel: 'chromium', executablePath: await findChromium(), headless: true,
+    args: [`--disable-extensions-except=${extensionDir}`, `--load-extension=${extensionDir}`, ...browserArguments()],
     viewport: {width: 1440, height: 1050},
   });
   context.on('request', request => {
@@ -196,6 +183,7 @@ try {
   assert(modelEdit.edits.some(edit => edit.source === 'model') && modelEdit.actual === modelEdit.target,
     'Model must correctly suggest an edit beyond deterministic rules');
   evidence.model.regressionFailures = evidence.model.rows.filter(row => row.actual !== row.target);
+  assert.equal(evidence.model.regressionFailures.length, 0, 'Every grammar smoke case must match; misses are failures, not just reported accuracy');
 
   let background = context.serviceWorkers().find(worker => worker.url().includes('background.mjs'));
   if (!background) background = await context.waitForEvent('serviceworker', {predicate: worker => worker.url().includes('background.mjs')});

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { getSettings, isCheckMessage, MAX_FIELD_LENGTH, scriptId, sitePattern } from '../apps/extension/src/protocol';
 import { matchesSuggestion, sensitiveAutocomplete } from '../apps/extension/src/editable';
 import type { Suggestion } from '@gamma/engine';

@@ -11,6 +11,17 @@ const spelling: Record<string, string> = {
   peopel: 'people', buisness: 'business', importent: 'important', teh: 'the',
 };
 
+// A bounded fallback for simple singular subjects in explicitly habitual
+// present-tense statements. Exclude ambiguous past forms such as "read" and
+// require the time cue so questions, commands, and subjunctives stay untouched.
+const habitualVerbs: Record<string, string> = {
+  go: 'goes', work: 'works', walk: 'walks', write: 'writes', play: 'plays', learn: 'learns',
+  travel: 'travels', cook: 'cooks', wait: 'waits', talk: 'talks', sleep: 'sleeps',
+  run: 'runs', study: 'studies', watch: 'watches',
+};
+const habitualAgreement = new RegExp(
+  `(^|[.!?]\\s+)((?:my|your|our|his|her|their|the|a)[ \\t]+(?:friend|teacher|neighbor|student|child|colleague|manager))([ \\t]+)(${Object.keys(habitualVerbs).join('|')})\\b(?=[^.!?\\n]*\\bevery[ \\t]+(?:morning|day|evening|night|week)\\b[^.!?\\n]*(?:\\.|$))`, 'gimu');
+
 export function canonicalSpelling(word: string): string {
   return spelling[word.toLowerCase()] ?? word.toLowerCase();
 }
@@ -59,6 +70,11 @@ export function analyzeRules(text: string): Suggestion[] {
     if (['had', 'that'].includes(match[1].toLowerCase())) continue;
     const start = match.index + match[1].length;
     add(start, match.index + match[0].length, '', 'This word appears twice in a row.', 'grammar');
+  }
+  for (const match of text.matchAll(habitualAgreement)) {
+    const start = match.index + match[1].length + match[2].length + match[3].length;
+    add(start, start + match[4].length, preserveCase(match[4], habitualVerbs[match[4].toLowerCase()]),
+      'Match the present-tense verb to its singular subject.', 'grammar');
   }
   return suggestions.sort((a, b) => a.start - b.start);
 }
