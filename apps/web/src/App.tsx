@@ -27,10 +27,11 @@ const EXAMPLES = [
 type WorkerResponse = { requestId: number; result?: AnalysisResult; error?: string };
 
 function Mark({ compact = false }: { compact?: boolean }) {
-  return <a className="brand" href="#" aria-label={compact ? 'Gamma EH home' : 'Gamma EH playground home'}>
+  return <a className="brand" href="#">
     <img className="brand-icon" src="/favicon.svg" width="32" height="35" alt="" />
     <span>gamma<span className="brand-suffix"> eh</span></span>
-    {!compact && <span className="brand-tag">PLAYGROUND</span>}
+    {!compact && <span className="brand-tag"> PLAYGROUND</span>}
+    <span className="sr-only"> home</span>
   </a>;
 }
 
