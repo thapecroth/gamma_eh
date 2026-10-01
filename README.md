@@ -19,8 +19,8 @@
 </p>
 
 <p align="center">
-  <a href="docs/assets/gamma-eh-launch.mp4"><img alt="Watch the 22-second Gamma EH launch video" src="docs/assets/gamma-eh-launch-poster.jpg" width="720"></a><br>
-  <sub>▶ <a href="docs/assets/gamma-eh-launch.mp4">Watch the 22-second launch video</a>, rendered from the real web editor and extension UI.</sub>
+  <img alt="Gamma EH launch video: the web editor flags and fixes spelling and grammar locally, then the Chrome extension corrects a reply box" src="docs/assets/gamma-eh-launch.gif" width="800"><br>
+  <sub>🔊 <a href="docs/assets/gamma-eh-launch.mp4">Watch with sound (MP4)</a> · rendered from the real web editor and extension UI</sub>
 </p>
 
 Write freely. Review a suggestion. Keep what sounds like you.
