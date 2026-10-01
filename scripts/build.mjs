@@ -38,6 +38,9 @@ await buildScripts({...firefox, format: 'esm', entryPoints: {'inference-worker':
 await buildScripts({...firefox, format: 'iife', entryPoints: {background: join(root, 'apps/extension/src/background.ts'), content: join(root, 'apps/extension/src/content.ts'), popup: join(root, 'apps/extension/src/popup.ts')}});
 for (const filename of ['popup.html', 'popup.css']) await copy(join(root, 'apps/extension', filename), join(firefoxOutput, filename));
 await writeFile(join(firefoxOutput, 'manifest.json'), JSON.stringify(firefoxManifest(JSON.parse(await readFile(join(root, 'apps/extension/manifest.json'), 'utf8'))), null, 2) + '\n');
+for (const output of [extensionOutput, firefoxOutput]) {
+  for (const size of [16, 32, 48, 128]) await copy(join(root, 'apps/extension/icons', `icon-${size}.png`), join(output, 'icons', `icon-${size}.png`));
+}
 const models = await readdir(modelDirectory);
 for (const output of [webOutput, extensionOutput, firefoxOutput]) {
   for (const filename of models) if ((await stat(join(modelDirectory, filename))).isFile()) await copy(join(modelDirectory, filename), join(output, 'models', filename));

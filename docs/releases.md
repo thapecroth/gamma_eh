@@ -1,5 +1,10 @@
 # Releases and installation
 
+The Chrome ZIP also serves as the Chrome Web Store upload package. See
+[store distribution](chrome-web-store.md) for unlisted submission material
+and the optional automated store job. Preparation does not establish a live
+listing; record the actual link after Google's approval.
+
 The [GitHub Releases page](https://github.com/thapecroth/gamma_eh/releases) is
 the distribution point for built packages. Release automation is defined in
 [release.yml](../.github/workflows/release.yml). A workflow or local ZIP is not
@@ -145,4 +150,5 @@ the workflow's repository token can push tags, and its tag pushes do not recursi
 trigger another release workflow.
 
 See [Firefox installation](firefox.md). Firefox packaging and manifest checks are
-covered; live Firefox UI and inference verification remain a follow-up.
+covered. Firefox 156.0.1 also passed a live rules/WASM worker smoke check with a
+localhost fixture grant; full Firefox UI and permission-dialog coverage remain a follow-up.

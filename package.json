@@ -1,6 +1,6 @@
 {
   "name": "gamma-eh",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
@@ -24,6 +24,9 @@
     "agent:e2e": "python3 scripts/agent-supervisor.py node scripts/agent-harness.mjs e2e",
     "agent:loop": "python3 scripts/agent-supervisor.py node scripts/agent-harness.mjs loop",
     "release:package": "node scripts/package-release.mjs",
+    "webstore:artwork": "node scripts/webstore-assets.mjs artwork",
+    "webstore:screenshots": "node scripts/webstore-assets.mjs screenshots",
+    "webstore:submit": "node scripts/webstore-submit.mjs",
     "check:environment": "node scripts/check-environment.mjs",
     "check": "npm run lint && npm run typecheck && npm test && npm run test:release && npm run test:agents && npm run build"
   },

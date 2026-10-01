@@ -32,3 +32,14 @@ frame, host permission, and registered site access before inference. Text is nev
 sent to a server. Synthetic evaluation scores are not real-world accuracy.
 
 See [Mozilla background documentation](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background).
+
+## Verification
+
+Firefox 156.0.1 was tested with geckodriver 0.37.1 in an isolated headless
+profile. A temporary copy of the built add-on was granted only localhost access,
+matching the Chrome fixture strategy; the shipping manifest was unchanged.
+A real content-script message reached the Firefox background event page and
+bundled worker, producing rule suggestions and JAX WASM inference. Requests
+from an extension-page tab without a website origin were denied. This verifies
+local worker execution; Firefox permission dialogs, inline editing UI, and WebGPU
+remain separate coverage gaps.

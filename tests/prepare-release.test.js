@@ -42,6 +42,11 @@ it('creates synchronized version metadata and rejects non-version snapshot chang
     git('add', '.');
     git('commit', '-qm', 'release snapshot');
     expect(() => runScript('verify-release-snapshot.mjs')).not.toThrow();
+    await writeFile(join(root, 'apps/extension/manifest.json'), JSON.stringify({version: '0.1.7', name: 'fixture'}));
+    git('add', '.');
+    git('commit', '--amend', '--no-edit', '-q');
+    expect(() => runScript('verify-release-snapshot.mjs')).toThrow();
+    await writeFile(join(root, 'apps/extension/manifest.json'), JSON.stringify({version: '0.1.6', name: 'fixture'}));
     await writeFile(join(root, 'package.json'), JSON.stringify({version: '0.1.6', name: 'tampered'}));
     git('add', '.');
     git('commit', '--amend', '--no-edit', '-q');
