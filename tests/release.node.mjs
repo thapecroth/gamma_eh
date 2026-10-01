@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { promisify } from 'node:util';
+import { firefoxManifest } from '../scripts/firefox-manifest.mjs';
 import { packageBuiltRelease, publicBuildPaths, releaseVersion } from '../scripts/package-release.mjs';
 import { runtimeManifest, runtimeVersions } from '../scripts/inference-runtime.mjs';
 
@@ -46,7 +47,7 @@ async function fixture(t) {
     await put(root, name, `Fictional notice: ${name}\n`);
   }
   await put(root, 'models/MODEL_CARD.md', 'Fictional card: [data](browser/dataset-manifest.json) [docs](../docs/massive-dataset.md)\n');
-  for (const kind of ['extension', 'web']) {
+  for (const kind of ['extension', 'firefox', 'web']) {
     for (const name of [...Object.keys(model.files), 'manifest.json', 'dataset-manifest.json']) {
       await mkdir(join(root, 'dist', kind, 'models'), {recursive: true});
       await copyFile(join(root, 'models/browser', name), join(root, 'dist', kind, 'models', name));
@@ -58,6 +59,8 @@ async function fixture(t) {
   for (const name of ['background.mjs', 'content.js', 'popup.js', 'popup.html', 'popup.css', 'offscreen.html', 'offscreen.mjs', 'inference-worker.mjs']) {
     await put(root, `dist/extension/${name}`, `Fictional asset: ${name}`);
   }
+  await put(root, 'dist/firefox/manifest.json', firefoxManifest(extension));
+  for (const name of ['background.js', 'content.js', 'popup.js', 'popup.html', 'popup.css', 'inference-worker.mjs']) await put(root, `dist/firefox/${name}`, `Fictional asset: ${name}`);
   return {root, model};
 }
 
@@ -84,7 +87,7 @@ test('packages root-level manifests, local inference assets, instructions, and l
   await put(root, 'dist/pilot/extension/private.txt', 'must not ship');
   const output = await packageBuiltRelease(root, {tag: 'v0.1.0'});
   const sums = await readFile(join(output, 'SHA256SUMS.txt'), 'utf8');
-  for (const kind of ['chrome', 'web']) {
+  for (const kind of ['chrome', 'firefox', 'web']) {
     const name = `gamma-eh-${kind}-v0.1.0.zip`;
     assert(sums.includes(`${hash(await readFile(join(output, name)))}  ${name}\n`));
     const {stdout: listing} = await run('unzip', ['-Z1', join(output, name)]);
@@ -96,11 +99,11 @@ test('packages root-level manifests, local inference assets, instructions, and l
     assert(!listing.includes('private') && !listing.includes('secret') && !listing.includes('pilot'));
     const {stdout: instructions} = await run('unzip', ['-p', join(output, name), 'INSTALL.md']);
     assert.match(instructions, /Experimental synthetic-template baseline/u);
-    assert.match(instructions, kind === 'chrome' ? /Load unpacked/u : /secure origin/u);
+    assert.match(instructions, kind === 'chrome' ? /Load unpacked/u : kind === 'firefox' ? /Load Temporary Add-on/u : /secure origin/u);
     const {stdout: card} = await run('unzip', ['-p', join(output, name), 'MODEL_CARD.md']);
     assert(card.includes('](models/dataset-manifest.json)'));
     assert(card.includes('](https://github.com/thapecroth/gamma_eh/blob/v0.1.0/docs/massive-dataset.md)'));
-    if (kind === 'chrome') {
+    if (kind !== 'web') {
       assert(names.has('manifest.json'));
       assert(!names.has('extension/manifest.json'));
       const {stdout: manifest} = await run('unzip', ['-p', join(output, name), 'manifest.json']);

@@ -1,4 +1,7 @@
+import { checkLocally } from './local-checker';
 import { isCheckMessage, scriptId, sitePattern, type CheckResponse } from './protocol';
+
+declare const GAMMA_FIREFOX: boolean;
 
 let offscreenCreation: Promise<void> | null = null;
 
@@ -24,8 +27,13 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (r
         sendResponse({ requestId: message.requestId, siteDisabled: true });
         return;
       }
-      await ensureOffscreen();
-      const response: CheckResponse = await chrome.runtime.sendMessage({ ...message, target: 'offscreen' });
+      let response: CheckResponse;
+      if (GAMMA_FIREFOX) {
+        response = await checkLocally(message);
+      } else {
+        await ensureOffscreen();
+        response = await chrome.runtime.sendMessage({ ...message, target: 'offscreen' });
+      }
       if (!response || response.requestId !== message.requestId) throw new Error('The local checker returned an invalid response.');
       sendResponse(response);
     } catch (error) {

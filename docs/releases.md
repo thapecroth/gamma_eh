@@ -11,9 +11,10 @@ itself a published release: publication requires a successful tagged run.
 | --- | --- |
 | `gamma-eh-chrome-vX.Y.Z.zip` | Extract, then load the root folder in Chrome Developer mode. |
 | `gamma-eh-web-vX.Y.Z.zip` | Extract and serve the root folder on localhost or HTTPS. |
-| `SHA256SUMS.txt` | Verify both downloaded ZIPs. |
+| `gamma-eh-firefox-vX.Y.Z.zip` | Load temporarily in Firefox using `about:debugging`; permanent installs need signing. |
+| `SHA256SUMS.txt` | Verify downloaded ZIPs. |
 
-Both ZIPs include the public baseline model, bundled JAX JS runtime metadata, licenses,
+All three ZIPs include the public baseline model, bundled JAX JS runtime metadata, licenses,
 model card, and `INSTALL.md`. No build tools or inference server are needed for
 the extension. GitHub's automatic source archives are not installable packages.
 
@@ -124,3 +125,24 @@ version rather than replacing downloads.
 Browser evidence is retained as a workflow artifact for seven days. The public
 ZIPs remain attached to the release. See [browser verification](browser-testing.md)
 for what the automated checks do and do not establish.
+
+## Automatic releases on main
+
+Every push to `main` queues the Release workflow. It chooses the next patch
+version above the source version and existing version tags. The workflow creates
+an immutable tagged child commit containing only synchronized version updates in
+`package.json`, `package-lock.json`, and the extension manifest; it does not write
+to main. Retries reuse the snapshot for the same source commit.
+
+The release pipeline validates that the snapshot's parent belongs to main and
+that its only changes are version metadata. It runs the existing app, training,
+Chrome and web browser gates, builds all three ZIPs, checks their contents and
+checksums, then publishes an experimental GitHub prerelease. Failed gates leave
+the tag available for retry but publish no release. Manually dispatched releases
+and manually pushed version tags remain supported. Release runs queue sequentially
+so version allocation and publication cannot overlap. No extra PAT is needed:
+the workflow's repository token can push tags, and its tag pushes do not recursively
+trigger another release workflow.
+
+See [Firefox installation](firefox.md). Firefox packaging and manifest checks are
+covered; live Firefox UI and inference verification remain a follow-up.

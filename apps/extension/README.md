@@ -44,3 +44,8 @@ The extension checks the original text and offsets before accepting a
 suggestion. Some sites intercept editing events; an accepted edit may not be
 compatible with every site. Rich editors are intentionally declined rather
 than changing their DOM or application state unsafely.
+
+
+## Firefox
+
+Build output is `dist/firefox/`. See [Firefox installation](../../docs/firefox.md).

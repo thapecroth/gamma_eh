@@ -14,3 +14,5 @@
 - [Releases](releases.md): ready-built Chrome/web ZIPs, checksums, installation, and gated publication.
 - [Chrome extension](../apps/extension/README.md): unpacked installation and site permissions.
 - [Model card](../models/MODEL_CARD.md): trained checkpoint scope and measured results.
+
+- [Firefox extension](firefox.md): installation and browser-specific background setup.
