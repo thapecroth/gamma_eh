@@ -34,7 +34,32 @@ INT8 agreement is 0.999916. Complete training/calibration/export evidence is in
 
 **These high scores measure held-out combinations of the same synthetic template
 families and vocabulary. They do not establish general grammar accuracy.**
-There are no reported BEA/CoNLL/JFLEG/ERRANT benchmark scores.
+An independent human-reference evaluation now exposes the generalization gap;
+see below. Synthetic token-label scores and decoded browser scores have different
+populations, guards, and scoring methods.
+
+## Independent human-reference evaluation
+
+The complete JFLEG test population contains 747 sentences with four fluency
+references each, including 182 sources accepted unchanged by at least one
+reference. Actual Chromium/WASM predictions at the existing 0.85 threshold,
+one correction pass, produced:
+
+| Engine | Edit precision | Edit recall | Edit F0.5 | Clean sources changed |
+| --- | --- | --- | --- | --- |
+| Rules | 90.91% | 0.67% | 3.27% | 0/182 |
+| Neural | 6.27% | 1.06% | 3.16% | 52/182 |
+| Combined | 7.72% | 1.32% | 3.92% | 52/182 |
+
+These are custom best-sentence-reference scores using actual ERRANT edit
+extraction, not official JFLEG GLEU, BEA scores, or universal grammar accuracy.
+No sentences were removed for vocabulary, alignment, or inference; no inference
+failed. JFLEG includes stylistic rewrites. The model remains an experimental
+opt-in baseline, and the poor clean-text result is a reason to require natural
+development calibration before promoting another student. The independent
+benchmark was never added to training. See the [quality workflow](../docs/model-quality.md)
+for frozen population hashes, methodology, controlled candidates, and deployment
+gates. Raw benchmark text and browser predictions stay local.
 
 ## Browser engine validation and limitations
 
@@ -44,8 +69,8 @@ The original ONNX Runtime validation executed the quantized model in headless
 Chromium with the real web editor and MV3 offscreen/worker path. WebGPU also executed with Chrome's explicit
 headless WebGPU flag, using its SwiftShader software adapter. Physical-GPU
 browser execution and hardware latency remain unverified. A small original natural-text smoke set
-matched 14/15 expected outputs after conservative runtime guards. The model
-missed `My friend go to school every morning.` This 15-case set is a smoke test,
+matched 15/15 expected outputs after conservative runtime guards and the narrow
+habitual-agreement rule. This 15-case set is a smoke test,
 not a representative benchmark.
 
 Before guards, the model produced incorrect article edits and arbitrary

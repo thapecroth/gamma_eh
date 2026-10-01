@@ -50,6 +50,23 @@ def assemble(base, weak, output, max_template_train_rows=0):
         counts[f"{split}_unsupported_examples_dropped"] = original - len(splits[split])
         if not splits[split]: raise ValueError("No evaluation rows supported by training vocabulary")
     output.mkdir(parents=True)
+    evaluation = output / "evaluation"
+    evaluation.mkdir()
+    eval_manifest = {}
+    # Evaluation populations are retained before train-vocabulary filtering.
+    for split in ["dev", "test"]:
+        destination = evaluation / f"{split}.jsonl"
+        source = base / "evaluation" / f"{split}.jsonl"
+        if source.exists():
+            destination.write_bytes(source.read_bytes())
+        else:
+            with destination.open("w") as stream:
+                for row in rows(base / f"{split}.jsonl"):
+                    value = {"source": row["source"], "references": [row["target"]],
+                             "origin": row.get("origin", "original-template-v1"),
+                             "license": "CC0-1.0", "review_status": "synthetic-template"}
+                    stream.write(json.dumps(value, ensure_ascii=False) + "\n")
+        eval_manifest[split] = {"rows": sum(1 for _ in rows(destination)), "sha256": hash_file(destination)}
     labels = ["KEEP"] + sorted(train_tags - {"KEEP"})
     (output / "labels.json").write_text(json.dumps(labels, indent=2) + "\n")
     scope = "Original template in-distribution evaluation; teacher rows are unreviewed train-only. Not real-world GEC quality."
@@ -59,6 +76,7 @@ def assemble(base, weak, output, max_template_train_rows=0):
                 "base_manifest_sha256": hash_file(base / "manifest.json"),
                 "weak_manifest_sha256": hash_file(weak / "manifest.json"),
                 "label_count": len(labels), "counts": dict(counts), "splits": {}}
+    manifest["evaluation"] = eval_manifest
     for split, records in splits.items():
         path = output / f"{split}.jsonl"
         with path.open("w") as stream:

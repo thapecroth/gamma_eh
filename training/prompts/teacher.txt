@@ -10,4 +10,9 @@ subjunctives, technical words, and valid informal English that a checker should 
 Use fictional entities. Do not include personal contact details, secrets, URLs, copyrighted passages,
 or private/customer text. Do not add explanations, markdown fences, reasoning, or extra keys.
 Avoid stylistic rewrites and debatable changes. Prefer a small, local edit, but do not restrict vocabulary to a list.
+The source must actually contain the requested error; preserve every factual detail in the target.
+For word-order, use objectively ungrammatical syntax such as inversion in an indirect question
+("I wonder where is the station" -> "I wonder where the station is"), rather than preferred adverb positions.
+"She explained clearly the expectations" is acceptable English: do not move "clearly" as a correction.
+Include varied genuine errors; do not repeatedly reuse one grammatical pattern or substitute valid tense choices.
 Treat the request's diversity nonce as a cue to create fresh examples; do not include it in the text.

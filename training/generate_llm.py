@@ -14,7 +14,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-from pairs import normalized, validate_pair
+from pairs import hash_file, normalized, validate_pair
 
 PROMPT_PATH = Path(__file__).parent / "prompts/teacher.txt"
 DOMAINS = ["work email", "team chat", "personal message", "travel planning", "school essay",
@@ -22,6 +22,13 @@ DOMAINS = ["work email", "team chat", "personal message", "travel planning", "sc
            "meeting notes", "recipe discussion", "community forum", "sports discussion",
            "science explanation", "creative writing", "event invitation"]
 ERRORS = ["agreement", "articles", "prepositions", "verb-tense", "spelling", "punctuation", "word-order"]
+
+
+class TeacherError(RuntimeError):
+    """A stable, safe error reason; never contains a provider response."""
+    def __init__(self, reason):
+        self.reason = reason
+        super().__init__(reason)
 
 
 def iter_jobs(total, batch_size, seed):
@@ -60,6 +67,10 @@ def request_teacher(job, settings, system_prompt, api_key):
         payload = {"model": settings["model"], "messages": [{"role": "system", "content": system_prompt},
                                                                {"role": "user", "content": user}],
                    settings.get("max_token_field", "max_tokens"): settings["max_tokens"]}
+        if settings.get("reasoning_effort"):
+            payload["reasoning_effort"] = settings["reasoning_effort"]
+        if settings.get("json_mode"):
+            payload["response_format"] = {"type": "json_object"}
         # No provider-specific JSON mode/temperature assumption. Some reasoning
         # gateways reject these parameters; structural validation still applies.
         headers = {"Authorization": "Bearer " + api_key} if api_key else {}
@@ -70,27 +81,36 @@ def request_teacher(job, settings, system_prompt, api_key):
             with urlopen(request, timeout=settings["timeout"]) as response:
                 raw = response.read(4_000_001)
             if len(raw) > 4_000_000:
-                raise ValueError("Teacher response exceeds size limit")
+                raise TeacherError("output_size_limit")
             result = json.loads(raw)
             if settings["provider"] == "anthropic":
                 text = "".join(block.get("text", "") for block in result["content"] if block.get("type") == "text")
-                if result.get("stop_reason") == "max_tokens": raise ValueError("Teacher response was truncated")
+                if result.get("stop_reason") == "max_tokens": raise TeacherError("output_truncated")
             else:
                 choice = result["choices"][0]
-                if choice.get("finish_reason") == "length": raise ValueError("Teacher response was truncated")
+                if choice.get("finish_reason") == "length": raise TeacherError("output_truncated")
                 text = choice["message"]["content"]
             parsed = json.loads(text)
-            if not isinstance(parsed, dict) or not isinstance(parsed.get("pairs"), list): raise ValueError("Expected JSON object with pairs array")
-            if len(parsed["pairs"]) != job["count"]: raise ValueError("Teacher returned an incorrect pair count")
+            if not isinstance(parsed, dict) or not isinstance(parsed.get("pairs"), list): raise TeacherError("output_schema")
+            if len(parsed["pairs"]) != job["count"]: raise TeacherError("output_pair_count")
+            for candidate in parsed["pairs"]:
+                validate_pair(candidate, expected_category=job["category"])
             return parsed["pairs"], result.get("usage", {})
         except HTTPError as error:
             # Never log response bodies/headers; providers may echo sensitive content.
             retry = error.code in {408, 429, 500, 502, 503, 504}
             delay = error.headers.get("Retry-After", "")
-            if not retry or attempt == settings["retries"]: raise RuntimeError(f"Teacher HTTP status {error.code}") from None
+            if not retry or attempt == settings["retries"]: raise TeacherError("http_" + str(error.code)) from None
             time.sleep(min(60, float(delay) if delay.isdigit() else 2 ** attempt + random.random()))
         except (URLError, TimeoutError):
-            if attempt == settings["retries"]: raise RuntimeError("Teacher connection timed out or failed") from None
+            if attempt == settings["retries"]: raise TeacherError("connection_failed") from None
+            time.sleep(min(60, 2 ** attempt + random.random()))
+        except (TeacherError, ValueError, KeyError, TypeError, IndexError) as error:
+            # Retry incomplete JSON, truncation, and invalid rows within the same
+            # bounded attempt budget as transport failures.
+            if attempt == settings["retries"]:
+                reason = error.reason if isinstance(error, TeacherError) else "output_validation"
+                raise TeacherError(reason) from None
             time.sleep(min(60, 2 ** attempt + random.random()))
 
 
@@ -121,10 +141,44 @@ def acquire_run_lock(path):
     return lock
 
 
+def materialize_snapshot(db, output, config, fingerprint, rejected):
+    """Export committed rows without calling the provider, including incomplete runs."""
+    partial = output / 'candidates.partial.jsonl'
+    with partial.open("w") as stream:
+        for pair, source, target, category, group, job_id in db.execute(
+                "SELECT id,source,target,category,clean_group,job_id FROM pairs ORDER BY id"):
+            row = {"pair_id": pair, "source": source, "target": target, "category": category,
+                   "clean_group": group, "job_id": job_id, "review_status": "unreviewed",
+                   "origin": "llm-teacher", "model": config["model"],
+                   "license": "provider-terms-unverified", "prompt_sha256": config["prompt_sha256"]}
+            stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+    partial.replace(output / 'candidates.jsonl')
+    statuses = dict(db.execute("SELECT status,count(*) FROM jobs GROUP BY status"))
+    planned = math.ceil(config["pairs"] / config["batch_size"])
+    usage = Counter()
+    for (value,) in db.execute("SELECT usage FROM jobs WHERE status='done' AND usage IS NOT NULL"):
+        usage.update(json.loads(value))
+    manifest = {"schema": 1, "config": config, "fingerprint": fingerprint,
+                "status_counts": statuses, "planned_requests": planned,
+                "unfinished_requests": planned - statuses.get("done", 0),
+                "accepted_candidates": db.execute("SELECT count(*) FROM pairs").fetchone()[0],
+                "candidates_sha256": hash_file(output / 'candidates.jsonl'),
+                "rejections_this_invocation": dict(rejected),
+                "completed_request_usage": dict(usage),
+                "usage_scope": "Successful requests only; failed/interrupted attempts may also consume quota.",
+                "quality": "Weak labels; grammar correctness not independently verified",
+                "publication_allowed": False,
+                "dataset_license": "Provider terms must be checked before publication"}
+    temporary = output / 'manifest.partial.json'
+    temporary.write_text(json.dumps(manifest, indent=2) + "\n")
+    temporary.replace(output / 'manifest.json')
+    return manifest
+
+
 def generate(args):
     if not 1 <= args.concurrency <= 16 or not 1 <= args.batch_size <= 50 or args.pairs < 1:
         raise ValueError("Use positive pairs, batch size1..50, and concurrency1..16")
-    if args.retries < 0 or args.timeout <= 0 or args.max_tokens < 1:
+    if args.retries < 0 or args.timeout <= 0 or args.max_tokens < 1 or getattr(args, "snapshot_every", 10) < 1:
         raise ValueError("Retries must be nonnegative; timeout and max-tokens must be positive")
     prompt = PROMPT_PATH.read_text()
     config = {"provider": args.provider, "endpoint": endpoint(args.base_url, args.provider),
@@ -132,15 +186,25 @@ def generate(args):
               "seed": args.seed, "max_tokens": args.max_tokens, "retries": args.retries,
               "timeout": args.timeout, "max_token_field": getattr(args, "max_token_field", "max_tokens"),
               "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest()}
+    # Absent options do not alter fingerprints of existing resumable ledgers.
+    if getattr(args, "reasoning_effort", None):
+        if args.provider != "openai-compatible": raise ValueError("reasoning-effort requires OpenAI-compatible provider")
+        config["reasoning_effort"] = args.reasoning_effort
+    if getattr(args, "json_mode", False):
+        if args.provider != "openai-compatible": raise ValueError("json-mode requires OpenAI-compatible provider")
+        config["json_mode"] = True
     planned_count = math.ceil(args.pairs / args.batch_size)
     jobs = iter_jobs(args.pairs, args.batch_size, args.seed)
-    print(json.dumps({"mode": "execute" if args.execute else "dry-run", "planned_requests": planned_count,
+    snapshot_only = getattr(args, "snapshot_only", False)
+    print(json.dumps({"mode": "snapshot" if snapshot_only else "execute" if args.execute else "dry-run", "planned_requests": planned_count,
                       "requested_pairs": args.pairs, "max_output_tokens": planned_count * args.max_tokens,
                       "output": str(args.output), "concurrency": args.concurrency}), flush=True)
-    if not args.execute:
+    if not args.execute and not snapshot_only:
         return
+    if snapshot_only and not (args.output / 'ledger.sqlite3').is_file():
+        raise ValueError("No existing ledger to snapshot")
     key = os.environ.get(args.api_key_env, "")
-    if not key and urlparse(config["endpoint"]).hostname not in {"localhost", "127.0.0.1", "::1"}:
+    if not snapshot_only and not key and urlparse(config["endpoint"]).hostname not in {"localhost", "127.0.0.1", "::1"}:
         raise ValueError(f"Set {args.api_key_env} in the environment")
     args.output.mkdir(parents=True, exist_ok=True)
     fingerprint = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()
@@ -152,6 +216,13 @@ def generate(args):
         raise
     rejected = Counter()
     try:
+        db.execute("INSERT OR REPLACE INTO metadata VALUES ('config', ?)", (json.dumps(config, sort_keys=True),))
+        db.commit()
+        if snapshot_only:
+            manifest = materialize_snapshot(db, args.output, config, fingerprint, rejected)
+            print(json.dumps({"snapshot": True, "accepted_candidates": manifest["accepted_candidates"],
+                              "unfinished_requests": manifest["unfinished_requests"]}), flush=True)
+            return
         waiting = iter(j for j in jobs if db.execute("SELECT status FROM jobs WHERE id=?", (j["id"],)).fetchone() != ('done',))
         # Keep only concurrency futures in flight instead of allocating millions.
         with ThreadPoolExecutor(max_workers=args.concurrency) as executor:
@@ -164,6 +235,7 @@ def generate(args):
                 futures[executor.submit(request_teacher, job, config, prompt, key)] = job
                 return True
             for _ in range(args.concurrency): submit_one()
+            completed = 0
             while futures:
                 future = next(as_completed(futures))
                 job = futures.pop(future)
@@ -178,33 +250,21 @@ def generate(args):
                         except ValueError as error: rejected[str(error)] += 1
                     safe_usage = {name: value for name, value in usage.items() if isinstance(value, int) and value >= 0}
                     db.execute("UPDATE jobs SET status='done',usage=?,error=NULL WHERE id=?", (json.dumps(safe_usage), job["id"]))
-                except (RuntimeError, ValueError, KeyError, TypeError, IndexError):
+                except (RuntimeError, ValueError, KeyError, TypeError, IndexError) as error:
                     # Store a fixed error label only: no provider bodies or credentials.
                     db.rollback()
-                    db.execute("UPDATE jobs SET status='failed',error='request_or_output_validation_failed' WHERE id=?", (job["id"],))
+                    reason = error.reason if isinstance(error, TeacherError) else 'request_or_output_validation_failed'
+                    db.execute("UPDATE jobs SET status='failed',error=? WHERE id=?", (reason, job["id"]))
                 db.commit()
+                completed += 1
+                if completed % getattr(args, "snapshot_every", 10) == 0:
+                    materialize_snapshot(db, args.output, config, fingerprint, rejected)
                 print(json.dumps({"completed_job": job["id"],
                                   "status": db.execute("SELECT status FROM jobs WHERE id=?", (job["id"],)).fetchone()[0],
                                   "accepted_so_far": db.execute("SELECT count(*) FROM pairs").fetchone()[0]}), flush=True)
                 submit_one()
-        # Deterministic materialization after completion; SQLite is the durable
-        # commit point, so interruption cannot create duplicated JSONL records.
-        rows = db.execute("SELECT id,source,target,category,clean_group,job_id FROM pairs ORDER BY id")
-        partial = args.output / 'candidates.partial.jsonl'
-        with partial.open("w") as stream:
-            for pair, source, target, category, group, job_id in rows:
-                row = {"pair_id": pair, "source": source, "target": target, "category": category,
-                       "clean_group": group, "job_id": job_id, "review_status": "unreviewed",
-                       "origin": "llm-teacher", "model": args.model, "license": "provider-terms-unverified",
-                       "prompt_sha256": config["prompt_sha256"]}
-                stream.write(json.dumps(row, ensure_ascii=False) + "\n")
-        partial.replace(args.output / 'candidates.jsonl')
-        statuses = dict(db.execute("SELECT status,count(*) FROM jobs GROUP BY status"))
-        manifest = {"schema": 1, "config": config, "fingerprint": fingerprint,
-                    "status_counts": statuses, "accepted_candidates": db.execute("SELECT count(*) FROM pairs").fetchone()[0],
-                    "rejections_this_invocation": dict(rejected), "quality": "weak labels; grammar correctness not independently verified",
-                    "dataset_license": "provider terms must be checked before publication"}
-        (args.output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+        manifest = materialize_snapshot(db, args.output, config, fingerprint, rejected)
+        statuses = manifest["status_counts"]
         print(json.dumps({"statuses": statuses, "accepted_candidates": manifest["accepted_candidates"], "rejected": dict(rejected)}), flush=True)
         if statuses.get("failed", 0): raise RuntimeError("Some teacher jobs failed; rerun the identical command to retry unfinished jobs")
     finally:
@@ -223,9 +283,13 @@ if __name__ == "__main__":
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--max-tokens", type=int, default=4096)
     parser.add_argument("--max-token-field", choices=["max_tokens", "max_completion_tokens"], default="max_tokens")
+    parser.add_argument("--reasoning-effort", choices=["low", "high", "max"])
+    parser.add_argument("--json-mode", action="store_true")
     parser.add_argument("--retries", type=int, default=4)
     parser.add_argument("--timeout", type=int, default=120)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output", type=Path, default=Path("data/teacher/run-001"))
+    parser.add_argument("--snapshot-every", type=int, default=10, help="Materialize committed rows every N completed jobs")
+    parser.add_argument("--snapshot-only", action="store_true", help="Export an existing ledger without any provider requests; settings must match")
     parser.add_argument("--execute", action="store_true", help="Actually call the teacher; without this flag only print the plan")
     generate(parser.parse_args())
