@@ -30,6 +30,7 @@ async function copy(source, destination) {
 }
 
 for (const filename of ['manifest.json', 'popup.html', 'popup.css', 'offscreen.html']) await copy(join(root, 'apps/extension', filename), join(extensionOutput, filename));
+for (const size of [16, 32, 48, 128]) await copy(join(root, 'apps/extension/icons', `icon-${size}.png`), join(extensionOutput, 'icons', `icon-${size}.png`));
 const models = await readdir(modelDirectory);
 for (const output of [webOutput, extensionOutput]) {
   for (const filename of models) if ((await stat(join(modelDirectory, filename))).isFile()) await copy(join(modelDirectory, filename), join(output, 'models', filename));

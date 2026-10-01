@@ -1,5 +1,14 @@
 # Chrome extension
 
+## Chrome Web Store and automatic updates
+
+An unlisted Chrome Web Store release is being prepared; there is no store
+installation link yet. After the first approval, store installs will receive
+future approved updates through Chrome. Unpacked installs need a one-time
+switch to the store copy and fresh site permissions. See
+[store preparation](../../docs/chrome-web-store.md) and the
+[privacy policy](../../docs/privacy.md).
+
 ## Download a built package
 
 When available, download `gamma-eh-chrome-vX.Y.Z.zip` from the
@@ -26,9 +35,12 @@ root, then use `dist/extension/` as the installation folder.
    for keyboard access and **Escape** to close. Choose **Pause this field** in
    the card to stop checking that field.
 
-Keep the extracted folder on disk. To update, remove the old unpacked extension,
-extract the new release, and load its folder. Re-enable the desired sites; this
-resets preferences. Unpacked installs do not auto-update. This is developer-mode
+Keep the extracted folder on disk. To update an unpacked installation, replace
+the contents of that same folder with the new release, click **Reload** on its
+card in `chrome://extensions`, and reload website tabs. Keep the folder path
+the same and leave the installation in place to retain settings. Removing it
+and loading a new folder resets settings and site permissions.
+Unpacked installs do not auto-update. This is developer-mode
 installation, not a Chrome Web Store or one-click CRX installer. See the
 [release runbook](../../docs/releases.md) for checksums and publication details.
 

@@ -15,6 +15,19 @@ const json = async filename => JSON.parse(await readFile(filename, 'utf8'));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const mayPublish = flag => flag === undefined || flag === true;
 
+export async function validateExtensionIcons(directory, manifest) {
+  for (const [size, filename] of Object.entries(manifest.icons ?? {})) {
+    if (![16, 32, 48, 128].includes(Number(size)) || filename !== `icons/icon-${size}.png`) throw new Error('Unexpected extension icon path or size.');
+    const bytes = await readFile(join(directory, filename));
+    if (bytes.length < 24 || !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+        || bytes.toString('ascii', 12, 16) !== 'IHDR' || bytes.readUInt32BE(16) !== Number(size) || bytes.readUInt32BE(20) !== Number(size)) {
+      throw new Error(`Invalid PNG dimensions for ${filename}.`);
+    }
+  }
+  for (const size of [16, 32, 48, 128]) if (!manifest.icons?.[size]) throw new Error(`Missing ${size}px extension icon.`);
+  for (const size of [16, 32]) if (manifest.action?.default_icon?.[size] !== manifest.icons[size]) throw new Error('Toolbar icons must match bundled extension icons.');
+}
+
 export function releaseVersion(packageVersion, extensionVersion, tag = `v${packageVersion}`) {
   if (typeof packageVersion !== 'string' || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u.test(packageVersion)
       || packageVersion === '0.0.0' || packageVersion.split('.').some(part => Number(part) > 65535)) {
@@ -128,7 +141,7 @@ async function licenses(root, stage, web, version) {
 
 function installInstructions(version, web) {
   return web ? `# Gamma EH ${version} — web editor\n\nServe this extracted directory with a static HTTP server on localhost or HTTPS.\nDo not open index.html as file://; workers and WebGPU need a secure origin.\nFor example, with Python 3: python -m http.server 8080 --bind 127.0.0.1\nThen open http://localhost:8080. Enable Local AI to try the model.\n`
-    : `# Gamma EH ${version} — Chrome extension\n\n1. Extract the ZIP into a permanent folder. No build tools are required.\n2. Open chrome://extensions in Chrome 116 or newer.\n3. Enable Developer mode, click Load unpacked, and select this folder\n   (the one containing manifest.json). Keep the folder after installation.\n4. Open a normal website, click Gamma EH, and Enable on this site.\n5. Use a textarea or plain-text contenteditable. Local AI is opt-in.\n\nTo update, extract the newer package, remove the old extension, and load\nthe new folder. Grant site permissions again. Unpacked installs do not auto-update.\nThis is not a Chrome Web Store or one-click CRX installer.\n`;
+    : `# Gamma EH ${version} — Chrome extension\n\n1. Extract the ZIP into a permanent folder. No build tools are required.\n2. Open chrome://extensions in Chrome 116 or newer.\n3. Enable Developer mode, click Load unpacked, and select this folder\n   (the one containing manifest.json). Keep the folder after installation.\n4. Open a normal website, click Gamma EH, and Enable on this site.\n5. Use a textarea or plain-text contenteditable. Local AI is opt-in.\n\nTo update an unpacked install, replace the contents of the same folder,\nclick Reload on its card in chrome://extensions, and refresh website tabs.\nRemoving the installation resets settings and site permissions.\nUnpacked installs do not auto-update. Once a Chrome Web Store listing is\navailable, switch to its store install once to receive automatic updates.\nSee https://github.com/thapecroth/gamma_eh/blob/main/docs/chrome-web-store.md\nfor publication status and instructions. This ZIP is also the store upload\npackage; downloading a ZIP does not install a store-managed extension.\n`;
 }
 
 // Separate from the CLI's mandatory fresh build so archive safety is testable
@@ -157,6 +170,7 @@ export async function packageBuiltRelease(root, {environment = {}, tag} = {}) {
       if (kind === 'chrome') {
         const built = await json(join(directory, 'manifest.json'));
         if (JSON.stringify(built) !== JSON.stringify(meta.extension)) throw new Error('Built extension manifest differs from its source.');
+        await validateExtensionIcons(directory, built);
       }
       const modelFiles = files.filter(name => name.startsWith('models/')).map(name => name.slice(7));
       if (JSON.stringify(modelFiles.sort()) !== JSON.stringify([...meta.model.files].sort())) throw new Error('Built model contains missing or unreviewed assets.');
@@ -187,7 +201,9 @@ export async function packageBuiltRelease(root, {environment = {}, tag} = {}) {
       + 'It is not yet a general Grammarly replacement. This release is gated on actual\n'
       + 'WASM/WebGPU web-editor and extension checks. Hosted WebGPU uses SwiftShader\n'
       + 'software; those checks are not physical-GPU benchmarks or real-world accuracy.\n\n'
-      + 'Developer-mode installation only; no Chrome Web Store listing or automatic updates.\n', {flag: 'wx'});
+      + 'ZIP downloads are developer-mode installations and do not auto-update.\n'
+      + 'For Chrome Web Store publication status and automatic-update setup, see\n'
+      + 'https://github.com/thapecroth/gamma_eh/blob/main/docs/chrome-web-store.md\n', {flag: 'wx'});
     return output;
   } catch (error) {
     if (reserved) await rm(output, {recursive: true, force: true}); // Only our newly reserved, incomplete version.
