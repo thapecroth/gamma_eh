@@ -190,6 +190,44 @@ def valid_article(article, next_word):
     return ARTICLE_HEADS.get(SPELLING.get(word, word)) == article
 
 
+VERB_FAMILIES = [("is", "are", "am", False), ("was", "were", "was", False),
+                 ("has", "have", None, False)] + [
+    (singular, plural, None, True) for plural, singular in [
+        ("work", "works"), ("walk", "walks"), ("read", "reads"), ("write", "writes"),
+        ("play", "plays"), ("learn", "learns"), ("travel", "travels"), ("cook", "cooks"),
+        ("wait", "waits"), ("talk", "talks"), ("sleep", "sleeps"), ("run", "runs"),
+        ("study", "studies"), ("watch", "watches"), ("go", "goes")]]
+AGREEMENT_VERBS = {verb: family for family in VERB_FAMILIES for verb in family[:3] if verb}
+SINGULAR_HEADS = set("friend teacher neighbor student child colleague manager cat dog news".split())
+PLURAL_HEADS = set("friends teachers neighbors students children colleagues managers cats dogs people".split())
+
+
+def valid_verb(text, word, proposed):
+    """Mirror the browser's bounded full-source agreement guard, including abstention."""
+    original_family = AGREEMENT_VERBS.get(word["text"].lower())
+    proposed_family = AGREEMENT_VERBS.get(proposed.lower())
+    if not original_family and not proposed_family: return True
+    if not original_family or original_family != proposed_family: return False
+    subject = re.search(r"(?:^|[.!?]\s+)(?:(i|you|we|they|he|she|it)|(?:my|your|our|his|her|their|the|a|an)[ \t]+([A-Za-z]+))[ \t]+$",
+                        text[:word["start"]], re.IGNORECASE | re.ASCII)
+    if not subject: return False
+    tail = text[word["end"]:]
+    if re.search(r"^[^.!?]*\?", tail): return False
+    pronoun = (subject[1] or "").lower()
+    head = (subject[2] or "").lower()
+    head = SPELLING.get(head, head)
+    if pronoun: singular = pronoun in {"he", "she", "it"}
+    elif head in SINGULAR_HEADS: singular = True
+    elif head in PLURAL_HEADS: singular = False
+    else: return False
+    singular_verb, plural_verb, first_person, habitual = original_family
+    if habitual and (plural_verb == "read" or not re.search(
+            r"^[^.!?\n]*\bevery[ \t]+(?:morning|day|evening|night|week)\b[^.!?\n]*(?:\.|$)",
+            tail, re.IGNORECASE | re.ASCII)): return False
+    expected = first_person if pronoun == "i" and first_person else singular_verb if singular else plural_verb
+    return word["text"].lower() != expected and proposed.lower() == expected
+
+
 def spaced_append(payload, source_after):
     # Insert before original whitespace; punctuation attaches to the anchor.
     prefix = "" if payload[:1] in ".,!?;:)]}" else " "
@@ -225,6 +263,7 @@ def decode_proposal(text, words, index, tag, confidence, schema):
         next_word = words[index + 1]["text"] if index + 1 < len(words) else ""
         if proposed in {"a", "an"} and not valid_article(proposed, next_word): return None
         replacement = preserve_case(value, proposed)
+        if value.lower() != replacement.lower() and not valid_verb(text, word, replacement): return None
     elif tag.startswith("APPEND:"):
         proposed = tag[7:]
         next_word = words[index + 1]["text"] if index + 1 < len(words) else ""
@@ -249,6 +288,7 @@ def decode_proposal(text, words, index, tag, confidence, schema):
             replacement = payload + ("" if payload.endswith(("(", "[", "{")) else " ")
         else:
             replacement = render(decoded, 2)
+            if value.lower() != replacement.lower() and not valid_verb(text, word, replacement): return None
             if replacement.lower() in {"a", "an"}:
                 next_word = words[index + 1]["text"] if index + 1 < len(words) else ""
                 if not valid_article(replacement.lower(), next_word): return None
@@ -313,6 +353,7 @@ def collect_proposals(rows, tokenizer, infer, labels, max_length, schema=1, batc
                             ["input_ids", "attention_mask", "token_type_ids"]})
             if logits.shape[:2] != encoded["input_ids"].shape or logits.shape[2] != len(labels):
                 raise ValueError("Invalid model output shape")
+            if not np.isfinite(logits).all(): raise ValueError("Nonfinite model output")
             for batch_index, (row_index, words) in enumerate(pending):
                 previous = None
                 for position, word_index in enumerate(encoded.word_ids(batch_index)):
@@ -361,7 +402,7 @@ def evaluate_records(rows, records, threshold, disabled=False, scorer="approxima
     return {**result, "threshold": threshold, "disable_model_edits": disabled}
 
 
-def onnx_predictor(model_dir, filename="model_quantized.onnx"):
+def onnx_predictor(model_dir, filename="model.onnx"):
     import onnxruntime as ort
     from transformers import AutoTokenizer
     manifest = json.loads((model_dir / "manifest.json").read_text())
@@ -381,7 +422,7 @@ if __name__ == "__main__":
     source.add_argument("--predictions", type=Path, help="Score a full-population actual browser report")
     parser.add_argument("--evaluation-dir", type=Path, required=True)
     parser.add_argument("--split", choices=["dev", "test"], default="test")
-    parser.add_argument("--filename", choices=["model.onnx", "model_quantized.onnx"], default="model_quantized.onnx")
+    parser.add_argument("--filename", choices=["model.onnx", "model_quantized.onnx"], default="model.onnx")
     parser.add_argument("--scorer", choices=["approximate", "errant"], default="approximate")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()

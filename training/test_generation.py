@@ -172,7 +172,14 @@ def test_teacher_merge_removes_conflicts_and_verifies_provenance(tmp_path, monke
     assert report["publication_allowed"] is False
     merge([b, a], tmp_path / "reversed")
     assert (tmp_path / "merged/candidates.jsonl").read_bytes() == (tmp_path / "reversed/candidates.jsonl").read_bytes()
+    assert (tmp_path / "merged/manifest.json").read_bytes() == (tmp_path / "reversed/manifest.json").read_bytes()
     with pytest.raises(ValueError, match="already exists"): merge([a], tmp_path / "merged")
+    original = (a / "manifest.json").read_text()
+    tampered_manifest = json.loads(original)
+    tampered_manifest["fingerprint"] = "0" * 64
+    (a / "manifest.json").write_text(json.dumps(tampered_manifest))
+    with pytest.raises(ValueError, match="fingerprint mismatch"): merge([a], tmp_path / "bad-config")
+    (a / "manifest.json").write_text(original)
     with (a / "candidates.jsonl").open("a") as stream: stream.write('{}\n')
     with pytest.raises(ValueError, match="hash mismatch"): merge([a], tmp_path / "tampered")
 
@@ -259,3 +266,22 @@ def test_actual_http_adapter_retries_rate_limit_and_parses_both_protocols(monkey
         server.shutdown()
         thread.join(timeout=5)
         server.server_close()
+
+
+def test_teacher_merge_metadata_ties_are_canonical(tmp_path, monkeypatch):
+    import shutil
+    monkeypatch.setattr(generate_llm, "request_teacher", lambda job, settings, *_: (
+        [{"source": "She have a pen.", "target": "She has a pen.", "category": job["category"]}], {}))
+    a, b = tmp_path / "a", tmp_path / "b"
+    generate(args_for(a, pairs=1))
+    shutil.copytree(a, b)
+    row = json.loads((b / "candidates.jsonl").read_text())
+    row["job_id"] = 7
+    (b / "candidates.jsonl").write_text(json.dumps(row) + "\n")
+    manifest = json.loads((b / "manifest.json").read_text())
+    manifest["candidates_sha256"] = generate_llm.hash_file(b / "candidates.jsonl")
+    (b / "manifest.json").write_text(json.dumps(manifest))
+    merge([a, b], tmp_path / "forward")
+    merge([b, a], tmp_path / "backward")
+    for name in ["candidates.jsonl", "manifest.json"]:
+        assert (tmp_path / "forward" / name).read_bytes() == (tmp_path / "backward" / name).read_bytes()

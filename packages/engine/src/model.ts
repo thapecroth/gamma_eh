@@ -96,6 +96,7 @@ async function analyzePass(text: string, options: EngineOptions, model: LoadedMo
         logits.dims[2] !== labels.length || logits.data.length !== chunk.ids.length * labels.length) {
       throw new Error('Unexpected model output shape');
     }
+    if (!logits.data.every(Number.isFinite)) throw new Error('Nonfinite model output');
     const words = chunk.positions.map(({word}) => word);
     for (const [index, {word, position}] of chunk.positions.entries()) {
       if (protectedRanges.some(range => word.start < range.end && range.start < word.end)) continue;

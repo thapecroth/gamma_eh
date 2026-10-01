@@ -246,3 +246,46 @@ def test_common_budget_equalizes_supported_rows_without_trimming_evaluation(tmp_
     for name in manifests:
         assert len((tmp_path / name / "train.jsonl").read_text().splitlines()) == 2
         assert (tmp_path / name / "dev.jsonl").read_text() == "Retained full evaluation sentinel\n"
+
+
+def test_shared_full_source_verb_guards():
+    fixture = json.loads(Path(__file__).with_name("edit-parity.json").read_text())
+    for case in fixture["guarded"]:
+        proposal = decode_proposal(case["source"], words(case["source"]), case["index"], case["tag"], .99, 2)
+        actual = apply_proposals(case["source"], [proposal] if proposal else [], .8)
+        assert actual == case["target"]
+
+
+def test_case_only_conflicts_are_not_input_order_duplicates(tmp_path):
+    source = tmp_path / "case.jsonl"
+    write_rows(source, [
+        {"source": "hello world.", "target": "Hello world.", "category": "mixed", "license": "CC0-1.0"},
+        {"source": "hello world.", "target": "HELLO world.", "category": "mixed", "license": "CC0-1.0"},
+        {"source": "She have a pen.", "target": "She has a pen.", "category": "mixed", "license": "CC0-1.0"}])
+    selected, counts = select_rows(source, 10, 10, 42, set(), set())
+    assert len(selected) == 1
+    assert counts["conflicting_source"] == 1
+    report = prepare([source], tmp_path / "prepared-case", allow_weak_train=True, schema=2)
+    assert report["counts"]["conflicting_source"] == 1
+    assert "hello world" not in (tmp_path / "prepared-case/train.jsonl").read_text().lower()
+
+
+def test_nonfinite_keep_logits_fail_the_whole_sentence():
+    np = pytest.importorskip("numpy")
+    from evaluate import collect_proposals
+    class Tokenizer:
+        def encode(self, value, **kwargs): return [4]
+        def __call__(self, batches, **kwargs):
+            shape = (len(batches), len(batches[0]) + 2)
+            class Encoded(dict):
+                def word_ids(self, index): return [None, 0, 1, None]
+            return Encoded({key: np.zeros(shape, dtype=np.int64) for key in
+                            ["input_ids", "attention_mask", "token_type_ids"]})
+    for invalid in [float("nan"), float("inf")]:
+        def infer(feed):
+            logits = np.zeros((*feed["input_ids"].shape, 2), dtype=np.float32)
+            logits[0, 1, 0] = invalid
+            return logits
+        records, evidence = collect_proposals([{"source": "hello."}], Tokenizer(), infer, ["KEEP", "CASE:TITLE"], 64, 2)
+        assert evidence["inference_failures"] == 1
+        assert records == [{"proposals": [], "failed": True}]

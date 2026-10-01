@@ -40,9 +40,13 @@ describe('versioned edit contract', () => {
     expect(() => decodeWord('hello', 'CASE:TITLE', 1)).toThrow();
   });
 
+  it('matches full-source verb abstention for legacy and richer edits', () => {
+    for (const row of parity.guarded) expect(corrected(row.source, row.index, row.tag)).toBe(row.target);
+  });
+
   it('applies exact case, morphology, and multiple words with UTF-16 offsets', () => {
     expect(corrected('😀 hello.', 1, 'CASE:TITLE')).toBe('😀 Hello.');
-    expect(corrected('She study.', 1, 'SUFFIX:Y_TO_IES')).toBe('She studies.');
+    expect(corrected('She study every day.', 1, 'SUFFIX:Y_TO_IES')).toBe('She studies every day.');
     expect(corrected('We visited York.', 2, 'REPLACE_EXACT:New York')).toBe('We visited New York.');
     expect(corrected('Book.', 0, 'REPLACE_EXACT:A book')).toBe('A book.');
   });

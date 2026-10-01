@@ -80,7 +80,7 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
                             counts["rejected"] += 1
                             counts["rejected:" + reason] += 1
                         source_key = hashlib.sha256(normalized(row["source"]).casefold().encode()).hexdigest()
-                        target_key = group_id(row["target"])
+                        target_key = hashlib.sha256(normalized(row["target"]).encode()).hexdigest()
                         existing = db.execute("SELECT target_key,reviewed FROM records WHERE source_key=?", (source_key,)).fetchone()
                         if existing:
                             if existing[0] != target_key:

@@ -55,7 +55,7 @@ rows: 379 case/spacing mismatches and 25 payload-limit failures.
 The browser decoder retains source whitespace and UTF-16 offsets. Article
 sound-class guards, protected code/URLs, conservative deletions, and numeric/
 symbol protection remain in effect. Python guarded evaluation mirrors these
-operations. Shared edit and pinned BERT tokenizer fixtures cover case,
+operations and the current full-source verb agreement guard. Shared edit and pinned BERT tokenizer fixtures cover case,
 contractions, accents, Chinese isolation, and Unicode offsets. Training rejects
 incompatible BERT preprocessing configurations.
 
@@ -92,13 +92,19 @@ pairs during long runs. Repeat identical settings to resume unfinished requests;
 concurrency and snapshot frequency may change without repeating completed jobs.
 Change generation settings or prompt into a new directory. The same command
 with `--snapshot-only` exports an interrupted ledger without calling a provider.
+Each new run saves `prompt.txt`; use `--prompt-file RUN/prompt.txt` to resume
+after the default prompt changes.
 Completed-request token usage excludes failed/interrupted attempts.
 
 `training/merge_teacher.py --input RUN_A --input RUN_B --output NEW_DIRECTORY`
 verifies snapshot hashes and row provenance, removes conflicting sources, and
 merges deterministically. Teacher inference itself is not bit reproducible.
 Dataset assembly, seeds, population hashes, and completed-request resume are.
-Higher request concurrency triggered provider 429/503 limits in the live run;
+CLIProxy may translate GLM requests through a Claude-compatible route. On that
+route, `response_format` is not forwarded, and `max_tokens` must be used instead
+of `max_completion_tokens`. Prompt and response validation remain required;
+`--json-mode` does not prove upstream JSON mode. Higher request concurrency
+triggered provider 429/503 limits in the live run;
 four concurrent requests restored progress. Do not infer endpoint readiness
 from the model catalog alone.
 
@@ -136,13 +142,15 @@ inference context; it does not establish long-context training quality.
 
 Run arms sequentially. The plan verifies dataset, label, manifest, and evaluation
 hashes before each run. Checkpoint selection uses decoded natural development
-predictions. ONNX FP32 and INT8 exports each run the complete development
+predictions. The browser executes FP32 `model.onnx` through bundled JAX JS. ONNX FP32 and INT8 exports each run the complete development
 population; their shared threshold must meet both **95% edit precision** and
 **at most 2% clean-sentence changes**, with active edits and zero inference
 failures. Optional category thresholds only tighten the policy. If no shared
 active policy qualifies, `disableModelEdits: true` explicitly suppresses edits;
 the diagnostic unconstrained score is reported separately. No-edit precision is
-not evidence of correction quality. Test never selects the deployment policy.
+not evidence of correction quality. ONNX calibration is a prerequisite; complete
+actual JAX browser development predictions must also qualify before promotion.
+INT8 remains a portable diagnostic export, not the current browser weights. Test never selects the deployment policy.
 
 ## Actual browser evaluation
 
@@ -158,7 +166,8 @@ artifacts/training-env/bin/python training/evaluate.py \
   --output artifacts/browser-quality/mixed-tiny64-test-errant.json
 ```
 
-Browser evaluation bundles the actual engine, checks model/runtime asset hashes,
+Browser evaluation bundles the actual JAX engine, records its runtime versions
+and bundle hash, checks model asset hashes,
 serves only local assets, blocks unexpected network requests, and checks protected
 text canaries outside the benchmark denominator. It records actual corrected
 text, suggestions, inference counts, startup, and warm p50/p95 analysis latency.

@@ -365,9 +365,10 @@ def main(args):
                              "inference": inference, "max_logit_difference": parity["max_logit_difference"],
                              "argmax_agreement": parity["argmax_matching"] / parity["argmax_tokens"] if parity["argmax_tokens"] else None}
     report["exports"] = exports
-    report["test"] = exports["model_quantized.onnx"]["metrics"]
-    report["diagnostic_unconstrained_test"] = {**exports["model_quantized.onnx"]["diagnostic_metrics"],
-        "deployment_policy": "Diagnostic only: INT8 threshold chosen on dev without safety constraints; never used to enable edits."}
+    report["deployed_weights"] = "model.onnx"
+    report["test"] = exports["model.onnx"]["metrics"]
+    report["diagnostic_unconstrained_test"] = {**exports["model.onnx"]["diagnostic_metrics"],
+        "deployment_policy": "Diagnostic only: shared threshold chosen on dev without safety constraints; never used to enable edits."}
     manifest = {"schema": 1, "name": f"gamma-eh-edit-v{schema}", "editSchema": schema, "maxPasses": 1,
                 "model_license": base_license if report["publication_allowed"] else "training-or-base-terms-unverified",
                 "publication_allowed": report["publication_allowed"], "base_model": args.base_model,

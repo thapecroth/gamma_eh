@@ -43,8 +43,8 @@ def select_rows(path, limit, max_scanned, seed, excluded_sources, excluded_targe
                 raise ValueError("evaluation_only_source")
             pair = validate_pair(value)
             key = normalized(pair["source"]).casefold()
-            target = group_id(pair["target"])
-            if key in excluded_sources or target in excluded_targets:
+            target = normalized(pair["target"])
+            if key in excluded_sources or group_id(target) in excluded_targets:
                 counts["heldout_overlap"] += 1
                 continue
             source_key = hashlib.sha256(key.encode()).hexdigest()

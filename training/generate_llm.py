@@ -94,7 +94,11 @@ def request_teacher(job, settings, system_prompt, api_key):
             if not isinstance(parsed, dict) or not isinstance(parsed.get("pairs"), list): raise TeacherError("output_schema")
             if len(parsed["pairs"]) != job["count"]: raise TeacherError("output_pair_count")
             for candidate in parsed["pairs"]:
-                validate_pair(candidate, expected_category=job["category"])
+                try:
+                    validate_pair(candidate, expected_category=job["category"])
+                except ValueError as error:
+                    # validate_pair reasons are fixed enums; never include row contents.
+                    raise TeacherError("pair_" + str(error)) from None
             return parsed["pairs"], result.get("usage", {})
         except HTTPError as error:
             # Never log response bodies/headers; providers may echo sensitive content.
@@ -180,7 +184,7 @@ def generate(args):
         raise ValueError("Use positive pairs, batch size1..50, and concurrency1..16")
     if args.retries < 0 or args.timeout <= 0 or args.max_tokens < 1 or getattr(args, "snapshot_every", 10) < 1:
         raise ValueError("Retries must be nonnegative; timeout and max-tokens must be positive")
-    prompt = PROMPT_PATH.read_text()
+    prompt = (getattr(args, "prompt_file", None) or PROMPT_PATH).read_text()
     config = {"provider": args.provider, "endpoint": endpoint(args.base_url, args.provider),
               "model": args.model, "pairs": args.pairs, "batch_size": args.batch_size,
               "seed": args.seed, "max_tokens": args.max_tokens, "retries": args.retries,
@@ -207,6 +211,10 @@ def generate(args):
     if not snapshot_only and not key and urlparse(config["endpoint"]).hostname not in {"localhost", "127.0.0.1", "::1"}:
         raise ValueError(f"Set {args.api_key_env} in the environment")
     args.output.mkdir(parents=True, exist_ok=True)
+    saved_prompt = args.output / "prompt.txt"
+    if saved_prompt.exists() and saved_prompt.read_text() != prompt:
+        raise ValueError("Run prompt changed; use its saved prompt or a new output directory")
+    if not saved_prompt.exists(): saved_prompt.write_text(prompt)
     fingerprint = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()
     lock = acquire_run_lock(args.output / "run-lock.sqlite3")
     try:
@@ -277,6 +285,7 @@ if __name__ == "__main__":
     parser.add_argument("--base-url", default=os.environ.get("TEACHER_BASE_URL"), required=not os.environ.get("TEACHER_BASE_URL"))
     parser.add_argument("--provider", choices=["openai-compatible", "anthropic"], default="openai-compatible")
     parser.add_argument("--model", required=True)
+    parser.add_argument("--prompt-file", type=Path, help="Use a saved run prompt when resuming after the default prompt changes")
     parser.add_argument("--api-key-env", default="TEACHER_API_KEY")
     parser.add_argument("--pairs", type=int, default=10000)
     parser.add_argument("--batch-size", type=int, default=20)

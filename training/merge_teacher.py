@@ -1,6 +1,7 @@
 """Merge verified teacher snapshots deterministically; raw outputs stay private."""
 import argparse
 from collections import Counter
+import hashlib
 import json
 from pathlib import Path
 
@@ -14,6 +15,8 @@ def merge(inputs, output):
     for directory in inputs:
         path = directory / "candidates.jsonl"
         manifest = json.loads((directory / "manifest.json").read_text())
+        if manifest.get("fingerprint") != hashlib.sha256(json.dumps(manifest["config"], sort_keys=True).encode()).hexdigest():
+            raise ValueError("Teacher config fingerprint mismatch")
         digest = hash_file(path)
         if digest != manifest.get("candidates_sha256"):
             raise ValueError("Teacher snapshot hash mismatch; export a fresh snapshot before merging")
@@ -37,7 +40,7 @@ def merge(inputs, output):
                 counts["duplicate_source"] += 1
                 if normalized(records[key]["target"]) != normalized(pair["target"]): conflicts.add(key)
                 # Stable provenance when the same row occurs in several snapshots.
-                if (value["pair_id"], value["generation_run"]) < (records[key]["pair_id"], records[key]["generation_run"]): records[key] = value
+                if json.dumps(value, sort_keys=True) < json.dumps(records[key], sort_keys=True): records[key] = value
             else: records[key] = value
     selected = sorted((row for key, row in records.items() if key not in conflicts), key=lambda row: row["pair_id"])
     if not selected: raise ValueError("No nonconflicting teacher pairs")
@@ -45,13 +48,13 @@ def merge(inputs, output):
     counts["accepted"] = len(selected)
     output.mkdir(parents=True)
     with (output / "candidates.jsonl").open("w") as stream:
-        for row in selected: stream.write(json.dumps(row, ensure_ascii=False) + "\n")
-    report = {"schema": 1, "kind": "merged-llm-teacher", "sources": sorted(sources, key=lambda source: source["fingerprint"]),
+        for row in selected: stream.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+    report = {"schema": 1, "kind": "merged-llm-teacher", "sources": sorted(sources, key=lambda source: json.dumps(source, sort_keys=True)),
               "counts": dict(counts), "categories": dict(Counter(row["category"] for row in selected)),
               "candidates_sha256": hash_file(output / "candidates.jsonl"),
               "publication_allowed": False, "license": "provider-terms-unverified",
               "quality": "Unreviewed train-only weak supervision; structural validation is not grammar validation."}
-    (output / "manifest.json").write_text(json.dumps(report, indent=2) + "\n")
+    (output / "manifest.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     return report
 
 
