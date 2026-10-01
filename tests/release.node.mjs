@@ -8,6 +8,7 @@ import test from 'node:test';
 import { promisify } from 'node:util';
 import { packageBuiltRelease, publicBuildPaths, releaseVersion } from '../scripts/package-release.mjs';
 import { runtimeManifest, runtimeVersions } from '../scripts/inference-runtime.mjs';
+import { verifiedArchive } from '../scripts/webstore-submit.mjs';
 
 const run = promisify(execFile);
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -28,7 +29,8 @@ async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'gamma-release-test-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   await put(root, 'package.json', {version: '0.1.0', dependencies: runtimeVersions});
-  const extension = {manifest_version: 3, name: 'Fictional fixture', version: '0.1.0'};
+  const {icons, action} = JSON.parse(await readFile(new URL('../apps/extension/manifest.json', import.meta.url), 'utf8'));
+  const extension = {manifest_version: 3, name: 'Fictional fixture', version: '0.1.0', icons, action};
   await put(root, 'apps/extension/manifest.json', extension);
   for (const [name, version] of Object.entries(runtimeVersions)) await put(root, `node_modules/${name}/package.json`, {version});
   const model = {model_license: 'Apache-2.0', files: {}};
@@ -55,11 +57,33 @@ async function fixture(t) {
   }
   await put(root, 'dist/web/index.html', '<!doctype html><title>Fictional editor</title>');
   await put(root, 'dist/extension/manifest.json', extension);
+  await mkdir(join(root, 'dist/extension/icons'), {recursive: true});
+  for (const filename of Object.values(icons)) await copyFile(new URL(`../apps/extension/${filename}`, import.meta.url), join(root, 'dist/extension', filename));
   for (const name of ['background.mjs', 'content.js', 'popup.js', 'popup.html', 'popup.css', 'offscreen.html', 'offscreen.mjs', 'inference-worker.mjs']) {
     await put(root, `dist/extension/${name}`, `Fictional asset: ${name}`);
   }
   return {root, model};
 }
+
+test('store upload uses the packaged version and refuses a modified archive', async t => {
+  const {root} = await fixture(t);
+  const directory = await packageBuiltRelease(root);
+  assert((await verifiedArchive(directory, '0.1.0')).length > 0);
+  await assert.rejects(verifiedArchive(directory, '../escape'), /Chrome-compatible/u);
+  await writeFile(join(directory, 'gamma-eh-chrome-v0.1.0.zip'), 'modified archive');
+  await assert.rejects(verifiedArchive(directory, '0.1.0'), /checksum/u);
+});
+
+test('release packaging refuses a missing or incorrectly sized store icon', async t => {
+  const {root} = await fixture(t);
+  const filename = join(root, 'dist/extension/icons/icon-128.png');
+  const icon = await readFile(filename);
+  icon.writeUInt32BE(64, 16);
+  await writeFile(filename, icon);
+  await assert.rejects(packageBuiltRelease(root), /PNG dimensions/u);
+  await rm(filename);
+  await assert.rejects(packageBuiltRelease(root), /ENOENT/u);
+});
 
 test('validates Chrome-compatible versions and exact matching release tags', () => {
   assert.equal(releaseVersion('0.1.0', '0.1.0', 'v0.1.0'), '0.1.0');

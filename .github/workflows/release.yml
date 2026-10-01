@@ -119,3 +119,35 @@ jobs:
             "gamma-eh-web-$GAMMA_RELEASE_TAG.zip" SHA256SUMS.txt \
             --verify-tag --prerelease --title "Gamma EH $GAMMA_RELEASE_TAG (experimental)" \
             --notes-file RELEASE_NOTES.md
+
+  chrome-web-store:
+    needs: publish
+    if: vars.CWS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: chrome-web-store
+    concurrency:
+      group: chrome-web-store
+      cancel-in-progress: false
+    env:
+      GAMMA_RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      CWS_PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID }}
+      CWS_EXTENSION_ID: ${{ vars.CWS_EXTENSION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: release-assets
+      - name: Submit the validated Chrome package for store review
+        env:
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: node scripts/webstore-submit.mjs release-assets "${GAMMA_RELEASE_TAG#v}"
