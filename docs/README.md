@@ -1,6 +1,7 @@
 # Project documentation
 
 - [Research and architecture](research-and-architecture.md): current WebGPU stack, model choices, correction flow, extension boundaries.
+- [Grammar correction literature review](gec-literature-review.md): evidence for compact edit models and span generation, browser tradeoffs, and a controlled experiment plan.
 - [Dataset and training](dataset-and-training.md): provenance, deterministic generation, training, calibration, exports, evaluation limits.
 - [Scaling the dataset](massive-dataset.md): resumable teacher generation, pinned C4 streaming, and train-only weak supervision.
 - [End-to-end teacher pilot](live-pilot.md): real CLIProxyAPI calls, isolated student training and builds, and browser verification.
