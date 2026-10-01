@@ -203,6 +203,12 @@ def valid_article(article, next_word):
     return ARTICLE_HEADS.get(SPELLING.get(word, word)) == article
 
 
+def valid_payload_articles(tokens, next_word):
+    return all(token.lower() not in {"a", "an"} or valid_article(
+        token.lower(), tokens[index + 1] if index + 1 < len(tokens) else next_word)
+        for index, token in enumerate(tokens))
+
+
 VERB_FAMILIES = [("is", "are", "am", False), ("was", "were", "was", False),
                  ("has", "have", None, False)] + [
     (singular, plural, None, True) for plural, singular in [
@@ -291,20 +297,22 @@ def decode_proposal(text, words, index, tag, confidence, schema):
         if tag.startswith("APPEND_EXACT:"):
             payload = tag[len("APPEND_EXACT:"):]
             next_word = words[index + 1]["text"] if index + 1 < len(words) else ""
-            if payload.lower() in {"a", "an"} and not valid_article(payload.lower(), next_word): return None
+            if not valid_payload_articles(decoded[1:], next_word): return None
             start = end
             replacement = spaced_append(payload, text[end:])
         elif tag.startswith("PREPEND_EXACT:"):
             end = start
             payload = tag[len("PREPEND_EXACT:"):]
-            if payload.lower() in {"a", "an"} and not valid_article(payload.lower(), value): return None
+            if not valid_payload_articles(decoded[:-1], value): return None
             replacement = payload + ("" if payload.endswith(("(", "[", "{")) else " ")
         else:
             replacement = render(decoded, 2)
             if value.lower() != replacement.lower() and not valid_verb(text, word, replacement): return None
-            if replacement.lower() in {"a", "an"}:
-                next_word = words[index + 1]["text"] if index + 1 < len(words) else ""
-                if not valid_article(replacement.lower(), next_word): return None
+            next_word = words[index + 1]["text"] if index + 1 < len(words) else ""
+            if not valid_payload_articles(decoded, next_word): return None
+            if PUNCTUATION.fullmatch(value):
+                if replacement[0].isalnum() and start > 0 and text[start - 1].isalnum(): replacement = " " + replacement
+                if replacement[-1].isalnum() and end < len(text) and text[end].isalnum(): replacement += " "
     else:
         return None
     if text[start:end] == replacement: return None

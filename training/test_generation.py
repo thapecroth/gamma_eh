@@ -315,3 +315,19 @@ def test_nested_cached_token_usage_is_numeric_and_resumable():
     assert totals == {"prompt_tokens": 20, "completion_tokens": 40, "total_tokens": 60,
                       "prompt_tokens_details.cached_tokens": 16, "completion_tokens_details.reasoning_tokens": 10}
     assert generate_llm.token_usage_counts(None) == {}
+
+
+@pytest.mark.parametrize("usage", [None, [], {"total_tokens": 30, "prompt_tokens_details": {"cached_tokens": 10}}])
+def test_generation_persists_normalized_usage_and_snapshot_resume(tmp_path, monkeypatch, usage):
+    def teacher(job, *_):
+        return [{"source": f"She have book {job['id']} example {i}.",
+                 "target": f"She has book {job['id']} example {i}.",
+                 "category": job["category"]} for i in range(job["count"])], usage
+    monkeypatch.setattr(generate_llm, "request_teacher", teacher)
+    generate(args_for(tmp_path, concurrency=1))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    expected = {key: value * manifest["status_counts"]["done"]
+                for key, value in generate_llm.token_usage_counts(usage).items()}
+    assert manifest["completed_request_usage"] == expected
+    generate(args_for(tmp_path, concurrency=1, execute=False, snapshot_only=True))
+    assert json.loads((tmp_path / "manifest.json").read_text())["completed_request_usage"] == expected

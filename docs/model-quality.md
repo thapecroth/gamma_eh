@@ -60,7 +60,10 @@ rows: 379 case/spacing mismatches and 25 payload-limit failures.
 The browser decoder retains source whitespace and UTF-16 offsets. Article
 sound-class guards, protected code/URLs, conservative deletions, and numeric/
 symbol protection remain in effect. Python guarded evaluation mirrors these
-operations and the current full-source verb agreement guard. Shared edit and pinned BERT tokenizer fixtures cover case,
+operations and the current full-source verb agreement guard. Every article in
+an exact payload is checked against its following payload token or source
+neighbor; unknown sound classes abstain. Punctuation-to-word replacements add
+exterior spacing without changing source offsets. Shared edit and pinned BERT tokenizer fixtures cover case,
 contractions, accents, Chinese isolation, and Unicode offsets. Training rejects
 incompatible BERT preprocessing configurations.
 
@@ -182,7 +185,8 @@ artifacts/training-env/bin/python training/evaluate.py \
   --output artifacts/browser-quality/mixed-tiny64-test-errant.json
 ```
 
-Browser evaluation bundles the actual JAX engine, records its runtime versions
+Browser evaluation bundles the actual JAX engine with the same Windows adapter
+guard as production, records its runtime versions
 and bundle hash, checks model asset hashes,
 serves only local assets, blocks unexpected network requests, and checks protected
 text canaries outside the benchmark denominator. It records actual corrected

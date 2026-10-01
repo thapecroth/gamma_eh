@@ -192,10 +192,106 @@
       "target": "She has food."
     },
     {
-      "source": "Done.\u00a0She have a book.",
+      "source": "Done. She have a book.",
       "index": 3,
       "tag": "REPLACE:has",
-      "target": "Done.\u00a0She has a book."
+      "target": "Done. She has a book."
+    },
+    {
+      "source": "Hello, world.",
+      "index": 1,
+      "tag": "REPLACE_EXACT:and",
+      "target": "Hello and world."
+    },
+    {
+      "source": "Hello,world.",
+      "index": 1,
+      "tag": "REPLACE_EXACT:and",
+      "target": "Hello and world."
+    },
+    {
+      "source": "Hello,\tworld.",
+      "index": 1,
+      "tag": "REPLACE_EXACT:and",
+      "target": "Hello and\tworld."
+    },
+    {
+      "source": "😀 Hello,world.",
+      "index": 2,
+      "tag": "REPLACE_EXACT:and",
+      "target": "😀 Hello and world."
+    },
+    {
+      "source": "Book.",
+      "index": 0,
+      "tag": "REPLACE_EXACT:An book",
+      "target": "Book."
+    },
+    {
+      "source": "Book.",
+      "index": 0,
+      "tag": "REPLACE_EXACT:A book",
+      "target": "A book."
+    },
+    {
+      "source": "I have.",
+      "index": 1,
+      "tag": "APPEND_EXACT:an university",
+      "target": "I have."
+    },
+    {
+      "source": "I have.",
+      "index": 1,
+      "tag": "APPEND_EXACT:an hour",
+      "target": "I have an hour."
+    },
+    {
+      "source": "Book.",
+      "index": 0,
+      "tag": "PREPEND_EXACT:An university",
+      "target": "Book."
+    },
+    {
+      "source": "passed.",
+      "index": 0,
+      "tag": "PREPEND_EXACT:An hour",
+      "target": "An hour passed."
+    },
+    {
+      "source": "I want item university.",
+      "index": 2,
+      "tag": "REPLACE_EXACT:only an",
+      "target": "I want item university."
+    },
+    {
+      "source": "I want item hour.",
+      "index": 2,
+      "tag": "REPLACE_EXACT:only an",
+      "target": "I want only an hour."
+    },
+    {
+      "source": "I have university.",
+      "index": 1,
+      "tag": "APPEND_EXACT:only an",
+      "target": "I have university."
+    },
+    {
+      "source": "I have hour.",
+      "index": 1,
+      "tag": "APPEND_EXACT:only an",
+      "target": "I have only an hour."
+    },
+    {
+      "source": "Book.",
+      "index": 0,
+      "tag": "PREPEND_EXACT:only an",
+      "target": "Book."
+    },
+    {
+      "source": "Hour.",
+      "index": 0,
+      "tag": "PREPEND_EXACT:only an",
+      "target": "only an Hour."
     }
   ],
   "protected": [
@@ -241,7 +337,7 @@
       "fragments": []
     },
     {
-      "source": "Visit www.example.test\ufeffnow.",
+      "source": "Visit www.example.test﻿now.",
       "fragments": [
         "www.example.test"
       ]

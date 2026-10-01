@@ -4,7 +4,7 @@ from collections import Counter
 import json
 from pathlib import Path
 
-from pairs import group_id, hash_file, normalized
+from pairs import evaluation_keys, group_id, hash_file, normalized
 
 
 def rows(path):
@@ -24,10 +24,13 @@ def assemble(base, weak, output, max_template_train_rows=0):
     splits = {split: list(rows(base / f"{split}.jsonl")) for split in ["train", "dev", "test"]}
     if any(not split for split in splits.values()):
         raise ValueError("All template splits must be nonempty")
-    heldout_groups = {group_id(row["target"]) for split in ["dev", "test"] for row in splits[split]}
-    heldout_sources = {normalized(row["source"]).casefold() for split in ["dev", "test"] for row in splits[split]}
-    if any(group_id(row["target"]) in heldout_groups or normalized(row["source"]).casefold() in heldout_sources
-           for row in splits["train"]):
+    evaluation_rows = {split: list(rows(base / "evaluation" / f"{split}.jsonl"))
+                       if (base / "evaluation" / f"{split}.jsonl").exists() else splits[split]
+                       for split in ["dev", "test"]}
+    heldout = evaluation_keys([row for split in ["dev", "test"] for row in splits[split] + evaluation_rows[split]])
+    def overlaps(row):
+        return any(normalized(row[field]).casefold() in heldout for field in ["source", "target"])
+    if any(overlaps(row) for row in splits["train"]):
         raise ValueError("Template train data overlaps held-out data")
     if max_template_train_rows: splits["train"] = splits["train"][:max_template_train_rows]
     sources = {normalized(row["source"]).casefold(): group_id(row["target"]) for row in splits["train"]}
@@ -35,7 +38,7 @@ def assemble(base, weak, output, max_template_train_rows=0):
     for row in rows(weak / "train.jsonl"):
         key = normalized(row["source"]).casefold()
         target = group_id(row["target"])
-        if target in heldout_groups or key in heldout_sources:
+        if overlaps(row):
             counts["heldout_overlap_dropped"] += 1
         elif key in sources:
             counts["duplicate_or_conflicting_source_dropped"] += 1

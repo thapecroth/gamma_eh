@@ -60,6 +60,11 @@ export function tagCategory(tag: string): string {
 
 export interface DecodedEdit { start: number; end: number; replacement: string }
 
+function validPayloadArticles(tokens: string[], nextWord: string): boolean {
+  return tokens.every((token, index) => !['a', 'an'].includes(token.toLowerCase()) ||
+    validArticleEdit(token.toLowerCase(), tokens[index + 1] ?? nextWord));
+}
+
 export function decodeProposal(text: string, words: WordToken[], index: number, tag: string, confidence: number, schema: number): DecodedEdit | undefined {
   const word = words[index];
   if (!word || (!wordPattern.test(word.text) && !(schema === 2 && punctuationPattern.test(word.text)))) return;
@@ -90,7 +95,7 @@ export function decodeProposal(text: string, words: WordToken[], index: number, 
       replacement = ' ' + payload;
     } else if (tag.startsWith('APPEND_EXACT:')) {
       const payload = tag.slice(13);
-      if (['a', 'an'].includes(payload.toLowerCase()) && !validArticleEdit(payload.toLowerCase(), nextWord)) return;
+      if (!validPayloadArticles(decoded.slice(1), nextWord)) return;
       start = end;
       const prefix = /^[.,!?;:)\]}]/u.test(payload) ? '' : ' ';
       const suffix = text[end] && !/[\s.,!?;:)\]}]/u.test(text[end]) ? ' ' : '';
@@ -98,12 +103,17 @@ export function decodeProposal(text: string, words: WordToken[], index: number, 
     } else if (tag.startsWith('PREPEND_EXACT:')) {
       end = start;
       const payload = tag.slice(14);
-      if (['a', 'an'].includes(payload.toLowerCase()) && !validArticleEdit(payload.toLowerCase(), word.text)) return;
+      if (!validPayloadArticles(decoded.slice(0, -1), word.text)) return;
       replacement = payload + (/[([{]$/u.test(payload) ? '' : ' ');
     } else {
       replacement = renderTokens(decoded);
       if (word.text.toLowerCase() !== replacement.toLowerCase() && !validVerbEdit(text, word, replacement)) return;
-      if (['a', 'an'].includes(replacement.toLowerCase()) && !validArticleEdit(replacement.toLowerCase(), nextWord)) return;
+      if (!validPayloadArticles(decoded, nextWord)) return;
+      if (punctuationPattern.test(word.text)) {
+        // Replacing a punctuation anchor with a word must not join its neighbors.
+        if (/^[\p{L}\p{N}]/u.test(replacement) && /[\p{L}\p{N}]$/u.test(text.slice(0, start))) replacement = ' ' + replacement;
+        if (/[\p{L}\p{N}]$/u.test(replacement) && /^[\p{L}\p{N}]/u.test(text.slice(end))) replacement += ' ';
+      }
     }
   }
   if (text.slice(start, end) === replacement) return;

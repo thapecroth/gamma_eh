@@ -9,6 +9,7 @@ import {parseArgs} from 'node:util';
 import {build} from 'esbuild';
 import {chromium} from '@playwright/test';
 import {runtimeManifest} from './inference-runtime.mjs';
+import {webGPUAdapterEsbuildPlugin} from './webgpu-adapter-options.mjs';
 import {browserArguments, findChromium} from './browser-environment.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -132,7 +133,7 @@ async function run(options) {
   try {
     const bundled = join(temporary, 'engine.mjs');
     await build({entryPoints: [join(root, 'packages/engine/src/index.ts')], outfile: bundled,
-      bundle: true, format: 'esm', platform: 'browser', target: 'chrome116', logLevel: 'silent'});
+      plugins: [webGPUAdapterEsbuildPlugin()], bundle: true, format: 'esm', platform: 'browser', target: 'chrome116', logLevel: 'silent'});
     evidence.engineBundleSha256 = digest(await readFile(bundled));
     localAssets.files.set('/engine.mjs', bundled);
     const fixture = '<!doctype html><html lang="en"><meta charset="utf-8"><title>Local engine evaluation</title><script type="module" src="/runner.mjs"></script></html>';

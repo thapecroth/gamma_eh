@@ -151,11 +151,13 @@ def token_usage_counts(usage):
     fields = {"prompt_tokens", "completion_tokens", "total_tokens", "input_tokens", "output_tokens",
               "cache_creation_input_tokens", "cache_read_input_tokens", "cached_tokens", "audio_tokens",
               "reasoning_tokens", "accepted_prediction_tokens", "rejected_prediction_tokens"}
+    details = {"prompt_tokens_details", "completion_tokens_details", "input_tokens_details", "output_tokens_details"}
     if not isinstance(usage, dict): return result
     for key, value in usage.items():
-        if key in fields and isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0 and math.isfinite(value):
+        allowed = key in fields or (isinstance(key, str) and key.partition('.')[0] in details and key.partition('.')[2] in fields)
+        if allowed and isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0 and math.isfinite(value):
             result[key] = value
-        elif key in {"prompt_tokens_details", "completion_tokens_details", "input_tokens_details", "output_tokens_details"}:
+        elif key in details:
             for field, count in token_usage_counts(value).items(): result[key + "." + field] = count
     return result
 
@@ -271,7 +273,7 @@ def generate(args):
                             inserted = db.execute("INSERT OR IGNORE INTO pairs VALUES (?,?,?,?,?,?,?)", (row["pair_id"], row["source"], row["target"], row["category"], row["clean_group"], job["id"], source_key)).rowcount
                             if not inserted: rejected["duplicate_or_conflicting_source"] += 1
                         except ValueError as error: rejected[str(error)] += 1
-                    safe_usage = {name: value for name, value in usage.items() if isinstance(value, int) and value >= 0}
+                    safe_usage = dict(token_usage_counts(usage))
                     db.execute("UPDATE jobs SET status='done',usage=?,error=NULL WHERE id=?", (json.dumps(safe_usage), job["id"]))
                 except (RuntimeError, ValueError, KeyError, TypeError, IndexError) as error:
                     # Store a fixed error label only: no provider bodies or credentials.
