@@ -174,7 +174,8 @@ def build(args, token_count=None):
                    "--base-model", base[0], "--base-revision", base[1], "--max-length", str(context),
                    "--epochs", str(args.epochs), "--batch-size", str(args.batch_size),
                    "--learning-rate", str(args.learning_rate), "--seed", str(args.seed),
-                   "--scorer", getattr(args, "scorer", "approximate")]
+                   "--scorer", getattr(args, "scorer", "approximate"),
+                   "--min-dev-edits", str(getattr(args, "min_dev_edits", 25))]
         if args.local_files_only: command.append("--local-files-only")
         if args.device: command.extend(["--device", args.device])
         commands.append({"name": name, "command": command})
@@ -234,6 +235,7 @@ if __name__ == "__main__":
     parser.add_argument("--tokenizer-revision", default=TINY[1])
     parser.add_argument("--device", choices=["cpu", "cuda"])
     parser.add_argument("--scorer", choices=["approximate", "errant"], default="approximate")
+    parser.add_argument("--min-dev-edits", type=int, default=25)
     parser.add_argument("--prepare", action="store_true")
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--run-plan", type=Path, help="Execute an already prepared immutable plan")

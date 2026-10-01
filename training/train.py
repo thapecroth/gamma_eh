@@ -103,7 +103,7 @@ def torch_infer(model, device):
 def calibration(rows, records, args):
     candidates = [evaluate_records(rows, records, threshold, scorer=args.scorer) for threshold in THRESHOLDS]
     no_edit = evaluate_records(rows, records, 1., disabled=True, scorer=args.scorer)
-    result = choose_calibration(candidates, no_edit, args.min_precision, args.max_clean_fp)
+    result = choose_calibration(candidates, no_edit, args.min_precision, args.max_clean_fp, args.min_dev_edits)
     # Optional stricter family thresholds must improve the full development score
     # without relaxing global safety constraints; test never enters this selection.
     if args.calibrate_categories and not result["disable_model_edits"]:
@@ -118,10 +118,8 @@ def calibration(rows, records, args):
                 if threshold <= selected["threshold"]: continue
                 trial = {**thresholds, family: threshold}
                 score = evaluate_records(rows, records, selected["threshold"], scorer=args.scorer, category_thresholds=trial)
-                if (score["edit_precision"] >= args.min_precision and
-                    score["clean_sentence_false_positive_rate"] is not None and
-                    score["clean_sentence_false_positive_rate"] <= args.max_clean_fp and
-                    score["edit_f0_5"] > selected["edit_f0_5"]):
+                if (qualified(score, args.min_precision, args.max_clean_fp, args.min_dev_edits)
+                    and score["edit_f0_5"] > selected["edit_f0_5"]):
                     thresholds, selected = trial, score
         result["category_support"] = support
         result["category_thresholds"] = thresholds
@@ -161,8 +159,8 @@ class ExportModel(torch.nn.Module):
 
 
 def main(args):
-    if args.epochs < 1 or args.batch_size < 1 or args.inference_batch_size < 1 or not 4 <= args.max_length <= 512 or args.learning_rate <= 0:
-        raise ValueError("Positive epochs, batch size, learning rate and max-length 4..512 are required")
+    if args.epochs < 1 or args.batch_size < 1 or args.inference_batch_size < 1 or args.min_dev_edits < 1 or not 4 <= args.max_length <= 512 or args.learning_rate <= 0:
+        raise ValueError("Positive epochs, batch size, learning rate, development support and max-length 4..512 are required")
     if not 0 <= args.min_precision <= 1 or not 0 <= args.max_clean_fp <= 1:
         raise ValueError("Calibration constraints must be between zero and one")
     for path in [args.output, args.checkpoint]:
@@ -319,7 +317,7 @@ def main(args):
     quantized_calibration = calibration(rows["dev"], quantized_dev, args)
     fp32_candidates = [evaluate_records(rows["dev"], float_dev, value, scorer=args.scorer) for value in THRESHOLDS]
     deployed_calibration = choose_joint_calibration(quantized_calibration["candidates"], fp32_candidates,
-        evaluate_records(rows["dev"], quantized_dev, 1., disabled=True, scorer=args.scorer), args.min_precision, args.max_clean_fp)
+        evaluate_records(rows["dev"], quantized_dev, 1., disabled=True, scorer=args.scorer), args.min_precision, args.max_clean_fp, args.min_dev_edits)
     # Family thresholds are retained only if they also qualify FP32 and improve
     # the shared policy. No test predictions participate in this decision.
     family = quantized_calibration.get("category_thresholds", {})
@@ -327,7 +325,8 @@ def main(args):
         selected = quantized_calibration["selected"]
         float_score = evaluate_records(rows["dev"], float_dev, selected["threshold"], scorer=args.scorer, category_thresholds=family)
         shared = deployed_calibration["selected"]
-        if (qualified(selected, args.min_precision, args.max_clean_fp) and qualified(float_score, args.min_precision, args.max_clean_fp)
+        if (qualified(selected, args.min_precision, args.max_clean_fp, args.min_dev_edits)
+                and qualified(float_score, args.min_precision, args.max_clean_fp, args.min_dev_edits)
                 and min(selected["edit_f0_5"], float_score["edit_f0_5"]) > shared["edit_f0_5"]):
             deployed_calibration.update({"selected": selected, "category_thresholds": family,
                                          "fp32_family_policy": float_score})
@@ -401,6 +400,8 @@ def parser():
     result.add_argument("--evaluation-dir", type=Path)
     result.add_argument("--min-precision", type=float, default=.95)
     result.add_argument("--max-clean-fp", type=float, default=.02)
+    result.add_argument("--min-dev-edits", type=int, default=25,
+                        help="Minimum decoded development predictions; operational evidence floor, not statistical certification")
     result.add_argument("--calibrate-categories", action="store_true")
     result.add_argument("--scorer", choices=["approximate", "errant"], default="approximate")
     result.add_argument("--device", choices=["cpu", "cuda"])

@@ -15,11 +15,11 @@ interface ModelManifest {
   confidenceThresholds?: Record<string, number>;
 }
 interface LoadedModel {
-  session: JaxSession;
+  session?: JaxSession;
   tokenizer: WordPieceTokenizer;
   labels: string[];
   manifest: ModelManifest;
-  backend: 'webgpu' | 'wasm';
+  backend: 'webgpu' | 'wasm' | 'rules';
 }
 
 const sessions = new Map<string, Promise<LoadedModel>>();
@@ -59,6 +59,7 @@ async function load(options: EngineOptions): Promise<LoadedModel> {
     throw new Error('Invalid model correction policy');
   }
   const tokenizer = new WordPieceTokenizer(await vocabResponse.text());
+  if (policy.disableModelEdits) return {tokenizer, labels, manifest: policy, backend: 'rules'};
   const bytes = new Uint8Array(await (await fetchAsset(base, 'model.onnx')).arrayBuffer());
   const session = await JaxSession.create(bytes, options.preferWebGPU !== false);
   const backend = session.backend;
@@ -82,6 +83,7 @@ async function analyzePass(text: string, options: EngineOptions, model: LoadedMo
   const suggestions: Suggestion[] = [];
   let modelRuns = 0;
   if (manifest.disableModelEdits) return {suggestions, modelRuns};
+  if (!session) throw new Error('Model session unavailable');
   const protectedRanges = protectedSpans(text);
   for (const chunk of tokenizer.chunks(text, manifest.maxSequenceLength)) {
     const first = chunk.positions[0]?.word.start ?? 0;
@@ -124,7 +126,7 @@ async function analyzePass(text: string, options: EngineOptions, model: LoadedMo
   return {suggestions, modelRuns};
 }
 
-export async function analyzeModel(text: string, options: EngineOptions, ruleSuggestions: Suggestion[] = []): Promise<{suggestions: Suggestion[]; backend: 'webgpu' | 'wasm'; modelRuns: number}> {
+export async function analyzeModel(text: string, options: EngineOptions, ruleSuggestions: Suggestion[] = []): Promise<{suggestions: Suggestion[]; backend: 'webgpu' | 'wasm' | 'rules'; modelRuns: number}> {
   const model = await getModel(options);
   const passes = options.maxPasses ?? model.manifest.maxPasses ?? 1;
   if (!Number.isInteger(passes) || passes < 1 || passes > 3) throw new Error('Use between one and three correction passes');

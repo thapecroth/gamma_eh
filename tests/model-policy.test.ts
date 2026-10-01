@@ -36,6 +36,8 @@ describe('model deployment policy', () => {
     expect(applySuggestions(result.text, result.suggestions)).toBe('She has a book.');
     expect(fetch).not.toHaveBeenCalled();
     expect(runtime.runs).toBe(0);
+    expect(result.backend).toBe('rules');
+    expect(fetch).not.toHaveBeenCalledWith(expect.stringMatching(/model\.onnx$/u));
   });
 
   it('suppresses all neural edits when development calibration disables them', async () => {
@@ -45,6 +47,8 @@ describe('model deployment policy', () => {
     expect(result.suggestions).toEqual([]);
     expect(result.modelRuns).toBe(0);
     expect(runtime.runs).toBe(0);
+    expect(result.backend).toBe('rules');
+    expect(fetch).not.toHaveBeenCalledWith(expect.stringMatching(/model\.onnx$/u));
   });
 
   it('never relaxes a caller threshold with a family threshold', async () => {

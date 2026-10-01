@@ -113,13 +113,13 @@ def test_missing_clean_controls_and_unsafe_thresholds_trigger_explicit_no_edit()
     assert calibrated["constraints_met"] is False
     assert calibrated["best_unconstrained"]["edit_f0_5"] == 1.
     candidate["clean_sentence_false_positive_rate"] = 0
-    assert choose_calibration([candidate], no_edit)["constraints_met"] is True
+    assert choose_calibration([candidate], no_edit, min_support=1)["constraints_met"] is True
     candidate["inference_failures"] = 1
     assert choose_calibration([candidate], no_edit)["constraints_met"] is False
 
 
 def test_quantization_drift_cannot_enable_a_policy_that_fails_one_export():
-    base = {"predicted_edits": 10, "edit_precision": .99, "clean_sentence_false_positive_rate": 0,
+    base = {"predicted_edits": 25, "edit_precision": .99, "clean_sentence_false_positive_rate": 0,
             "edit_f0_5": .5, "threshold": .8, "inference_failures": 0}
     no_edit = {**base, "threshold": 1., "predicted_edits": 0, "edit_f0_5": 0}
     assert choose_joint_calibration([base], [{**base, "edit_precision": .5}], no_edit)["disable_model_edits"] is True
@@ -300,3 +300,23 @@ def test_shared_protected_text_contract():
             if intervals and start <= intervals[-1][1]: intervals[-1][1] = max(intervals[-1][1], end)
             else: intervals.append([start, end])
         assert [case["source"][start:end] for start, end in intervals] == case["fragments"]
+
+
+def test_development_support_floor_cannot_be_faked_by_high_precision():
+    from evaluate import qualified
+    base = {"predicted_edits": 25, "edit_precision": 1., "clean_sentence_false_positive_rate": 0.,
+            "edit_f0_5": .1, "threshold": .8, "inference_failures": 0}
+    no_edit = {**base, "predicted_edits": 0, "edit_f0_5": 0., "threshold": 1.}
+    for count in [0, 1, 5, 24]:
+        candidate = {**base, "predicted_edits": count}
+        report = choose_calibration([candidate], no_edit)
+        assert report["disable_model_edits"] is True
+        assert report["best_unconstrained"] == candidate
+    assert choose_calibration([base], no_edit)["constraints_met"] is True
+    assert not qualified(no_edit, .95, .02, min_support=1)
+    for invalid in [{"edit_precision": .94}, {"clean_sentence_false_positive_rate": .03}, {"inference_failures": 1}]:
+        assert not qualified({**base, **invalid}, .95, .02)
+    assert choose_joint_calibration([base], [{**base, "predicted_edits": 24}], no_edit)["disable_model_edits"] is True
+    assert choose_joint_calibration([base], [base], no_edit)["constraints_met"] is True
+    assert choose_calibration([base], no_edit)["constraints"]["min_development_predicted_edits"] == 25
+    with pytest.raises(ValueError, match="support"): choose_calibration([base], no_edit, min_support=0)

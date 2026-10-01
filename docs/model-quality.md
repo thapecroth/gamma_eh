@@ -144,9 +144,13 @@ Run arms sequentially. The plan verifies dataset, label, manifest, and evaluatio
 hashes before each run. Checkpoint selection uses decoded natural development
 predictions. The browser executes FP32 `model.onnx` through bundled JAX JS. ONNX FP32 and INT8 exports each run the complete development
 population; their shared threshold must meet both **95% edit precision** and
-**at most 2% clean-sentence changes**, with active edits and zero inference
-failures. Optional category thresholds only tighten the policy. If no shared
-active policy qualifies, `disableModelEdits: true` explicitly suppresses edits;
+**at most 2% clean-sentence changes**, with at least **25 decoded development edit predictions** in each export
+and zero inference failures. The support minimum is an operational evidence
+floor, not statistical certification. A first matched trial produced policies
+with just 1–5 development edits; all four arms were rerun on the same frozen
+rows after adding this support floor. Optional category thresholds only tighten the policy. If no shared
+active policy qualifies, `disableModelEdits: true` explicitly suppresses edits and skips weight loading
+and runtime initialization;
 the diagnostic unconstrained score is reported separately. No-edit precision is
 not evidence of correction quality. ONNX calibration is a prerequisite; complete
 actual JAX browser development predictions must also qualify before promotion.

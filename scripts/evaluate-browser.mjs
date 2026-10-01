@@ -82,7 +82,7 @@ async function assets(modelDir) {
     throw new Error('INVALID_MODEL_LABELS');
   }
   return {files, evidence: {manifestSha256: digest(manifestBytes), weights, runtime: runtimeManifest,
-    executedWeights: 'model.onnx',
+    executedWeights: manifest.disableModelEdits ? null : 'model.onnx',
     policy: {baseModel: manifest.base_model, baseRevision: manifest.base_revision,
       editSchema: manifest.editSchema ?? 1, maxSequenceLength: manifest.maxSequenceLength,
       confidenceThreshold: manifest.confidenceThreshold, confidenceThresholds: manifest.confidenceThresholds ?? {},

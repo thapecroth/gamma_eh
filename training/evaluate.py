@@ -162,35 +162,38 @@ def score_browser_report(path, directory, split, scorer="approximate"):
             "network": report.get("network"), "passed_execution": report.get("passed"), "conditions": results}
 
 
-def qualified(candidate, min_precision, max_clean_fp):
-    return (candidate["predicted_edits"] > 0 and candidate.get("inference_failures", 0) == 0
+def qualified(candidate, min_precision, max_clean_fp, min_support=25):
+    return (candidate["predicted_edits"] > 0 and candidate["predicted_edits"] >= min_support
+            and candidate.get("inference_failures", 0) == 0
             and candidate["edit_precision"] >= min_precision
             and candidate["clean_sentence_false_positive_rate"] is not None
             and candidate["clean_sentence_false_positive_rate"] <= max_clean_fp)
 
 
-def choose_calibration(candidates, no_edit, min_precision=.95, max_clean_fp=.02):
+def choose_calibration(candidates, no_edit, min_precision=.95, max_clean_fp=.02, min_support=25):
     if not candidates: raise ValueError("Calibration requires development candidates")
-    eligible = [candidate for candidate in candidates if qualified(candidate, min_precision, max_clean_fp)]
+    if min_support < 1: raise ValueError("Development edit support must be positive")
+    eligible = [candidate for candidate in candidates if qualified(candidate, min_precision, max_clean_fp, min_support)]
     chosen = max(eligible, key=lambda r: (r["edit_f0_5"], r["threshold"])) if eligible else no_edit
     return {"split": "dev", "candidates": candidates, "selected": chosen,
             "best_unconstrained": max(candidates, key=lambda r: (r["edit_f0_5"], r["threshold"])),
-            "constraints": {"min_edit_precision": min_precision, "max_clean_sentence_false_positive_rate": max_clean_fp},
+            "constraints": {"min_edit_precision": min_precision, "max_clean_sentence_false_positive_rate": max_clean_fp,
+                            "min_development_predicted_edits": min_support},
             "constraints_met": bool(eligible), "disable_model_edits": not bool(eligible),
-            "fallback_reason": None if eligible else "No active threshold met both development constraints; suppress model edits."}
+            "fallback_reason": None if eligible else "No threshold met development precision, clean-text, and edit-support constraints; suppress model edits."}
 
 
-def choose_joint_calibration(int8, fp32, no_edit, min_precision=.95, max_clean_fp=.02):
+def choose_joint_calibration(int8, fp32, no_edit, min_precision=.95, max_clean_fp=.02, min_support=25):
     """A shared browser policy must qualify both exported precision formats on dev."""
-    report = choose_calibration(int8, no_edit, min_precision, max_clean_fp)
+    report = choose_calibration(int8, no_edit, min_precision, max_clean_fp, min_support)
     other = {candidate["threshold"]: candidate for candidate in fp32}
     if len(other) != len(fp32) or set(other) != {candidate["threshold"] for candidate in int8}:
         raise ValueError("Export calibration grids differ")
-    eligible = [candidate for candidate in int8 if qualified(candidate, min_precision, max_clean_fp)
-                and qualified(other[candidate["threshold"]], min_precision, max_clean_fp)]
+    eligible = [candidate for candidate in int8 if qualified(candidate, min_precision, max_clean_fp, min_support)
+                and qualified(other[candidate["threshold"]], min_precision, max_clean_fp, min_support)]
     chosen = max(eligible, key=lambda r: (min(r["edit_f0_5"], other[r["threshold"]]["edit_f0_5"]), r["threshold"])) if eligible else no_edit
     report.update({"selected": chosen, "constraints_met": bool(eligible), "disable_model_edits": not bool(eligible),
-                   "fallback_reason": None if eligible else "No shared active threshold qualified both INT8 and FP32 development outputs.",
+                   "fallback_reason": None if eligible else "No shared threshold met precision, clean-text, and edit-support constraints in both INT8 and FP32 development outputs.",
                    "fp32_candidates": fp32, "backend": "Shared INT8/FP32 ONNX CPU development policy"})
     return report
 
