@@ -18,6 +18,11 @@
   <a href="#contributing">Contributing</a>
 </p>
 
+<p align="center">
+  <a href="docs/assets/gamma-eh-launch.mp4"><img alt="Watch the 22-second Gamma EH launch video" src="docs/assets/gamma-eh-launch-poster.jpg" width="720"></a><br>
+  <sub>▶ <a href="docs/assets/gamma-eh-launch.mp4">Watch the 22-second launch video</a>, rendered from the real web editor and extension UI.</sub>
+</p>
+
 Write freely. Review a suggestion. Keep what sounds like you.
 
 Gamma EH combines spelling and grammar rules with a small, locally executed
