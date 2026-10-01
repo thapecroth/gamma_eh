@@ -1,5 +1,10 @@
 # Releases and installation
 
+The Chrome ZIP also serves as the Chrome Web Store upload package. See
+[store distribution](chrome-web-store.md) for unlisted submission material
+and the optional automated store job. Preparation does not establish a live
+listing; record the actual link after Google's approval.
+
 The [GitHub Releases page](https://github.com/thapecroth/gamma_eh/releases) is
 the distribution point for built packages. Release automation is defined in
 [release.yml](../.github/workflows/release.yml). A workflow or local ZIP is not
@@ -11,9 +16,10 @@ itself a published release: publication requires a successful tagged run.
 | --- | --- |
 | `gamma-eh-chrome-vX.Y.Z.zip` | Extract, then load the root folder in Chrome Developer mode. |
 | `gamma-eh-web-vX.Y.Z.zip` | Extract and serve the root folder on localhost or HTTPS. |
-| `SHA256SUMS.txt` | Verify both downloaded ZIPs. |
+| `gamma-eh-firefox-vX.Y.Z.zip` | Load temporarily in Firefox using `about:debugging`; permanent installs need signing. |
+| `SHA256SUMS.txt` | Verify downloaded ZIPs. |
 
-Both ZIPs include the public baseline model, local ONNX Runtime assets, licenses,
+All three ZIPs include the public baseline model, bundled JAX JS runtime metadata, licenses,
 model card, and `INSTALL.md`. No build tools or inference server are needed for
 the extension. GitHub's automatic source archives are not installable packages.
 
@@ -113,8 +119,8 @@ version rather than replacing downloads.
 - Every exported model hash is checked against its manifest; both compiled apps
   must contain exactly those model files. A test-only permission manifest is
   refused. Hidden files, symlinks, and unexpected model files fail closed.
-- Runtime notices are vendored from ONNX Runtime 1.30.0; updating the runtime
-  requires updating notices and the packager's version pin together.
+- Runtime notices cover pinned JAX JS and Protocol Buffers packages; updating
+  the runtime requires updating notices, version pins, and built metadata together.
 - No private teacher corpus, isolated student checkpoint, API key, or provider
   configuration belongs in a release. The workflow uploads only public packages
   and browser-test evidence, not arbitrary contents of `artifacts/`.
@@ -124,3 +130,25 @@ version rather than replacing downloads.
 Browser evidence is retained as a workflow artifact for seven days. The public
 ZIPs remain attached to the release. See [browser verification](browser-testing.md)
 for what the automated checks do and do not establish.
+
+## Automatic releases on main
+
+Every push to `main` queues the Release workflow. It chooses the next patch
+version above the source version and existing version tags. The workflow creates
+an immutable tagged child commit containing only synchronized version updates in
+`package.json`, `package-lock.json`, and the extension manifest; it does not write
+to main. Retries reuse the snapshot for the same source commit.
+
+The release pipeline validates that the snapshot's parent belongs to main and
+that its only changes are version metadata. It runs the existing app, training,
+Chrome and web browser gates, builds all three ZIPs, checks their contents and
+checksums, then publishes an experimental GitHub prerelease. Failed gates leave
+the tag available for retry but publish no release. Manually dispatched releases
+and manually pushed version tags remain supported. Release runs queue sequentially
+so version allocation and publication cannot overlap. No extra PAT is needed:
+the workflow's repository token can push tags, and its tag pushes do not recursively
+trigger another release workflow.
+
+See [Firefox installation](firefox.md). Firefox packaging and manifest checks are
+covered. Firefox 156.0.1 also passed a live rules/WASM worker smoke check with a
+localhost fixture grant; full Firefox UI and permission-dialog coverage remain a follow-up.

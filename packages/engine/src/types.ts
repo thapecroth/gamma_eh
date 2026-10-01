@@ -9,7 +9,7 @@ export interface Suggestion {
   message: string;
   category: SuggestionCategory;
   confidence: number;
-  source: 'rule' | 'model';
+  source: 'rule' | 'model' | 'dictionary';
 }
 
 export interface AnalysisResult {
@@ -22,7 +22,6 @@ export interface AnalysisResult {
 
 export interface EngineOptions {
   modelBaseUrl?: string;
-  wasmBaseUrl?: string;
   preferWebGPU?: boolean;
   confidenceThreshold?: number;
 }

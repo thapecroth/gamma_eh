@@ -52,8 +52,12 @@ The [model card](../models/MODEL_CARD.md) records 4,377,793 parameters, two enco
 layers, width 128, 65 edit labels, 64 WordPieces, a 4.46 MB INT8 export, and a
 17.55 MB FP32 export. Its evaluation is on synthetic template combinations, with
 no BEA/CoNLL/JFLEG scores. Physical-GPU browser latency remains unverified.
+Both browser backends execute the FP32 graph through JAX JS; the INT8 export
+remains an evaluation artifact. See [JAX JS inference](jax-js-runtime.md).
 
-Reading the current implementation exposes limits beyond model capacity:
+The shipped schema-1 baseline has limits beyond model capacity. These describe
+its existing vocabulary and training population; new edit infrastructure does
+not expand the shipped weights without retraining and independent validation:
 
 | Component | Present behavior | Consequence for quality |
 | --- | --- | --- |
@@ -61,7 +65,7 @@ Reading the current implementation exposes limits beyond model capacity:
 | [Preparation](../training/prepare_pairs.py) | Train-derived label vocabulary; unsupported examples are filtered | Evaluation on retained examples must also report dropped examples and whole-corpus coverage |
 | [Tokenization](../packages/engine/src/tokenizer.ts) | Uncased WordPiece, sentence/window splits, no overlapping context | Case information is lost in model input; long-range dependencies can cross a window boundary |
 | [Model suggestions](../packages/engine/src/model.ts) | Existing punctuation positions are skipped; APPEND always inserts a leading space | The shipped labels have no punctuation repairs; new punctuation edits also need explicit rendering support |
-| Runtime guards | Article lexicon, duplicate-only deletions, protected-window skipping | These prevent known harmful edits but also reduce achievable recall |
+| Runtime guards | Article lexicon, duplicate-only deletions, protected-window skipping, and supported-subject agreement with verb family/tense preservation | These prevent known harmful edits but also reduce achievable recall |
 | Training/evaluation | Original synthetic templates; development threshold selected on that domain | Excellent synthetic scores do not establish performance on ordinary drafts |
 
 These facts make edit coverage and independent evaluation early priorities. They
@@ -232,18 +236,16 @@ Never silently remove examples to make a finite tagger appear more capable.
 
 ## Browser performance
 
-Keep ONNX Runtime Web as the initial runtime and preserve bundled assets, workers,
-the MV3 offscreen owner, and stale-text checks. ONNX Runtime's official guidance
-says to use WASM “for very small models”; WebGPU is an alternative to measure,
-not an automatic latency win. Its GPU backends support fewer operators than WASM.
-[Performance diagnosis](https://onnxruntime.ai/docs/tutorials/web/performance-diagnosis.html),
-[Web runtime](https://onnxruntime.ai/docs/tutorials/web/).
+Use the current [JAX JS FP32 WASM/WebGPU pipeline](jax-js-runtime.md) as the
+baseline, preserving bundled assets, workers, the MV3 offscreen owner, and
+stale-text checks. Measure both backends on representative devices; WebGPU
+availability does not establish lower latency.
 
 Recommended engineering experiments:
 
-- Compare INT8 WASM with the existing FP32 WebGPU export; add FP16 WebGPU only
-  after operator/device and edit-quality validation. Quantization support and
-  acceleration depend on the exported graph and backend.
+- Compare FP32 WASM and WebGPU on the same graph first. Evaluate INT8 or FP16
+  only with a runtime and graph that support the required operators, then
+  validate edit quality and recalibrate each export.
 - Keep sessions warm; schedule only changed windows, debounce edits, and discard
   stale queued requests. Use bounded scheduling across fields and tabs.
 - Profile the expanded classifier head and output transfer. At 128 positions and

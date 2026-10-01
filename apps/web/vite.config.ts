@@ -4,18 +4,18 @@ import { stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { defineConfig } from 'vite-plus';
 import react from '@vitejs/plugin-react';
+import { webGPUAdapterVitePlugin } from '../../scripts/webgpu-adapter-options.mjs';
 
 export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
-  plugins: [react(), {
+  plugins: [react(), webGPUAdapterVitePlugin(), {
     name: 'local-inference-assets',
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
         const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
-        const match = /^\/(models|runtime)\/([a-zA-Z0-9_.-]+)$/u.exec(pathname);
+        const match = /^\/models\/([a-zA-Z0-9_.-]+)$/u.exec(pathname);
         if (!match) return next();
-        const directory = match[1] === 'models' ? '../../models/browser/' : '../../node_modules/onnxruntime-web/dist/';
-        const filename = join(fileURLToPath(new URL(directory, import.meta.url)), match[2]);
+        const filename = join(fileURLToPath(new URL('../../models/browser/', import.meta.url)), match[1]);
         try {
           const info = await stat(filename);
           if (!info.isFile()) return next();
@@ -26,7 +26,10 @@ export default defineConfig({
     },
   }],
   resolve: { alias: { '@gamma/engine': fileURLToPath(new URL('../../packages/engine/src/index.ts', import.meta.url)) } },
+  // Keep the adapter request visible to the dev transform, including ONNX's
+  // transitive JAX import, rather than hiding it in a preoptimized dependency.
+  optimizeDeps: {exclude: ['@jax-js/jax', '@jax-js/onnx']},
   build: { outDir: '../../dist/web', emptyOutDir: true },
-  worker: { format: 'es' },
+  worker: { format: 'es', plugins: () => [webGPUAdapterVitePlugin()] },
   server: { host: '127.0.0.1' },
 });

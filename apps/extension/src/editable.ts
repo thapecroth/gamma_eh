@@ -40,7 +40,7 @@ export function matchesSuggestion(text: string, suggestion: Suggestion): boolean
 }
 
 interface Boundary { node: Node; offset: number }
-function boundaryAt(field: HTMLElement, offset: number): Boundary | null {
+export function boundaryAt(field: HTMLElement, offset: number): Boundary | null {
   let cursor = 0;
   for (const [index, node] of Array.from(field.childNodes).entries()) {
     if (node.nodeType === Node.TEXT_NODE) {

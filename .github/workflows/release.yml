@@ -2,6 +2,7 @@ name: Release
 
 on:
   push:
+    branches: [main]
     tags: ['v*']
   workflow_dispatch:
     inputs:
@@ -14,15 +15,65 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-${{ inputs.tag || github.ref_name }}
+  group: release-pipeline
+  queue: max
   cancel-in-progress: false
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Select existing tag
+        if: github.ref != 'refs/heads/main' || github.event_name != 'push'
+        id: existing
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+      - name: Create versioned release snapshot for this main push
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        id: automatic
+        run: |
+          # A tagged child commit changes only version metadata. Main stays untouched.
+          SOURCE_COMMIT=$(git rev-parse HEAD)
+          # Reuse a previous snapshot when retrying this exact main push.
+          while IFS= read -r candidate; do
+            if [[ "$(git rev-parse "$candidate^" 2>/dev/null || true)" == "$SOURCE_COMMIT" ]] &&
+               [[ "$(git log -1 --format=%s "$candidate")" == "chore(release): $candidate" ]]; then
+              echo "tag=$candidate" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done < <(git tag --list 'v*')
+          RELEASE_TAG=$(node scripts/prepare-release.mjs)
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json package-lock.json apps/extension/manifest.json
+          git commit -m "chore(release): $RELEASE_TAG"
+          git tag "$RELEASE_TAG"
+          git push origin "refs/tags/$RELEASE_TAG"
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+      - name: Export release tag
+        id: version
+        env:
+          RELEASE_TAG: ${{ steps.automatic.outputs.tag || steps.existing.outputs.tag }}
+        run: echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
   verify-and-package:
+    needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      GAMMA_RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      GAMMA_RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
       GAMMA_TEST_WEBGPU: '1'
     steps:
       - name: Validate tag format
@@ -33,16 +84,20 @@ jobs:
           fi
       - uses: actions/checkout@v4
         with:
-          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          ref: refs/tags/${{ needs.prepare.outputs.tag }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
-      - name: Require a tag already merged into main
+      - name: Require main source and version-only release metadata
         run: |
-          git merge-base --is-ancestor HEAD origin/main
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            # Automatic snapshot must have a main ancestor and version-only edits.
+            git merge-base --is-ancestor HEAD^ origin/main
+            node scripts/verify-release-snapshot.mjs
+          fi
           node --input-type=module -e 'import {readFileSync} from "node:fs"; import {releaseVersion} from "./scripts/package-release.mjs"; releaseVersion(JSON.parse(readFileSync("package.json")).version, JSON.parse(readFileSync("apps/extension/manifest.json")).version, process.env.GAMMA_RELEASE_TAG);'
       - uses: actions/setup-python@v5
         with:
@@ -66,15 +121,17 @@ jobs:
           GAMMA_BUILD_BACKUP=$(mktemp -d)
           mv dist/extension "$GAMMA_BUILD_BACKUP/extension"
           mv dist/web "$GAMMA_BUILD_BACKUP/web"
-          mkdir dist/extension dist/web
+          mv dist/firefox "$GAMMA_BUILD_BACKUP/firefox"
+          mkdir dist/extension dist/web dist/firefox
           unzip -q "artifacts/releases/$GAMMA_RELEASE_TAG/gamma-eh-chrome-$GAMMA_RELEASE_TAG.zip" -d dist/extension
           unzip -q "artifacts/releases/$GAMMA_RELEASE_TAG/gamma-eh-web-$GAMMA_RELEASE_TAG.zip" -d dist/web
+          unzip -q "artifacts/releases/$GAMMA_RELEASE_TAG/gamma-eh-firefox-$GAMMA_RELEASE_TAG.zip" -d dist/firefox
           npm run test:browser
           npm run test:extension
       - uses: actions/upload-artifact@v4
         with:
           name: release-assets
-          path: artifacts/releases/${{ inputs.tag || github.ref_name }}/
+          path: artifacts/releases/${{ needs.prepare.outputs.tag }}/
           if-no-files-found: error
           retention-days: 7
       - name: Preserve browser evidence
@@ -94,7 +151,7 @@ jobs:
           retention-days: 7
 
   publish:
-    needs: verify-and-package
+    needs: [prepare, verify-and-package]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -102,7 +159,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      GAMMA_RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      GAMMA_RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -116,6 +173,39 @@ jobs:
         run: |
           gh release create "$GAMMA_RELEASE_TAG" \
             "gamma-eh-chrome-$GAMMA_RELEASE_TAG.zip" \
+            "gamma-eh-firefox-$GAMMA_RELEASE_TAG.zip" \
             "gamma-eh-web-$GAMMA_RELEASE_TAG.zip" SHA256SUMS.txt \
             --verify-tag --prerelease --title "Gamma EH $GAMMA_RELEASE_TAG (experimental)" \
             --notes-file RELEASE_NOTES.md
+
+  chrome-web-store:
+    needs: [prepare, publish]
+    if: vars.CWS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: chrome-web-store
+    concurrency:
+      group: chrome-web-store
+      cancel-in-progress: false
+    env:
+      GAMMA_RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      CWS_PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID }}
+      CWS_EXTENSION_ID: ${{ vars.CWS_EXTENSION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.prepare.outputs.tag }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: release-assets
+      - name: Submit the validated Chrome package for store review
+        env:
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: node scripts/webstore-submit.mjs release-assets "${GAMMA_RELEASE_TAG#v}"
