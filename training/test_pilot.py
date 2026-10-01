@@ -88,9 +88,9 @@ def test_pilot_excludes_every_reference_and_cross_column_evaluation_match(tmp_pa
     weak.mkdir()
     (weak / "manifest.json").write_text('{"publication_allowed": false, "licenses": {}}')
     write_rows(weak / "train.jsonl", [
-        tagged("EXTRA DEV TARGET.", "Other sentence."),
-        tagged("Another sentence.", "Extra test source."),
-        tagged("Other test reference.", "Safe sentence."),
+        tagged("EXTRA DEV TARGET.", "OTHER SAFE SENTENCE."),
+        tagged("Another safe sentence.", "Extra test source."),
+        tagged("Other test reference.", "Another safe sentence."),
         tagged("He have a ticket.", "He has a ticket."),
     ])
     manifest = assemble(base, weak, output)

@@ -310,11 +310,12 @@ def decode_proposal(text, words, index, tag, confidence, schema):
             if value.lower() != replacement.lower() and not valid_verb(text, word, replacement): return None
             next_word = words[index + 1]["text"] if index + 1 < len(words) else ""
             if not valid_payload_articles(decoded, next_word): return None
-            if PUNCTUATION.fullmatch(value):
-                if replacement[0].isalnum() and start > 0 and text[start - 1].isalnum(): replacement = " " + replacement
-                if replacement[-1].isalnum() and end < len(text) and text[end].isalnum(): replacement += " "
     else:
         return None
+    if (schema == 2 and replacement and PUNCTUATION.fullmatch(value) and tag != "DELETE"
+            and not tag.startswith(("APPEND", "PREPEND"))):
+        if replacement[0].isalnum() and start > 0 and text[start - 1].isalnum(): replacement = " " + replacement
+        if replacement[-1].isalnum() and end < len(text) and text[end].isalnum(): replacement += " "
     if text[start:end] == replacement: return None
     return {"start": start, "end": end, "replacement": replacement,
             "confidence": confidence, "tag": tag, "category": tag_category(tag)}

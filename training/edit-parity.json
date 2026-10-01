@@ -126,6 +126,12 @@
   ],
   "guarded": [
     {
+      "source": "Hello,world.",
+      "index": 1,
+      "tag": "REPLACE:and",
+      "target": "Hello and world."
+    },
+    {
       "source": "The students has a notebook.",
       "index": 2,
       "tag": "REPLACE:have",

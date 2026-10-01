@@ -12,6 +12,12 @@ single-pass neural profiles and baseline rules, and toolchain versions. Raw
 sentences, teacher outputs, checkpoints and browser predictions remain local.
 The [workflow](model-quality.md) describes reproduction and scoring.
 
+These are frozen measurements from the code hashes recorded in the aggregate.
+Review subsequently tightened multiword article guards and punctuation-to-word
+spacing in the schema-2 decoder. The private training/browser matrix was not
+rerun after those corrections; new candidate qualification requires fresh
+calibration and complete evaluation with the corrected decoder.
+
 ## Completed data
 
 | Corpus | Accepted pairs | Role |
