@@ -211,10 +211,6 @@ def generate(args):
     if not snapshot_only and not key and urlparse(config["endpoint"]).hostname not in {"localhost", "127.0.0.1", "::1"}:
         raise ValueError(f"Set {args.api_key_env} in the environment")
     args.output.mkdir(parents=True, exist_ok=True)
-    saved_prompt = args.output / "prompt.txt"
-    if saved_prompt.exists() and saved_prompt.read_text() != prompt:
-        raise ValueError("Run prompt changed; use its saved prompt or a new output directory")
-    if not saved_prompt.exists(): saved_prompt.write_text(prompt)
     fingerprint = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()
     lock = acquire_run_lock(args.output / "run-lock.sqlite3")
     try:
@@ -224,6 +220,10 @@ def generate(args):
         raise
     rejected = Counter()
     try:
+        saved_prompt = args.output / "prompt.txt"
+        if saved_prompt.exists() and saved_prompt.read_text() != prompt:
+            raise ValueError("Run prompt changed; use its saved prompt or a new output directory")
+        if not saved_prompt.exists(): saved_prompt.write_text(prompt)
         db.execute("INSERT OR REPLACE INTO metadata VALUES ('config', ?)", (json.dumps(config, sort_keys=True),))
         db.commit()
         if snapshot_only:

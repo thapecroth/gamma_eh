@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import parity from '../training/edit-parity.json';
 import tokenizerParity from '../training/tokenizer-parity.json';
+import { protectedSpans } from '../packages/engine/src/rules';
 import { EditHistory } from '../packages/engine/src/edit-history';
 import { decodeProposal, decodeWord } from '../packages/engine/src/edit-tags';
 import { applySuggestions } from '../packages/engine/src/edits';
@@ -38,6 +39,18 @@ describe('versioned edit contract', () => {
     for (const {word, tag, tokens} of parity.cases) expect(decodeWord(word, tag, parity.schema)).toEqual(tokens);
     for (const {word, tag} of parity.invalid) expect(() => decodeWord(word, tag, parity.schema)).toThrow();
     expect(() => decodeWord('hello', 'CASE:TITLE', 1)).toThrow();
+  });
+
+  it('shares code, identifier, path, and URL protection with Python calibration', () => {
+    for (const row of parity.protected) {
+      const intervals: Array<{start: number; end: number}> = [];
+      for (const span of protectedSpans(row.source).sort((a, b) => a.start - b.start)) {
+        const previous = intervals.at(-1);
+        if (previous && span.start <= previous.end) previous.end = Math.max(previous.end, span.end);
+        else intervals.push({...span});
+      }
+      expect(intervals.map(span => row.source.slice(span.start, span.end))).toEqual(row.fragments);
+    }
   });
 
   it('matches full-source verb abstention for legacy and richer edits', () => {

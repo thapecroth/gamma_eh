@@ -14,7 +14,17 @@ import time
 from edit_ops import TOKEN_RE, decode_word, preserve_case, render, tag_category
 from pairs import hash_file, normalized
 
-PROTECTED = re.compile(r"```[\s\S]*?```|`[^`\n]+`|https?://\S+|\b[^\s@]+@[^\s@]+\.[^\s@]+")
+# Mirror the two independently matched browser patterns. JS /u word boundaries
+# are ASCII, while letters/numbers and ECMAScript whitespace remain Unicode.
+JS_WHITESPACE = r"\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
+PROTECTED_PATTERNS = [
+    re.compile(rf"(`+)[\s\S]*?(?:(?<!`)\1(?!`)|\Z)|(?:https?://|www\.)[^{JS_WHITESPACE}]+|(?a:\b)[^{JS_WHITESPACE}@]+@[^{JS_WHITESPACE}@]+\.[^{JS_WHITESPACE}@]+"),
+    re.compile(r"(?:\.\.?[/\\]|[/\\])[\w./\\-]+|(?a:\b)[\w-]+(?:[./\\][\w-]+)+|[#@]\w+"),
+]
+
+
+def protected_spans(text):
+    return [(match.start(), match.end()) for pattern in PROTECTED_PATTERNS for match in pattern.finditer(text)]
 ARTICLE_HEADS = {
     **dict.fromkeys("apple orange egg umbrella envelope idea hour honest honor heir".split(), "an"),
     **dict.fromkeys("book pencil bicycle camera notebook ticket friend message pen project library university user unicorn european one".split(), "a"),
@@ -208,7 +218,7 @@ def valid_verb(text, word, proposed):
     proposed_family = AGREEMENT_VERBS.get(proposed.lower())
     if not original_family and not proposed_family: return True
     if not original_family or original_family != proposed_family: return False
-    subject = re.search(r"(?:^|[.!?]\s+)(?:(i|you|we|they|he|she|it)|(?:my|your|our|his|her|their|the|a|an)[ \t]+([A-Za-z]+))[ \t]+$",
+    subject = re.search(rf"(?:^|[.!?][{JS_WHITESPACE}]+)(?:(i|you|we|they|he|she|it)|(?:my|your|our|his|her|their|the|a|an)[ \t]+([A-Za-z]+))[ \t]+\Z",
                         text[:word["start"]], re.IGNORECASE | re.ASCII)
     if not subject: return False
     tail = text[word["end"]:]
@@ -375,7 +385,7 @@ def collect_proposals(rows, tokenizer, infer, labels, max_length, schema=1, batc
         pending.clear()
     for index, row in enumerate(rows):
         text = row["source"]
-        protected = [(match.start(), match.end()) for match in PROTECTED.finditer(text)]
+        protected = protected_spans(text)
         try:
             chunks = encoded_chunks(text, tokenizer, max_length, suppressed)
             if text.strip() and not chunks: records[index]["failed"] = True

@@ -190,6 +190,67 @@
       "index": 1,
       "tag": "CASE:LOWER",
       "target": "She has food."
+    },
+    {
+      "source": "Done.\u00a0She have a book.",
+      "index": 3,
+      "tag": "REPLACE:has",
+      "target": "Done.\u00a0She has a book."
+    }
+  ],
+  "protected": [
+    {
+      "source": "She have www.example.test/a.",
+      "fragments": [
+        "www.example.test/a."
+      ]
+    },
+    {
+      "source": "Edit ../freind/file.md now.",
+      "fragments": [
+        "../freind/file.md"
+      ]
+    },
+    {
+      "source": "Edit path\\adress.txt now.",
+      "fragments": [
+        "path\\adress.txt"
+      ]
+    },
+    {
+      "source": "Read @freind and #teh.",
+      "fragments": [
+        "@freind",
+        "#teh"
+      ]
+    },
+    {
+      "source": "``She have a freind.`",
+      "fragments": [
+        "``She have a freind.`"
+      ]
+    },
+    {
+      "source": "```She have\na freind.",
+      "fragments": [
+        "```She have\na freind."
+      ]
+    },
+    {
+      "source": "A sentence. Another sentence.",
+      "fragments": []
+    },
+    {
+      "source": "Visit www.example.test\ufeffnow.",
+      "fragments": [
+        "www.example.test"
+      ]
+    },
+    {
+      "source": "/recieve@example.freind",
+      "fragments": [
+        "/recieve@example.freind"
+      ]
     }
   ]
 }

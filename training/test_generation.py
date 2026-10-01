@@ -285,3 +285,20 @@ def test_teacher_merge_metadata_ties_are_canonical(tmp_path, monkeypatch):
     merge([b, a], tmp_path / "backward")
     for name in ["candidates.jsonl", "manifest.json"]:
         assert (tmp_path / "forward" / name).read_bytes() == (tmp_path / "backward" / name).read_bytes()
+
+
+def test_rejected_legacy_resume_cannot_save_the_wrong_prompt(tmp_path, monkeypatch):
+    monkeypatch.setattr(generate_llm, "request_teacher", lambda job, settings, *_: (
+        [{"source": "She have a pen.", "target": "She has a pen.", "category": job["category"]}], {}))
+    run = tmp_path / "run"
+    generate(args_for(run, pairs=1))
+    original = (run / "prompt.txt").read_text()
+    (run / "prompt.txt").unlink()
+    changed = tmp_path / "changed-prompt.txt"
+    changed.write_text(original + "Different prompt.\n")
+    wrong = args_for(run, pairs=1)
+    wrong.prompt_file = changed
+    with pytest.raises(ValueError, match="settings changed"): generate(wrong)
+    assert not (run / "prompt.txt").exists()
+    generate(args_for(run, pairs=1))
+    assert (run / "prompt.txt").read_text() == original

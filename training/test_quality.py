@@ -289,3 +289,14 @@ def test_nonfinite_keep_logits_fail_the_whole_sentence():
         records, evidence = collect_proposals([{"source": "hello."}], Tokenizer(), infer, ["KEEP", "CASE:TITLE"], 64, 2)
         assert evidence["inference_failures"] == 1
         assert records == [{"proposals": [], "failed": True}]
+
+
+def test_shared_protected_text_contract():
+    from evaluate import protected_spans
+    fixture = json.loads(Path(__file__).with_name("edit-parity.json").read_text())
+    for case in fixture["protected"]:
+        intervals = []
+        for start, end in sorted(protected_spans(case["source"])):
+            if intervals and start <= intervals[-1][1]: intervals[-1][1] = max(intervals[-1][1], end)
+            else: intervals.append([start, end])
+        assert [case["source"][start:end] for start, end in intervals] == case["fragments"]
