@@ -15,11 +15,11 @@
 - [Model quality results](model-quality-results.md): completed 10,436-pair GLM corpus, four trained students, actual browser comparisons, and promotion decisions.
 - [Roadmap](roadmap.md): baseline status and the gates for a useful general writing assistant.
 - [Initial validation](validation.md): local checks, browser execution, and known verification limits.
-- [Browser verification](browser-testing.md): capability preflight, hosted E2E lane, popup activation and HTTP startup regression, strict correction checks, and remaining verification gates.
+- [Browser verification](browser-testing.md): capability preflight, hosted E2E lane, automatic site activation, HTTP startup regression, popup pauses, and strict correction checks.
 - [Agentic development](agentic-development.md): supervised local Codex coding loop, Luna-max extension scenarios, evidence and bounded repair.
 - [Frontend toolchain](toolchain.md): project-local Vite+, version alignment, and web/extension packaging.
 - [Releases](releases.md): ready-built Chrome/web ZIPs, checksums, installation, and gated publication.
-- [Chrome extension](../apps/extension/README.md): unpacked installation and site permissions.
+- [Chrome extension](../apps/extension/README.md): unpacked installation, automatic site access, and per-site pauses.
 - [Inline suggestions](inline-suggestions.md): red underlines, hover cards, keyboard access, measurement and browser checks.
 - [Model card](../models/MODEL_CARD.md): trained checkpoint scope and measured results.
 

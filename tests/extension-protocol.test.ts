@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { getSettings, isCheckMessage, MAX_FIELD_LENGTH, scriptId, sitePattern } from '../apps/extension/src/protocol';
+import { getSettings, isCheckMessage, isSiteEnabled, MAX_FIELD_LENGTH, sitePattern } from '../apps/extension/src/protocol';
 import { matchesSuggestion, sensitiveAutocomplete } from '../apps/extension/src/editable';
 import type { Suggestion } from '@gamma/engine';
 
@@ -13,19 +13,31 @@ describe('extension boundary', () => {
     expect(isCheckMessage(null)).toBe(false);
   });
 
-  it('restricts host grants to the current website rather than every origin', () => {
+  it('uses only HTTP and HTTPS websites for site settings', () => {
     expect(sitePattern('https://example.org/editor?secret=private')).toBe('https://example.org/*');
     expect(sitePattern('https://sub.example.org:8443/editor')).toBe('https://sub.example.org/*');
     expect(sitePattern('chrome://extensions')).toBeNull();
     expect(sitePattern('file:///private/draft.txt')).toBeNull();
     expect(sitePattern('not a URL')).toBeNull();
-    expect(scriptId('https://example.org/*')).toBe(scriptId('https://example.org/*'));
-    expect(scriptId('https://example.org/*')).not.toBe(scriptId('http://example.org/*'));
   });
 
   it('defaults malformed stored settings without enabling typed-text persistence', () => {
-    expect(getSettings({ enabled: false, useAI: false })).toEqual({ enabled: false, useAI: false });
-    expect(getSettings({ enabled: 'no', useAI: undefined })).toEqual({ enabled: true, useAI: false });
+    expect(getSettings({ enabled: false, useAI: false })).toEqual({ enabled: false, useAI: false, disabledSites: [] });
+    expect(getSettings({ enabled: 'no', useAI: undefined, disabledSites: 'all' })).toEqual({ enabled: true, useAI: false, disabledSites: [] });
+    expect(getSettings({ disabledSites: [null, 42, 'https://example.org/*'] }).disabledSites).toEqual(['https://example.org/*']);
+  });
+
+  it('enables new websites by default while respecting global and site pauses', () => {
+    const defaults = getSettings({});
+    expect(isSiteEnabled('https://example.org/editor', defaults)).toBe(true);
+    expect(isSiteEnabled('http://another.example/draft', defaults)).toBe(true);
+    expect(isSiteEnabled('chrome://extensions', defaults)).toBe(false);
+    expect(isSiteEnabled('file:///private/draft.txt', defaults)).toBe(false);
+    const paused = getSettings({ disabledSites: ['https://example.org/*'] });
+    expect(isSiteEnabled('https://example.org:8443/another-page', paused)).toBe(false);
+    expect(isSiteEnabled('https://sub.example.org/editor', paused)).toBe(true);
+    expect(isSiteEnabled('https://another.example/editor', paused)).toBe(true);
+    expect(isSiteEnabled('https://another.example/editor', getSettings({ enabled: false }))).toBe(false);
   });
 
   it('excludes payment, password, username, and one-time-code autocomplete fields', () => {

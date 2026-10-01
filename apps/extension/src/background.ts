@@ -1,5 +1,5 @@
 import { checkLocally } from './local-checker';
-import { isCheckMessage, scriptId, sitePattern, type CheckResponse } from './protocol';
+import { getSettings, isCheckMessage, isSiteEnabled, sitePattern, type CheckResponse } from './protocol';
 
 declare const GAMMA_FIREFOX: boolean;
 
@@ -22,8 +22,8 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (r
     try {
       const pattern = sitePattern(sender.url ?? '');
       const allowed = pattern && await chrome.permissions.contains({ origins: [pattern] });
-      const registered = pattern ? await chrome.scripting.getRegisteredContentScripts({ ids: [scriptId(pattern)] }) : [];
-      if (!allowed || !registered.length) {
+      const settings = getSettings(await chrome.storage.local.get(['enabled', 'useAI', 'disabledSites']));
+      if (!allowed || !isSiteEnabled(sender.url ?? '', settings)) {
         sendResponse({ requestId: message.requestId, siteDisabled: true });
         return;
       }
@@ -43,6 +43,13 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (r
   return true;
 });
 
+chrome.runtime.onInstalled.addListener(async () => {
+  // Older versions persisted one script registration for each enabled site.
+  const scripts = await chrome.scripting.getRegisteredContentScripts();
+  const ids = scripts.filter((script) => script.id.startsWith('gamma-site-')).map((script) => script.id);
+  if (ids.length) await chrome.scripting.unregisterContentScripts({ ids });
+});
+
 chrome.permissions.onRemoved.addListener(async (removed) => {
   if (removed.origins?.length) {
     // URL visibility can disappear with the permission, so contact all open tabs;
@@ -54,11 +61,5 @@ chrome.permissions.onRemoved.addListener(async (removed) => {
       if (pattern && await chrome.permissions.contains({ origins: [pattern] })) continue;
       await chrome.tabs.sendMessage(tab.id, { target: 'content', action: 'site-disabled' }).catch(() => undefined);
     }
-  }
-  const scripts = await chrome.scripting.getRegisteredContentScripts();
-  for (const script of scripts) {
-    if (!script.id.startsWith('gamma-site-')) continue;
-    const allowed = await chrome.permissions.contains({ origins: script.matches });
-    if (!allowed) await chrome.scripting.unregisterContentScripts({ ids: [script.id] });
   }
 });

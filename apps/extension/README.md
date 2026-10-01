@@ -26,8 +26,8 @@ root, then use `dist/extension/` as the installation folder.
    support (Chrome 116 or newer).
 2. Enable **Developer mode**, choose **Load unpacked**, and select
    the extracted release folder (or `dist/extension/` for a source build).
-3. Open a website, select the Gamma EH toolbar button, and choose **Enable on
-   this site**. Chrome requests access to that site only.
+3. Open or reload a website. Suggestions start automatically on HTTP and HTTPS
+   sites; the popup can pause a site or pause checking everywhere.
 4. Focus an ordinary textarea or plain-text contenteditable field. Detected
    issues get red wavy underlines. Hover or click an underlined word to review
    its correction, then choose **Accept suggestion** or **Dismiss**.
@@ -35,8 +35,7 @@ root, then use `dist/extension/` as the installation folder.
    for keyboard access and **Escape** to close. Choose **Pause this field** in
    the card to stop checking that field.
 
-Installing alone does not enable checking. Use the toolbar popup to grant site
-access, then focus a nonempty supported field to see inline suggestions. Plain
+Focus a nonempty supported field to see inline suggestions. Plain
 single-line `<input>` fields are not currently supported.
 
 Keep the extracted folder on disk. To update an unpacked installation, replace
@@ -49,7 +48,8 @@ installation, not a Chrome Web Store or one-click CRX installer. See the
 [release runbook](../../docs/releases.md) for checksums and publication details.
 
 The popup can pause suggestions everywhere, disable experimental local AI, or
-remove a site's permission. Password inputs, payment/authentication fields,
+pause checking on a site. Browser extension settings manage host access.
+Password inputs, payment/authentication fields,
 fields marked `spellcheck="false"`, `data-private`, `data-sensitive`, or
 `data-gamma-ignore`, and unsupported rich editors are excluded. Iframes are not
 checked. The extension limits each checked field to 6,000 UTF-16 code units.

@@ -43,10 +43,7 @@ async function screenshots() {
     const origin = `http://127.0.0.1:${server.address().port}`;
     const extension = join(temporary, 'extension');
     await cp(join(root, 'dist/extension'), extension, {recursive: true});
-    // Same localhost-only test grant as extension-driver.mjs. Never package it.
-    const manifest = JSON.parse(await readFile(join(extension, 'manifest.json'), 'utf8'));
-    manifest.host_permissions = ['http://127.0.0.1/*'];
-    await writeFile(join(extension, 'manifest.json'), JSON.stringify(manifest));
+    // Exercise automatic activation with the unchanged shipping manifest.
     context = await chromium.launchPersistentContext(join(temporary, 'profile'), {
       channel: 'chromium', executablePath: await findChromium(), headless: true,
       args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`, ...browserArguments()],
@@ -58,9 +55,11 @@ async function screenshots() {
       if (!request.url().startsWith(origin + '/') && !request.url().startsWith('chrome-extension://')) requests.push(request.resourceType());
     });
     await context.route('**/*', route => route.request().url().startsWith(origin + '/') || route.request().url().startsWith('chrome-extension://') ? route.continue() : route.abort());
-    const background = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker');
     const page = await context.newPage();
     await page.goto(origin);
+    await page.locator('#draft').focus();
+    // Automatic checking wakes the background worker on the first supported field.
+    const background = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker');
     const extensionId = new URL(background.url()).hostname;
     const popupPromise = context.waitForEvent('page');
     await background.evaluate(async ({url, origin}) => {
@@ -72,8 +71,8 @@ async function screenshots() {
     const popup = await popupPromise;
     await popup.locator('#site-name').filter({hasText: '127.0.0.1'}).waitFor();
     assert.equal(await popup.locator('#use-ai').isChecked(), false, 'Local AI must remain opt-in');
-    await popup.locator('#enable-site').click();
-    await popup.getByRole('status').filter({hasText: 'Ready.'}).waitFor();
+    await popup.locator('#site-detail').filter({hasText: 'Enabled automatically.'}).waitFor();
+    assert.equal(await popup.locator('#enable-site').isVisible(), false);
     await page.locator('#draft').focus();
     async function shadow(selector, click = false) {
       const end = Date.now() + 10_000;

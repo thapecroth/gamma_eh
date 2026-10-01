@@ -17,9 +17,10 @@ it('checks permitted Firefox requests in a local worker and rejects foreign send
   }
   const api = {
     runtime: {id: 'gamma', getURL: (path: string) => `moz-extension://gamma/${path}`,
-      onMessage: {addListener: (value: typeof listener) => {listener = value;}},
+      onMessage: {addListener: (value: typeof listener) => {listener = value;}}, onInstalled: {addListener: vi.fn()},
       sendMessage: vi.fn(), getContexts: vi.fn()},
     permissions: {contains: vi.fn(async () => true), onRemoved: {addListener: vi.fn()}},
+    storage: {local: {get: vi.fn(async () => ({}))}},
     scripting: {getRegisteredContentScripts: vi.fn(async () => [{id: 'gamma-site-test'}])},
   };
   vi.stubGlobal('chrome', api);

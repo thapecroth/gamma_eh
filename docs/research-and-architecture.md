@@ -51,7 +51,7 @@ training pairs, but synthetic labels need review and independent evaluation.
 ```mermaid
 flowchart LR
   E[Web editor] --> W[Web Worker]
-  C[Granted-site text field] --> B[Extension service worker]
+  C[Website text field] --> B[Extension service worker]
   B --> O[Offscreen document]
   O --> I[Inference Worker]
   W --> R[Rules and JAX JS model]
@@ -104,8 +104,14 @@ execution, inference endpoint, account requirement, or text telemetry.
 
 The service worker routes requests to an
 [offscreen document](https://developer.chrome.com/docs/extensions/reference/api/offscreen),
-which owns a dedicated Worker and outlives popup closure. The popup grants
-optional permissions per site. The checker handles ordinary textarea and plain
+which owns a dedicated Worker and outlives popup closure. Manifest-declared
+content scripts run automatically on HTTP and HTTPS pages in the top frame.
+The popup stores per-site pauses locally and can pause suggestions everywhere;
+the content script and service worker both enforce those preferences. Settings
+changes invalidate pending suggestions in existing tabs. Local AI stays opt-in.
+Updates remove the older persisted per-site script registrations; existing tabs
+need one reload after the extension is updated. Chrome's native site-access
+controls still apply. The checker handles ordinary textarea and plain
 contenteditable fields and rejects password/payment-sensitive fields and rich
 DOM editors it cannot edit safely. This does not imply support for Google Docs,
 every rich editor, iframes, or shadow-root editors.
