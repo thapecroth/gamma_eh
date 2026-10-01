@@ -4,6 +4,11 @@ Runtime migration checked 2026-09-30. Gamma EH is an independent English writing
 it is not affiliated with Grammarly. The first implementation runs entirely on
 the user's device and proposes edits for the user to accept.
 
+For the next model decision, see the [grammar correction literature review](gec-literature-review.md)
+(2026-09-30). It compares edit tagging, span generation, and LLM correction, and
+proposes controlled quality/performance experiments. Those recommendations are
+not changes to the currently shipped model or measured browser performance.
+
 ## Browser runtime research
 
 | Project | What it provides | Decision |
