@@ -5,6 +5,7 @@
 - [Extension privacy policy](privacy.md): local text processing, settings, site access, and controls.
 - [JAX JS inference](jax-js-runtime.md): bundled WebGPU/WASM runtime, FP32 parity, GPU fallback, and release metadata.
 - [Research and architecture](research-and-architecture.md): current WebGPU stack, model choices, correction flow, extension boundaries.
+- [Grammar correction literature review](gec-literature-review.md): evidence for compact edit models and span generation, browser tradeoffs, and a controlled experiment plan.
 - [Local spelling](local-spelling.md): bundled dictionary, symmetric-delete lookup, ranking, provenance and safety boundaries.
 - [Dataset and training](dataset-and-training.md): provenance, deterministic generation, training, calibration, exports, evaluation limits.
 - [Harder synthetic challenge](synthetic-challenge.md): separate adversarial evaluation, original training augmentation, and current full-engine baseline.
