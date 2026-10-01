@@ -30,6 +30,7 @@ beforeEach(async () => {
   vi.resetModules();
   api = browser();
   vi.stubGlobal('chrome', api);
+  vi.stubGlobal('GAMMA_FIREFOX', false);
   await import('../apps/extension/src/background');
 });
 afterEach(() => { vi.unstubAllGlobals(); });

@@ -1,0 +1,10 @@
+{
+  "source": "https://raw.githubusercontent.com/wolfgarbe/SymSpell/c239062ae02961df18ab7da1671d01b4388204e0/SymSpell/frequency_dictionary_en_82_765.txt",
+  "revision": "c239062ae02961df18ab7da1671d01b4388204e0",
+  "sourceSha256": "c604e1121e398ae7c7fbf777f11e0a0f2fa66eda932cb9fba1321466cf3acd7b",
+  "generatedSha256": "d7e966b6f78e36d549c8fc9109f73ce48fd18c951970d57110d41004ae0594f3",
+  "sourceEntries": 82833,
+  "acceptedWords": 82769,
+  "candidateWords": 20000,
+  "transformation": "ASCII lowercase words; descending frequency, lexical ties; counts retained for the top 20000."
+}

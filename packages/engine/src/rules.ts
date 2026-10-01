@@ -1,4 +1,5 @@
 import { preserveCase } from './edits';
+import { analyzeSpelling, spellingWords } from './spelling';
 import type { Suggestion, SuggestionCategory } from './types';
 
 const spelling: Record<string, string> = {
@@ -34,8 +35,12 @@ export function canonicalSpelling(word: string): string {
 
 // Protect URLs, email addresses, inline/fenced code from deterministic edits.
 export function protectedSpans(text: string): Array<{start: number; end: number}> {
-  return [...text.matchAll(/```[\s\S]*?```|`[^`\n]+`|https?:\/\/\S+|\b[^\s@]+@[^\s@]+\.[^\s@]+/gu)]
-    .map(match => ({ start: match.index, end: match.index + match[0].length }));
+  const patterns = [
+    /(`+)[\s\S]*?(?:(?<!`)\1(?!`)|$)|(?:https?:\/\/|www\.)\S+|\b[^\s@]+@[^\s@]+\.[^\s@]+/gu,
+    /(?:\.\.?[/\\]|[/\\])[\p{L}\p{N}_./\\-]+|\b[\p{L}\p{N}_-]+(?:[./\\][\p{L}\p{N}_-]+)+|[#@][\p{L}\p{N}_]+/gu,
+  ];
+  return patterns.flatMap(pattern => [...text.matchAll(pattern)]
+    .map(match => ({ start: match.index, end: match.index + match[0].length })));
 }
 
 export function analyzeRules(text: string): Suggestion[] {
@@ -47,7 +52,7 @@ export function analyzeRules(text: string): Suggestion[] {
     suggestions.push({ id: `rule-${start}-${end}-${replacement}`, start, end,
       original: text.slice(start, end), replacement, message, category, confidence: 1, source: 'rule' });
   };
-  for (const match of text.matchAll(/\b[A-Za-z]+\b/gu)) {
+  for (const match of spellingWords(text)) {
     const replacement = spellingCorrection(match[0].toLowerCase());
     if (replacement) add(match.index, match.index + match[0].length,
       preserveCase(match[0], replacement), 'Check the spelling of this word.', 'spelling');
@@ -81,6 +86,9 @@ export function analyzeRules(text: string): Suggestion[] {
     const start = match.index + match[1].length + match[2].length + match[3].length;
     add(start, start + match[4].length, preserveCase(match[4], habitualVerbs[match[4].toLowerCase()]),
       'Match the present-tense verb to its singular subject.', 'grammar');
+  }
+  for (const edit of analyzeSpelling(text, [...protectedRanges, ...suggestions])) {
+    if (!suggestions.some(previous => edit.start < previous.end && previous.start < edit.end)) suggestions.push(edit);
   }
   return suggestions.sort((a, b) => a.start - b.start);
 }

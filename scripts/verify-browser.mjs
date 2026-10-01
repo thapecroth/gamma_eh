@@ -1,19 +1,25 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { access, cp, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, cp, mkdtemp, mkdir, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { chromium } from '@playwright/test';
+import { createServer as createViteServer } from 'vite';
 import { buildPaths } from './paths.mjs';
+import { runtimeManifest } from './inference-runtime.mjs';
 import { browserArguments, findChromium } from './browser-environment.mjs';
+import { extensionElement } from './extension-shadow.mjs';
+import { webGPUAdapterEsbuildPlugin } from './webgpu-adapter-options.mjs';
+import { verifyWindowsWebGPU } from './verify-windows-webgpu.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const temporary = await mkdtemp(join(tmpdir(), 'gamma-browser-check-'));
 const {artifactDir, webOutput, extensionOutput} = buildPaths(root);
+const firefoxOutput = join(dirname(extensionOutput), 'firefox');
 await mkdir(artifactDir, {recursive: true});
 const failures = [];
 const evidence = {web: {}, model: {}, extension: {}, network: []};
@@ -21,28 +27,13 @@ let context;
 let server;
 
 async function shadowElement(page, selector) {
-  const session = await context.newCDPSession(page);
-  const {root: documentNode} = await session.send('DOM.getDocument', {depth: -1, pierce: true});
-  function findHost(node) {
-    if (node.attributes?.includes('data-gamma-ignore')) return node;
-    for (const child of [...(node.children ?? []), ...(node.shadowRoots ?? [])]) {
-      const found = findHost(child);
-      if (found) return found;
-    }
-  }
-  const host = findHost(documentNode);
-  const shadow = host?.shadowRoots?.[0];
-  if (!shadow) { await session.detach(); return null; }
-  const {nodeId} = await session.send('DOM.querySelector', {nodeId: shadow.nodeId, selector});
-  if (!nodeId) { await session.detach(); return null; }
-  const {object} = await session.send('DOM.resolveNode', {nodeId});
-  return {session, objectId: object.objectId};
+  return extensionElement(context, page, selector);
 }
 
-async function waitPanel(page, pattern, timeout = 90_000) {
+async function waitPanel(page, pattern, timeout = 90_000, selector = '.checker-status') {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
-    const element = await shadowElement(page, '.body');
+    const element = await shadowElement(page, selector);
     if (element) {
       const {result} = await element.session.send('Runtime.callFunctionOn', {objectId: element.objectId,
         functionDeclaration: 'function() { return this.textContent; }', returnByValue: true});
@@ -54,8 +45,21 @@ async function waitPanel(page, pattern, timeout = 90_000) {
   throw new Error(`Extension panel did not reach ${pattern}`);
 }
 
+async function openSuggestions(page) {
+  const badge = await shadowElement(page, 'button.badge');
+  assert(badge, 'Expected an extension suggestion badge');
+  await badge.session.send('Runtime.callFunctionOn', {objectId: badge.objectId, functionDeclaration: 'function() { this.click(); }'});
+  await badge.session.detach();
+}
+
 async function acceptFirst(page) {
-  const element = await shadowElement(page, 'button.accept');
+  let element = await shadowElement(page, 'button.accept');
+  if (!element) {
+    // Inline suggestions open their card from the badge; the earlier panel
+    // already exposes its Accept button. Exercise the same user action.
+    await openSuggestions(page);
+    element = await shadowElement(page, 'button.accept');
+  }
   assert(element, 'Expected an extension Accept button');
   await element.session.send('Runtime.callFunctionOn', {objectId: element.objectId, functionDeclaration: 'function() { this.click(); }'});
   await element.session.detach();
@@ -79,11 +83,18 @@ async function setSitePaused(page, background, extensionId, paused) {
 
 try {
   await build({entryPoints: [join(root, 'packages/engine/src/index.ts')], outfile: join(temporary, 'test-engine.mjs'),
-    bundle: true, format: 'esm', platform: 'browser', target: 'chrome116'});
+    plugins: [webGPUAdapterEsbuildPlugin()], bundle: true, format: 'esm', platform: 'browser', target: 'chrome116'});
+  await build({entryPoints: [join(root, 'tests/browser-model-probe.ts')], outfile: join(temporary, 'test-model-probe.mjs'),
+    plugins: [webGPUAdapterEsbuildPlugin()], bundle: true, format: 'esm', platform: 'browser', target: 'chrome116'});
+  await cp(join(root, 'tests/browser-windows-worker.mjs'), join(temporary, 'test-windows-worker.mjs'));
   const webDir = webOutput;
+  for (const directory of [webOutput, extensionOutput, firefoxOutput]) {
+    assert.deepEqual(JSON.parse(await readFile(join(directory, 'inference-runtime.json'), 'utf8')), runtimeManifest);
+  }
+  evidence.model.runtime = runtimeManifest;
   const modelManifest = JSON.parse(await readFile(join(webDir, 'models/manifest.json'), 'utf8'));
   for (const filename of ['model.onnx', 'model_quantized.onnx']) {
-    for (const directory of [webDir, extensionOutput]) {
+    for (const directory of [webDir, extensionOutput, firefoxOutput]) {
       const bytes = await readFile(join(directory, 'models', filename));
       assert.equal(createHash('sha256').update(bytes).digest('hex'), modelManifest.files[filename].sha256,
         'Built apps must contain the exact exported weights');
@@ -98,8 +109,13 @@ try {
       response.end('<!doctype html><html lang="en"><title>Extension fixture</title><body><label>Draft<textarea id="draft">She have a freind.</textarea></label><label>Private<textarea id="private" data-private>She have a freind.</textarea></label><label>Payment<textarea id="payment" autocomplete="cc-number">She have a freind.</textarea></label><label>Disabled<textarea id="optout" spellcheck="false">She have a freind.</textarea></label><div id="plain" contenteditable="true" aria-label="Plain editor">She have a book.</div><div id="rich" contenteditable="true" aria-label="Rich editor"><strong>She have a book.</strong></div></body></html>');
       return;
     }
-    const filename = pathname === '/test-engine.mjs' ? join(temporary, 'test-engine.mjs') : resolve(webDir, '.' + (pathname === '/' ? '/index.html' : pathname));
-    if (pathname !== '/test-engine.mjs' && !filename.startsWith(webDir + sep)) { response.writeHead(403).end(); return; }
+    const testModule = ['/test-engine.mjs', '/test-model-probe.mjs', '/test-windows-worker.mjs'].includes(pathname);
+    const application = [{prefix: '/extension', directory: extensionOutput}, {prefix: '/firefox', directory: firefoxOutput}]
+      .find(({prefix}) => pathname.startsWith(prefix + '/'));
+    const directory = application?.directory ?? webDir;
+    const relative = application ? pathname.slice(application.prefix.length) : pathname === '/' ? '/index.html' : pathname;
+    const filename = testModule ? join(temporary, pathname.slice(1)) : resolve(directory, '.' + relative);
+    if (!testModule && !filename.startsWith(directory + sep)) { response.writeHead(403).end(); return; }
     try {
       await access(filename);
       response.setHeader('Content-Type', types[extname(filename)] ?? 'application/octet-stream');
@@ -113,6 +129,7 @@ try {
   const address = server.address();
   const origin = `http://127.0.0.1:${address.port}`;
   const insecureOrigin = `http://gamma-http.test:${address.port}`;
+  const allowedOrigins = [origin, insecureOrigin];
 
   // Load an unchanged copy of the shipping extension, including its real permissions.
   const extensionDir = join(temporary, 'extension');
@@ -128,7 +145,7 @@ try {
   });
   context.on('request', request => {
     const url = request.url();
-    if (!url.startsWith(origin) && !url.startsWith(insecureOrigin) && !url.startsWith('chrome-extension://') && !url.startsWith('data:')) evidence.network.push(url);
+    if (!allowedOrigins.some(origin => url.startsWith(origin)) && !url.startsWith('chrome-extension://') && !url.startsWith('data:')) evidence.network.push(url);
   });
   const page = await context.newPage();
   page.on('pageerror', error => failures.push(error.message));
@@ -150,6 +167,11 @@ try {
   await page.getByRole('button', {name: 'Accept all suggestions'}).click();
   assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), 'She has a friend.');
   evidence.web.acceptAll = true;
+  await page.getByLabel('Your writing', {exact: true}).fill('😀. The students has a notebook.');
+  await page.waitForFunction(() => document.querySelector('.accept-all-button')?.disabled === false);
+  await page.getByRole('button', {name: 'Accept all suggestions'}).click();
+  assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), '😀. The students have a notebook.');
+  evidence.web.modelCorrectionWithUTF16 = true;
   await page.getByRole('checkbox').focus();
   await page.getByRole('checkbox').press('Space');
   assert.equal(await page.getByRole('checkbox').isChecked(), false);
@@ -157,6 +179,23 @@ try {
   await page.getByLabel('Your writing', {exact: true}).fill('A clean sentence.');
   await page.getByText('No suggestions from this checker.').waitFor();
   evidence.web.rulesToggle = true;
+  await page.getByLabel('Your writing', {exact: true}).fill('halo');
+  await page.getByText('Did you mean “hello” as a greeting? “Halo” is also a valid word.').waitFor();
+  await page.getByRole('button', {name: 'Accept', exact: true}).click();
+  assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), 'hello');
+  await page.getByLabel('Your writing', {exact: true}).fill('A halo surrounds the moon.');
+  await page.getByText('No suggestions from this checker.').waitFor();
+  await page.getByLabel('Your writing', {exact: true}).fill('Speling matters in a sentnce.');
+  await page.waitForFunction(() => document.querySelectorAll('.suggestion-card').length === 2 && document.querySelector('.accept-all-button')?.disabled === false);
+  await page.getByRole('button', {name: 'Accept all suggestions'}).click();
+  assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), 'Spelling matters in a sentence.');
+  evidence.web.dictionarySpellingWithoutAI = true;
+  const protectedSpelling = '``speling ` sentnce\nwrold`` speling\u2011like speling\u203Fvalue speling\u200CValue';
+  await page.getByLabel('Your writing', {exact: true}).fill(protectedSpelling);
+  await page.getByText('No suggestions from this checker.').waitFor();
+  assert.equal(await page.locator('.suggestion-card').count(), 0);
+  assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), protectedSpelling);
+  evidence.web.protectedDictionaryTokens = true;
   await page.getByLabel('Your writing', {exact: true}).fill('A little clarity goes a long way.\n\nI recieved your message, and we has a lot of ideas. My freind is writting about the project.\n\nWrite freely. You choose what to change.');
   await page.waitForFunction(() => document.querySelector('.accept-all-button')?.disabled === false);
   await page.getByLabel('Your writing', {exact: true}).blur();
@@ -171,13 +210,18 @@ try {
     const engine = await import(origin + '/test-engine.mjs');
     const rows = [];
     for (const item of cases) {
-      const result = await engine.analyzeText(item.source, {modelBaseUrl: origin + '/models/', wasmBaseUrl: origin + '/runtime/', preferWebGPU: false});
+      const result = await engine.analyzeText(item.source, {modelBaseUrl: origin + '/models/', preferWebGPU: false});
       rows.push({...item, actual: engine.applySuggestions(item.source, result.suggestions), backend: result.backend,
         elapsedMs: result.elapsedMs, modelError: result.modelError,
         edits: result.suggestions.map(({original, replacement, source}) => ({original, replacement, source}))});
     }
-    const gpu = await engine.analyzeText('The students has a notebook.', {modelBaseUrl: origin + '/models/', wasmBaseUrl: origin + '/runtime/', preferWebGPU: true});
-    return {rows, preferredBackend: gpu.backend, preferredCorrection: engine.applySuggestions(gpu.text, gpu.suggestions),
+    const gpuRows = [];
+    for (const item of cases) {
+      const result = await engine.analyzeText(item.source, {modelBaseUrl: origin + '/models/', preferWebGPU: true});
+      gpuRows.push({...item, actual: engine.applySuggestions(item.source, result.suggestions), backend: result.backend, modelError: result.modelError});
+    }
+    const gpu = gpuRows.find(row => row.source === 'The students has a notebook.');
+    return {rows, gpuRows, preferredBackend: gpu.backend, preferredCorrection: gpu.actual,
       hasWebGPU: 'gpu' in navigator, modelError: gpu.modelError};
   }, {origin, cases: regression.cases}));
   assert(evidence.model.rows.every(row => row.backend === 'wasm' && !row.modelError), 'All regression checks must execute actual WASM model');
@@ -185,7 +229,7 @@ try {
   evidence.model.total = evidence.model.rows.length;
   assert.equal(evidence.model.preferredCorrection, 'The students have a notebook.');
   if (process.env.GAMMA_TEST_WEBGPU === '1') {
-    assert.equal(evidence.model.preferredBackend, 'webgpu', 'Explicit GPU test must execute WebGPU');
+    assert(evidence.model.gpuRows.every(row => row.backend === 'webgpu' && !row.modelError), 'Every explicit GPU regression must execute WebGPU');
     evidence.model.adapterInfo = await page.evaluate(async () => {
       const adapter = await navigator.gpu.requestAdapter();
       if (!adapter) return null;
@@ -193,6 +237,132 @@ try {
       return {vendor: info.vendor, architecture: info.architecture, device: info.device,
         description: info.description, isFallbackAdapter: info.isFallbackAdapter};
     });
+  }
+  assert(evidence.model.gpuRows.every(row => row.actual === row.target && !row.modelError), 'Every preferred-backend correction must match');
+  const reference = JSON.parse(await readFile(join(root, 'tests/fixtures/onnx-reference.json'), 'utf8'));
+  assert.equal(reference.modelSha256, modelManifest.files['model.onnx'].sha256);
+  evidence.model.parity = await page.evaluate(async ({origin, reference, gpuRequired}) => {
+    const {JaxSession} = await import(origin + '/test-model-probe.mjs');
+    const bytes = new Uint8Array(await (await fetch(origin + '/models/model.onnx')).arrayBuffer());
+    const results = [];
+    for (const preferGPU of [false, ...(gpuRequired ? [true] : [])]) {
+      const session = await JaxSession.create(bytes, preferGPU);
+      try {
+        let maxLogitDifference = 0;
+        let argmaxMatches = 0;
+        let positions = 0;
+        for (let repeat = 0; repeat < 2; repeat++) {
+          for (const row of reference.rows) {
+            const output = await session.run(row.ids);
+            if (JSON.stringify(output.dims) !== JSON.stringify(row.dims)) throw new Error('Parity output shape mismatch');
+            for (let i = 0; i < row.logits.length; i++) maxLogitDifference = Math.max(maxLogitDifference, Math.abs(row.logits[i] - output.data[i]));
+            const width = row.dims[2];
+            for (let position = 0; position < row.ids.length; position++) {
+              const offset = position * width;
+              let expected = 0, actual = 0;
+              for (let label = 1; label < width; label++) {
+                if (row.logits[offset + label] > row.logits[offset + expected]) expected = label;
+                if (output.data[offset + label] > output.data[offset + actual]) actual = label;
+              }
+              argmaxMatches += Number(expected === actual);
+              positions++;
+            }
+          }
+        }
+        results.push({backend: session.backend, maxLogitDifference, argmaxMatches, positions});
+      } finally { session.dispose(); }
+    }
+    return results;
+  }, {origin, reference, gpuRequired: process.env.GAMMA_TEST_WEBGPU === '1'});
+  for (const row of evidence.model.parity) {
+    assert(row.maxLogitDifference < 0.0005, 'JAX logits must match the independent FP32 ONNX reference');
+    assert.equal(row.argmaxMatches, row.positions);
+  }
+  evidence.model.gpuFallback = [];
+  const webWorkers = (await readdir(join(webDir, 'assets'))).filter(filename => /^inference-worker-.*\.js$/u.test(filename));
+  assert.equal(webWorkers.length, 1, 'Expected the built web inference worker');
+  evidence.model.windowsAdapters = await verifyWindowsWebGPU(context, origin, process.env.GAMMA_TEST_WEBGPU === '1', [
+    {name: 'engine'},
+    {name: 'web-worker', url: '/assets/' + webWorkers[0]},
+    {name: 'extension-worker', url: '/extension/inference-worker.mjs'},
+    {name: 'firefox-worker', url: '/firefox/inference-worker.mjs'},
+  ]);
+  // Exercise the actual dev worker as well: dependency optimization is a
+  // separate path from both production bundlers and can hide adapter requests.
+  const development = await createViteServer({configFile: join(root, 'apps/web/vite.config.ts'),
+    cacheDir: join(temporary, 'vite-cache'),
+    server: {port: 0, fs: {allow: [root, await realpath(join(root, 'node_modules'))]}},
+    plugins: [{name: 'windows-worker-test-fixtures', configureServer(server) {
+      server.middlewares.use(async (request, response, next) => {
+        const path = new URL(request.url ?? '/', 'http://localhost').pathname;
+        if (!['/test-engine.mjs', '/test-windows-worker.mjs'].includes(path)) return next();
+        try {
+          response.setHeader('Content-Type', 'text/javascript');
+          response.end(await readFile(join(temporary, path.slice(1)), 'utf8'));
+        } catch (error) { next(error); }
+      });
+    }}],
+  });
+  try {
+    await development.listen();
+    const devOrigin = `http://127.0.0.1:${development.httpServer.address().port}`;
+    allowedOrigins.push(devOrigin);
+    evidence.model.windowsAdapters.push(...await verifyWindowsWebGPU(context, devOrigin, process.env.GAMMA_TEST_WEBGPU === '1', [
+      {name: 'dev-worker', url: '/src/inference-worker.ts?worker_file&type=module'},
+    ]));
+  } finally { await development.close(); }
+  for (const mode of ['unavailable', ...(process.env.GAMMA_TEST_WEBGPU === '1' ? ['allocation', 'kernel'] : [])]) {
+    const fallback = await context.newPage();
+    fallback.on('pageerror', error => failures.push(error.message));
+    try {
+      await fallback.addInitScript(mode => {
+        if (mode === 'unavailable') {
+          Object.defineProperty(navigator, 'gpu', {value: {requestAdapter: async () => null}});
+          return;
+        }
+        const requestAdapter = navigator.gpu.requestAdapter.bind(navigator.gpu);
+        navigator.gpu.requestAdapter = async options => {
+          const adapter = await requestAdapter(options);
+          if (!adapter) throw new Error('GPU failure test needs an adapter');
+          const requestDevice = adapter.requestDevice.bind(adapter);
+          adapter.requestDevice = async options => {
+            const device = await requestDevice(options);
+            const method = mode === 'allocation' ? 'createBuffer' : 'createShaderModule';
+            const original = device[method].bind(device);
+            let calls = 0;
+            Object.defineProperty(device, method, {
+              value: (...args) => {
+                calls++;
+                // The backend's reusable four-byte buffer must succeed. Fail
+                // the next allocation while loading actual model initializers.
+                if (mode === 'allocation' && calls === 1) return original(...args);
+                globalThis.__gammaGpuFailure = {mode, calls};
+                throw new Error('Intentional GPU ' + mode + ' failure');
+              },
+            });
+            return device;
+          };
+          return adapter;
+        };
+      }, mode);
+      await fallback.goto(origin + '/fixture.html');
+      const result = await fallback.evaluate(async origin => {
+        const engine = await import(origin + '/test-engine.mjs');
+        const result = await engine.analyzeText('The students has a notebook.', {modelBaseUrl: origin + '/models/'});
+        return {backend: result.backend, modelError: result.modelError, actual: engine.applySuggestions(result.text, result.suggestions),
+          modelEdit: result.suggestions.some(edit => edit.source === 'model'), injectedFailure: globalThis.__gammaGpuFailure};
+      }, origin);
+      assert.equal(result.backend, 'wasm', 'GPU failure must fall back to the real JAX WASM model');
+      assert.equal(result.modelError, undefined);
+      assert.equal(result.actual, 'The students have a notebook.');
+      assert.equal(result.modelEdit, true);
+      if (mode !== 'unavailable') {
+        assert.equal(result.injectedFailure?.mode, mode);
+        if (mode === 'allocation') assert.equal(result.injectedFailure.calls, 2);
+        else assert(result.injectedFailure.calls >= 1, 'At least one real kernel compilation must have been attempted');
+      }
+      evidence.model.gpuFallback.push({mode, ...result});
+    } finally { await fallback.close(); }
   }
   const modelEdit = evidence.model.rows.find(row => row.source === 'The students has a notebook.');
   assert(modelEdit.edits.some(edit => edit.source === 'model') && modelEdit.actual === modelEdit.target,
@@ -216,6 +386,7 @@ try {
   // CDP lets this test inspect the closed shadow panel without changing the
   // shipping extension to expose page text or private suggestion state.
   evidence.extension.backend = await waitPanel(fixture, /suggestions?.*Local AI/u);
+  assert.match(evidence.extension.backend, process.env.GAMMA_TEST_WEBGPU === '1' ? /Local AI · WebGPU/u : /Local AI · CPU/u);
   await acceptFirst(fixture);
   await waitPanel(fixture, /1 suggestion/u);
   await acceptFirst(fixture);
@@ -237,6 +408,36 @@ try {
   await waitPanel(insecureFixture, /2 suggestions.*Local AI/u);
   evidence.extension.insecureHttpActivation = true;
   evidence.extension.automaticActivationAfterReload = true;
+  await fixture.locator('#draft').fill('my cat is hungry.');
+  await waitPanel(fixture, /No suggestions from this checker.*Local AI/u);
+  assert.equal(await fixture.locator('#draft').inputValue(), 'my cat is hungry.');
+  evidence.extension.cleanSentencePreserved = true;
+  await background.evaluate(() => chrome.storage.local.set({useAI: false}));
+  await fixture.locator('#draft').fill('halo');
+  await waitPanel(fixture, /1 suggestion.*Local rules/u);
+  await openSuggestions(fixture);
+  await waitPanel(fixture, /Did you mean “hello” as a greeting/u, 90_000, '.body');
+  await acceptFirst(fixture);
+  assert.equal(await fixture.locator('#draft').inputValue(), 'hello');
+  await fixture.locator('#draft').fill('A halo surrounds the moon.');
+  await waitPanel(fixture, /No suggestions from this checker/u);
+  await fixture.locator('#draft').fill('😀. Speling in a sentnce.');
+  await waitPanel(fixture, /2 suggestions.*Local rules/u);
+  await acceptFirst(fixture);
+  await waitPanel(fixture, /1 suggestion/u);
+  await acceptFirst(fixture);
+  assert.equal(await fixture.locator('#draft').inputValue(), '😀. Spelling in a sentence.');
+  evidence.extension.dictionarySpellingWithoutAI = true;
+  await fixture.locator('#draft').fill(protectedSpelling);
+  await waitPanel(fixture, /No suggestions from this checker/u);
+  assert.equal(await fixture.locator('#draft').inputValue(), protectedSpelling);
+  evidence.extension.protectedDictionaryTokens = true;
+  await background.evaluate(() => chrome.storage.local.set({useAI: true}));
+  await fixture.locator('#draft').fill('😀. The students has a notebook.');
+  await waitPanel(fixture, /1 suggestion.*Local AI/u);
+  await acceptFirst(fixture);
+  assert.equal(await fixture.locator('#draft').inputValue(), '😀. The students have a notebook.');
+  evidence.extension.modelCorrectionWithUTF16 = true;
   for (const id of ['private', 'payment', 'optout']) {
     await fixture.locator('#' + id).focus();
     await fixture.waitForFunction(() => !document.querySelector('[data-gamma-ignore]'));

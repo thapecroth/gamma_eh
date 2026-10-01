@@ -1,6 +1,6 @@
 # Research and architecture
 
-Research checked 2026-09-29. Gamma EH is an independent English writing assistant;
+Runtime migration checked 2026-09-30. Gamma EH is an independent English writing assistant;
 it is not affiliated with Grammarly. The first implementation runs entirely on
 the user's device and proposes edits for the user to accept.
 
@@ -10,7 +10,7 @@ the user's device and proposes edits for the user to accept.
 | --- | --- | --- |
 | [Transformers.js v4](https://huggingface.co/blog/transformersjs-v4) | New ONNX WebGPU runtime, many model architectures, optimized BERT attention exports, independent tokenizers | Relevant reference and future higher-level model integration; current npm version checked was 4.3.0 |
 | [Hugging Face WebGPU kernels](https://huggingface.co/blog/webgpu-kernels) | 207 versioned WGSL operation packages and a preview kernel loader | Useful for profiling and future operator optimization. A kernel library is not a complete trained correction model; do not fetch executable kernels into the MV3 extension |
-| [ONNX Runtime Web](https://onnxruntime.ai/docs/tutorials/web/ep-webgpu.html) | ONNX graph inference through WebGPU or WASM | Selected, pinned to 1.30.0; direct small model integration and local bundled runtime |
+| [JAX JS](https://github.com/ekzhang/jax-js) | JIT-compiled array operations through WebGPU or WASM; ONNX graph loading | Selected: `@jax-js/jax` 0.1.25 and `@jax-js/onnx` 0.1.2, bundled locally |
 | [WebLLM](https://github.com/mlc-ai/web-llm) | WebGPU execution of generative language models | Candidate for an optional later rewrite assistant; generative model size and latency are less suitable for the first tiny inline checker |
 
 The kernel announcement's benchmark uses particular shapes and an Apple M4. Its
@@ -49,7 +49,7 @@ flowchart LR
   C[Website text field] --> B[Extension service worker]
   B --> O[Offscreen document]
   O --> I[Inference Worker]
-  W --> R[Rules and ONNX model]
+  W --> R[Rules and JAX JS model]
   I --> R
   R --> S[Offset-based suggestions]
   S --> A[User accepts or dismisses]
@@ -71,7 +71,8 @@ tests cover both paths.
 Input is capped at 20,000 characters in the engine and 6,000 per extension field
 to bound CPU work. Concurrent workers run inference away from the UI thread.
 
-Use FP32 ONNX on WebGPU and dynamically quantized INT8 ONNX on WASM. Both exports
+Use FP32 ONNX through JAX JS on both WebGPU and WASM. The INT8 export remains
+an evaluation artifact; the JAX loader does not support its quantized operators. Both exports
 are evaluated after training. A threshold is selected on the development split
 and recorded in the model manifest. Rules take priority over overlapping model
 edits. Every accepted change checks source offsets against the current text;
@@ -92,8 +93,8 @@ training and independent evaluation justify enabling it automatically.
 ## Extension boundaries
 
 [MV3 CSP](https://developer.chrome.com/docs/extensions/reference/manifest/content-security-policy)
-allows bundled WebAssembly with `wasm-unsafe-eval`. Runtime JavaScript, WASM,
-tokenizer, and weights are all copied into the extension build. There is no CDN
+allows bundled WebAssembly with `wasm-unsafe-eval`. Runtime JavaScript, tokenizer, and weights are bundled in the extension build;
+JAX generates its WASM kernels locally. There is no CDN
 execution, inference endpoint, account requirement, or text telemetry.
 
 The service worker routes requests to an
@@ -109,3 +110,6 @@ controls still apply. The checker handles ordinary textarea and plain
 contenteditable fields and rejects password/payment-sensitive fields and rich
 DOM editors it cannot edit safely. This does not imply support for Google Docs,
 every rich editor, iframes, or shadow-root editors.
+
+See [JAX JS inference](jax-js-runtime.md) for runtime ownership, FP32 parity,
+GPU failure fallback, and package size details.

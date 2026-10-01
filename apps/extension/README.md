@@ -1,5 +1,14 @@
 # Chrome extension
 
+## Chrome Web Store and automatic updates
+
+An unlisted Chrome Web Store release is being prepared; there is no store
+installation link yet. After the first approval, store installs will receive
+future approved updates through Chrome. Unpacked installs need a one-time
+switch to the store copy and fresh site permissions. See
+[store preparation](../../docs/chrome-web-store.md) and the
+[privacy policy](../../docs/privacy.md).
+
 ## Download a built package
 
 When available, download `gamma-eh-chrome-vX.Y.Z.zip` from the
@@ -17,40 +26,45 @@ root, then use `dist/extension/` as the installation folder.
    support (Chrome 116 or newer).
 2. Enable **Developer mode**, choose **Load unpacked**, and select
    the extracted release folder (or `dist/extension/` for a source build).
-3. Open or reload a website. Suggestions are enabled automatically on HTTP and
-   HTTPS sites; there is no per-site activation step.
-4. Focus an ordinary textarea or plain-text contenteditable field. Suggestions
-   appear in a small panel. Choose **Accept** or **Dismiss**; close the panel to
-   pause that field.
+3. Open or reload a website. Suggestions start automatically on HTTP and HTTPS
+   sites; the popup can pause a site or pause checking everywhere.
+4. Focus an ordinary textarea or plain-text contenteditable field. Detected
+   issues get red wavy underlines. Hover or click an underlined word to review
+   its correction, then choose **Accept suggestion** or **Dismiss**.
+   The small count button beside the field opens suggestions too; use **Alt+F8**
+   for keyboard access and **Escape** to close. Choose **Pause this field** in
+   the card to stop checking that field.
 
-Keep the extracted folder on disk. To update, remove the old unpacked extension,
-extract the new release, and load its folder. This resets preferences.
+Focus a nonempty supported field to see inline suggestions. Plain
+single-line `<input>` fields are not currently supported.
+
+Keep the extracted folder on disk. To update an unpacked installation, replace
+the contents of that same folder with the new release, click **Reload** on its
+card in `chrome://extensions`, and reload website tabs. Keep the folder path
+the same and leave the installation in place to retain settings. Removing it
+and loading a new folder resets settings and site permissions.
 Unpacked installs do not auto-update. This is developer-mode
 installation, not a Chrome Web Store or one-click CRX installer. See the
 [release runbook](../../docs/releases.md) for checksums and publication details.
 
-The popup can pause suggestions everywhere, enable experimental local AI, or
-**Pause on this site**. A site pause applies to the current HTTP/HTTPS hostname
-across its paths and ports, is saved locally, and affects every open tab on that
-site. **Resume on this site** restores checking without reloading. Local AI stays
-off by default. Password inputs, payment/authentication fields,
+The popup can pause suggestions everywhere, disable experimental local AI, or
+pause checking on a site. Browser extension settings manage host access.
+Password inputs, payment/authentication fields,
 fields marked `spellcheck="false"`, `data-private`, `data-sensitive`, or
 `data-gamma-ignore`, and unsupported rich editors are excluded. Iframes are not
 checked. The extension limits each checked field to 6,000 UTF-16 code units.
 
-Chrome must allow site access on all sites for automatic checking. If access is
-restricted, adjust it in Chrome's extension settings and reload the page.
-Internal browser pages, Chrome-protected pages, and file URLs are unavailable.
-After reloading or updating the extension, reload existing website tabs once.
-Updates remove obsolete per-site script registrations and preserve stored
-checker preferences and site pauses when the extension is reloaded in place.
-
 Typed text is sent only between the extension's content script and its bundled
 inference worker. It is not stored or transmitted to a server. Permissions and
-checker preferences and site pauses are stored locally. A tiny model trained on synthetic data
+checker preferences are stored locally. A tiny model trained on synthetic data
 is an experimental baseline, not evidence of real-world grammar accuracy.
 
 The extension checks the original text and offsets before accepting a
 suggestion. Some sites intercept editing events; an accepted edit may not be
 compatible with every site. Rich editors are intentionally declined rather
 than changing their DOM or application state unsafely.
+
+
+## Firefox
+
+Build output is `dist/firefox/`. See [Firefox installation](../../docs/firefox.md).
