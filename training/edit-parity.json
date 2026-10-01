@@ -1,0 +1,358 @@
+{
+  "schema": 2,
+  "cases": [
+    {
+      "word": "TEH",
+      "tag": "REPLACE:the",
+      "tokens": [
+        "THE"
+      ]
+    },
+    {
+      "word": "hello",
+      "tag": "CASE:TITLE",
+      "tokens": [
+        "Hello"
+      ]
+    },
+    {
+      "word": "HELLO",
+      "tag": "CASE:LOWER",
+      "tokens": [
+        "hello"
+      ]
+    },
+    {
+      "word": "hello",
+      "tag": "CASE:UPPER",
+      "tokens": [
+        "HELLO"
+      ]
+    },
+    {
+      "word": "study",
+      "tag": "SUFFIX:Y_TO_IES",
+      "tokens": [
+        "studies"
+      ]
+    },
+    {
+      "word": "STUDIES",
+      "tag": "SUFFIX:IES_TO_Y",
+      "tokens": [
+        "STUDY"
+      ]
+    },
+    {
+      "word": "Watch",
+      "tag": "SUFFIX:ADD_ES",
+      "tokens": [
+        "Watches"
+      ]
+    },
+    {
+      "word": "watches",
+      "tag": "SUFFIX:REMOVE_ES",
+      "tokens": [
+        "watch"
+      ]
+    },
+    {
+      "word": "walk",
+      "tag": "SUFFIX:ADD_S",
+      "tokens": [
+        "walks"
+      ]
+    },
+    {
+      "word": "walks",
+      "tag": "SUFFIX:REMOVE_S",
+      "tokens": [
+        "walk"
+      ]
+    },
+    {
+      "word": "word",
+      "tag": "REPLACE_EXACT:New York",
+      "tokens": [
+        "New",
+        "York"
+      ]
+    },
+    {
+      "word": "Hello",
+      "tag": "APPEND_EXACT:,",
+      "tokens": [
+        "Hello",
+        ","
+      ]
+    },
+    {
+      "word": "book",
+      "tag": "PREPEND_EXACT:a small",
+      "tokens": [
+        "a",
+        "small",
+        "book"
+      ]
+    },
+    {
+      "word": "duplicate",
+      "tag": "DELETE",
+      "tokens": []
+    }
+  ],
+  "invalid": [
+    {
+      "word": "a",
+      "tag": "SUFFIX:REMOVE_ES"
+    },
+    {
+      "word": "abc1",
+      "tag": "SUFFIX:ADD_S"
+    },
+    {
+      "word": "word",
+      "tag": "REPLACE_EXACT:one two three four five"
+    },
+    {
+      "word": "word",
+      "tag": "APPEND_EXACT:"
+    },
+    {
+      "word": "word",
+      "tag": "CASE:INVALID"
+    }
+  ],
+  "guarded": [
+    {
+      "source": "Hello,world.",
+      "index": 1,
+      "tag": "REPLACE:and",
+      "target": "Hello and world."
+    },
+    {
+      "source": "The students has a notebook.",
+      "index": 2,
+      "tag": "REPLACE:have",
+      "target": "The students have a notebook."
+    },
+    {
+      "source": "The students has a notebook.",
+      "index": 2,
+      "tag": "REPLACE_EXACT:have",
+      "target": "The students have a notebook."
+    },
+    {
+      "source": "My cat is hungry.",
+      "index": 2,
+      "tag": "REPLACE_EXACT:are",
+      "target": "My cat is hungry."
+    },
+    {
+      "source": "She study every day.",
+      "index": 1,
+      "tag": "SUFFIX:Y_TO_IES",
+      "target": "She studies every day."
+    },
+    {
+      "source": "She study.",
+      "index": 1,
+      "tag": "SUFFIX:Y_TO_IES",
+      "target": "She study."
+    },
+    {
+      "source": "They read every day.",
+      "index": 1,
+      "tag": "SUFFIX:ADD_S",
+      "target": "They read every day."
+    },
+    {
+      "source": "The book has food.",
+      "index": 2,
+      "tag": "REPLACE:have",
+      "target": "The book has food."
+    },
+    {
+      "source": "Did she have food?",
+      "index": 2,
+      "tag": "REPLACE:has",
+      "target": "Did she have food?"
+    },
+    {
+      "source": "I is ready.",
+      "index": 1,
+      "tag": "REPLACE_EXACT:am",
+      "target": "I am ready."
+    },
+    {
+      "source": "She has food.",
+      "index": 1,
+      "tag": "REPLACE_EXACT:had",
+      "target": "She has food."
+    },
+    {
+      "source": "She HAS food.",
+      "index": 1,
+      "tag": "CASE:LOWER",
+      "target": "She has food."
+    },
+    {
+      "source": "Done. She have a book.",
+      "index": 3,
+      "tag": "REPLACE:has",
+      "target": "Done. She has a book."
+    },
+    {
+      "source": "Hello, world.",
+      "index": 1,
+      "tag": "REPLACE_EXACT:and",
+      "target": "Hello and world."
+    },
+    {
+      "source": "Hello,world.",
+      "index": 1,
+      "tag": "REPLACE_EXACT:and",
+      "target": "Hello and world."
+    },
+    {
+      "source": "Hello,\tworld.",
+      "index": 1,
+      "tag": "REPLACE_EXACT:and",
+      "target": "Hello and\tworld."
+    },
+    {
+      "source": "😀 Hello,world.",
+      "index": 2,
+      "tag": "REPLACE_EXACT:and",
+      "target": "😀 Hello and world."
+    },
+    {
+      "source": "Book.",
+      "index": 0,
+      "tag": "REPLACE_EXACT:An book",
+      "target": "Book."
+    },
+    {
+      "source": "Book.",
+      "index": 0,
+      "tag": "REPLACE_EXACT:A book",
+      "target": "A book."
+    },
+    {
+      "source": "I have.",
+      "index": 1,
+      "tag": "APPEND_EXACT:an university",
+      "target": "I have."
+    },
+    {
+      "source": "I have.",
+      "index": 1,
+      "tag": "APPEND_EXACT:an hour",
+      "target": "I have an hour."
+    },
+    {
+      "source": "Book.",
+      "index": 0,
+      "tag": "PREPEND_EXACT:An university",
+      "target": "Book."
+    },
+    {
+      "source": "passed.",
+      "index": 0,
+      "tag": "PREPEND_EXACT:An hour",
+      "target": "An hour passed."
+    },
+    {
+      "source": "I want item university.",
+      "index": 2,
+      "tag": "REPLACE_EXACT:only an",
+      "target": "I want item university."
+    },
+    {
+      "source": "I want item hour.",
+      "index": 2,
+      "tag": "REPLACE_EXACT:only an",
+      "target": "I want only an hour."
+    },
+    {
+      "source": "I have university.",
+      "index": 1,
+      "tag": "APPEND_EXACT:only an",
+      "target": "I have university."
+    },
+    {
+      "source": "I have hour.",
+      "index": 1,
+      "tag": "APPEND_EXACT:only an",
+      "target": "I have only an hour."
+    },
+    {
+      "source": "Book.",
+      "index": 0,
+      "tag": "PREPEND_EXACT:only an",
+      "target": "Book."
+    },
+    {
+      "source": "Hour.",
+      "index": 0,
+      "tag": "PREPEND_EXACT:only an",
+      "target": "only an Hour."
+    }
+  ],
+  "protected": [
+    {
+      "source": "She have www.example.test/a.",
+      "fragments": [
+        "www.example.test/a."
+      ]
+    },
+    {
+      "source": "Edit ../freind/file.md now.",
+      "fragments": [
+        "../freind/file.md"
+      ]
+    },
+    {
+      "source": "Edit path\\adress.txt now.",
+      "fragments": [
+        "path\\adress.txt"
+      ]
+    },
+    {
+      "source": "Read @freind and #teh.",
+      "fragments": [
+        "@freind",
+        "#teh"
+      ]
+    },
+    {
+      "source": "``She have a freind.`",
+      "fragments": [
+        "``She have a freind.`"
+      ]
+    },
+    {
+      "source": "```She have\na freind.",
+      "fragments": [
+        "```She have\na freind."
+      ]
+    },
+    {
+      "source": "A sentence. Another sentence.",
+      "fragments": []
+    },
+    {
+      "source": "Visit www.example.test﻿now.",
+      "fragments": [
+        "www.example.test"
+      ]
+    },
+    {
+      "source": "/recieve@example.freind",
+      "fragments": [
+        "/recieve@example.freind"
+      ]
+    }
+  ]
+}

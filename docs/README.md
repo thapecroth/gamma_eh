@@ -11,6 +11,8 @@
 - [Harder synthetic challenge](synthetic-challenge.md): separate adversarial evaluation, original training augmentation, and current full-engine baseline.
 - [Scaling the dataset](massive-dataset.md): resumable teacher generation, pinned C4 streaming, and train-only weak supervision.
 - [End-to-end teacher pilot](live-pilot.md): real CLIProxyAPI calls, isolated student training and builds, and browser verification.
+- [Independent model quality](model-quality.md): frozen human references, expanded edits, GLM/C4 data, safe export calibration, and controlled browser comparisons.
+- [Model quality results](model-quality-results.md): completed 10,436-pair GLM corpus, four trained students, actual browser comparisons, and promotion decisions.
 - [Roadmap](roadmap.md): baseline status and the gates for a useful general writing assistant.
 - [Initial validation](validation.md): local checks, browser execution, and known verification limits.
 - [Browser verification](browser-testing.md): capability preflight, hosted E2E lane, automatic site activation, HTTP startup regression, popup pauses, and strict correction checks.

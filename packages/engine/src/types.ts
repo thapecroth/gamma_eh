@@ -10,6 +10,8 @@ export interface Suggestion {
   category: SuggestionCategory;
   confidence: number;
   source: 'rule' | 'model' | 'dictionary';
+  /** Source snapshot for insertions and composed edits, whose empty spans cannot detect staleness. */
+  checkedText?: string;
 }
 
 export interface AnalysisResult {
@@ -18,10 +20,13 @@ export interface AnalysisResult {
   backend: 'rules' | 'wasm' | 'webgpu';
   elapsedMs: number;
   modelError?: string;
+  modelRuns?: number;
 }
 
 export interface EngineOptions {
   modelBaseUrl?: string;
   preferWebGPU?: boolean;
   confidenceThreshold?: number;
+  mode?: 'combined' | 'model' | 'rules';
+  maxPasses?: number;
 }

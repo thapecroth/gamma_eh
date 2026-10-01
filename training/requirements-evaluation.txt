@@ -1,0 +1,10 @@
+# Optional, isolated reference scorer; never bundled with the browser app.
+errant==3.0.2
+spacy==3.8.7
+rapidfuzz==3.14.5
+numpy==2.2.6
+# spaCy 3.8 imports Click APIs; later Typer releases no longer bring Click.
+typer==0.16.0
+typer-slim==0.16.0
+click==8.1.8
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl#sha256=1932429db727d4bff3deed6b34cfc05df17794f4a52eeb26cf8928f7c1a0fb85

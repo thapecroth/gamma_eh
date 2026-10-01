@@ -77,6 +77,29 @@ def test_pilot_rejects_untrusted_evaluation_origin(tmp_path):
     with pytest.raises(ValueError, match="original CC0"): assemble(base, weak, tmp_path / "pilot")
 
 
+def test_pilot_excludes_every_reference_and_cross_column_evaluation_match(tmp_path):
+    base, weak, output = [tmp_path / name for name in ["base", "weak", "pilot"]]
+    fixture_corpus(base)
+    evaluation = base / "evaluation"
+    evaluation.mkdir()
+    for split in ["dev", "test"]:
+        write_rows(evaluation / f"{split}.jsonl", [
+            {"source": f"Extra {split} source.", "references": [f"Extra {split} target.", f"Other {split} reference."]}])
+    weak.mkdir()
+    (weak / "manifest.json").write_text('{"publication_allowed": false, "licenses": {}}')
+    write_rows(weak / "train.jsonl", [
+        tagged("EXTRA DEV TARGET.", "OTHER SAFE SENTENCE."),
+        tagged("Another safe sentence.", "Extra test source."),
+        tagged("Other test reference.", "Another safe sentence."),
+        tagged("He have a ticket.", "He has a ticket."),
+    ])
+    manifest = assemble(base, weak, output)
+    assert manifest["counts"]["heldout_overlap_dropped"] == 3
+    assert manifest["counts"]["weak_train_added"] == 1
+    for split in ["dev", "test"]:
+        assert (output / "evaluation" / f"{split}.jsonl").read_bytes() == (evaluation / f"{split}.jsonl").read_bytes()
+
+
 def test_pilot_can_bound_template_training_without_evaluation_vocab_leakage(tmp_path):
     base, weak = tmp_path / "base", tmp_path / "weak"
     fixture_corpus(base)
