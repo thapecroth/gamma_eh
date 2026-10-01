@@ -11,6 +11,7 @@ import { chromium } from '@playwright/test';
 import { buildPaths } from './paths.mjs';
 import { runtimeManifest } from './inference-runtime.mjs';
 import { browserArguments, findChromium } from './browser-environment.mjs';
+import { extensionElement } from './extension-shadow.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const temporary = await mkdtemp(join(tmpdir(), 'gamma-browser-check-'));
@@ -22,28 +23,13 @@ let context;
 let server;
 
 async function shadowElement(page, selector) {
-  const session = await context.newCDPSession(page);
-  const {root: documentNode} = await session.send('DOM.getDocument', {depth: -1, pierce: true});
-  function findHost(node) {
-    if (node.attributes?.includes('data-gamma-ignore')) return node;
-    for (const child of [...(node.children ?? []), ...(node.shadowRoots ?? [])]) {
-      const found = findHost(child);
-      if (found) return found;
-    }
-  }
-  const host = findHost(documentNode);
-  const shadow = host?.shadowRoots?.[0];
-  if (!shadow) { await session.detach(); return null; }
-  const {nodeId} = await session.send('DOM.querySelector', {nodeId: shadow.nodeId, selector});
-  if (!nodeId) { await session.detach(); return null; }
-  const {object} = await session.send('DOM.resolveNode', {nodeId});
-  return {session, objectId: object.objectId};
+  return extensionElement(context, page, selector);
 }
 
-async function waitPanel(page, pattern, timeout = 90_000) {
+async function waitPanel(page, pattern, timeout = 90_000, selector = '.checker-status') {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
-    const element = await shadowElement(page, '[role="status"]') ?? await shadowElement(page, '.body');
+    const element = await shadowElement(page, selector);
     if (element) {
       const {result} = await element.session.send('Runtime.callFunctionOn', {objectId: element.objectId,
         functionDeclaration: 'function() { return this.textContent; }', returnByValue: true});
@@ -55,15 +41,19 @@ async function waitPanel(page, pattern, timeout = 90_000) {
   throw new Error(`Extension panel did not reach ${pattern}`);
 }
 
+async function openSuggestions(page) {
+  const badge = await shadowElement(page, 'button.badge');
+  assert(badge, 'Expected an extension suggestion badge');
+  await badge.session.send('Runtime.callFunctionOn', {objectId: badge.objectId, functionDeclaration: 'function() { this.click(); }'});
+  await badge.session.detach();
+}
+
 async function acceptFirst(page) {
   let element = await shadowElement(page, 'button.accept');
   if (!element) {
     // Inline suggestions open their card from the badge; the earlier panel
     // already exposes its Accept button. Exercise the same user action.
-    const badge = await shadowElement(page, 'button.badge');
-    assert(badge, 'Expected an extension suggestion badge');
-    await badge.session.send('Runtime.callFunctionOn', {objectId: badge.objectId, functionDeclaration: 'function() { this.click(); }'});
-    await badge.session.detach();
+    await openSuggestions(page);
     element = await shadowElement(page, 'button.accept');
   }
   assert(element, 'Expected an extension Accept button');
@@ -353,7 +343,9 @@ try {
   evidence.extension.cleanSentencePreserved = true;
   await background.evaluate(() => chrome.storage.local.set({useAI: false}));
   await fixture.locator('#draft').fill('halo');
-  await waitPanel(fixture, /Did you mean “hello” as a greeting/u);
+  await waitPanel(fixture, /1 suggestion.*Local rules/u);
+  await openSuggestions(fixture);
+  await waitPanel(fixture, /Did you mean “hello” as a greeting/u, 90_000, '.body');
   await acceptFirst(fixture);
   assert.equal(await fixture.locator('#draft').inputValue(), 'hello');
   await fixture.locator('#draft').fill('A halo surrounds the moon.');

@@ -19,9 +19,12 @@ root, then use `dist/extension/` as the installation folder.
    the extracted release folder (or `dist/extension/` for a source build).
 3. Open a website, select the Gamma EH toolbar button, and choose **Enable on
    this site**. Chrome requests access to that site only.
-4. Focus an ordinary textarea or plain-text contenteditable field. Suggestions
-   appear in a small panel. Choose **Accept** or **Dismiss**; close the panel to
-   pause that field.
+4. Focus an ordinary textarea or plain-text contenteditable field. Detected
+   issues get red wavy underlines. Hover or click an underlined word to review
+   its correction, then choose **Accept suggestion** or **Dismiss**.
+   The small count button beside the field opens suggestions too; use **Alt+F8**
+   for keyboard access and **Escape** to close. Choose **Pause this field** in
+   the card to stop checking that field.
 
 Keep the extracted folder on disk. To update, remove the old unpacked extension,
 extract the new release, and load its folder. Re-enable the desired sites; this

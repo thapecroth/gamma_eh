@@ -13,4 +13,5 @@
 - [Frontend toolchain](toolchain.md): project-local Vite+, version alignment, and web/extension packaging.
 - [Releases](releases.md): ready-built Chrome/web ZIPs, checksums, installation, and gated publication.
 - [Chrome extension](../apps/extension/README.md): unpacked installation and site permissions.
+- [Inline suggestions](inline-suggestions.md): red underlines, hover cards, keyboard access, measurement and browser checks.
 - [Model card](../models/MODEL_CARD.md): trained checkpoint scope and measured results.
