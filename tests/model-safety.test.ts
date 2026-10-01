@@ -8,8 +8,9 @@ vi.mock('../packages/engine/src/jax-runtime', () => ({
 }));
 
 const labels = ['KEEP', 'REPLACE:am', 'REPLACE:is', 'REPLACE:are', 'REPLACE:was', 'REPLACE:were',
-  'REPLACE:has', 'REPLACE:have', 'REPLACE:go', 'REPLACE:goes', 'REPLACE:read', 'REPLACE:reads', 'REPLACE:friend'];
-const vocabulary = '[PAD]\n[UNK]\n[CLS]\n[SEP]\nam\nis\nare\nwas\nwere\nhas\nhave\ngo\ngoes\nread\nreads\nfreind\n';
+  'REPLACE:has', 'REPLACE:have', 'REPLACE:go', 'REPLACE:goes', 'REPLACE:read', 'REPLACE:reads', 'REPLACE:friend',
+  'REPLACE:the', 'REPLACE:because', "REPLACE:they're", 'REPLACE:a', 'REPLACE:an', 'APPEND:a', 'APPEND:an', 'DELETE'];
+const vocabulary = '[PAD]\n[UNK]\n[CLS]\n[SEP]\nam\nis\nare\nwas\nwere\nhas\nhave\ngo\ngoes\nread\nreads\nfreind\nbe\ntecnologies\ntheir\nspeling\na\nan\nbook\numbrella\napple\none\n';
 const ids = vocabulary.trim().split('\n');
 let predictions: Record<string, string>;
 
@@ -42,6 +43,24 @@ async function correct(text: string): Promise<string> {
 }
 
 describe('model verb safety at high confidence', () => {
+  it('honors a disabled edit policy even with a caller threshold override', async () => {
+    predictions.freind = 'REPLACE:friend';
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (url.endsWith('manifest.json')) return new Response(JSON.stringify({confidenceThreshold: .85, maxSequenceLength: 8, disableModelEdits: true}));
+      if (url.endsWith('labels.json')) return new Response(JSON.stringify(labels));
+      if (url.endsWith('vocab.txt')) return new Response(vocabulary);
+      return new Response(new Uint8Array([0]));
+    });
+    const result = await analyzeModel('A freind called.', {modelBaseUrl: '/disabled-policy/', preferWebGPU: false, confidenceThreshold: 0});
+    expect(result.suggestions).toEqual([]);
+    expect(result.backend).toBe('wasm');
+  });
+
+  it('rejects an invalid edit policy', async () => {
+    vi.stubGlobal('fetch', async () => new Response(JSON.stringify({confidenceThreshold: .85, maxSequenceLength: 8, disableModelEdits: 'false'})));
+    await expect(analyzeModel('A freind called.', {modelBaseUrl: '/invalid-policy/', preferWebGPU: false})).rejects.toThrow('Invalid model edit policy');
+  });
+
   it.each([
     ['my cat is hungry.', 'is', 'are'],
     ['My dog is happy.', 'is', 'are'],
@@ -114,5 +133,47 @@ describe('model verb safety at high confidence', () => {
   it('continues to allow spelling edits', async () => {
     predictions.freind = 'REPLACE:friend';
     expect(await correct('A freind called.')).toBe('A friend called.');
+  });
+
+  it.each([
+    ['We develop tecnologies.', 'tecnologies', 'the'],
+    ['It will be useful.', 'be', 'because'],
+    ['They left their coats there.', 'their', "they're"],
+    ['Their coats are here.', 'their', "they're"],
+    ['She have_value here.', 'have', 'has'],
+    ['A freind-like person called.', 'freind', 'friend'],
+    ['A freind_name called.', 'freind', 'friend'],
+    ['A freindé called.', 'freind', 'friend'],
+    ['It is a book.', 'a', 'the'],
+    ['I read book reviews.', 'read', 'a'],
+    ['We met Freind yesterday.', 'freind', 'friend'],
+    ['A fReInD called.', 'freind', 'friend'],
+  ])('rejects lexical hallucinations and partial-token edits in %s', async (text, original, replacement) => {
+    predictions[original] = original === 'read' && replacement === 'a' ? 'APPEND:a' : `REPLACE:${replacement}`;
+    expect(await correct(text)).toBe(text);
+  });
+
+  it.each([
+    ['She has book.', 'has', 'a', 'She has a book.'],
+    ['They have umbrella.', 'have', 'an', 'They have an umbrella.'],
+  ])('keeps supported missing articles in %s', async (text, word, article, expected) => {
+    predictions[word] = `APPEND:${article}`;
+    expect(await correct(text)).toBe(expected);
+  });
+
+  it.each(['She has book reviews.', 'They have apple juice.', 'She has one ticket.', 'I have Apple.', 'They have\n\nBook.'])('preserves an already valid object phrase in %s', async text => {
+    predictions.has = 'APPEND:a';
+    predictions.have = 'APPEND:an';
+    expect(await correct(text)).toBe(text);
+  });
+
+  it.each(['book book_reviews', 'foo_book book', 'book book-reviews', 'book, book', 'book\nbook'])('rejects partial-token or nonadjacent duplicate evidence in %s', async text => {
+    predictions.book = 'DELETE';
+    expect(await correct(text)).toBe(text);
+  });
+
+  it.each(['A book book.', 'A book book book.'])('keeps the first word when duplicate logits all request deletion in %s', async text => {
+    predictions.book = 'DELETE';
+    expect(await correct(text)).toBe('A book.');
   });
 });

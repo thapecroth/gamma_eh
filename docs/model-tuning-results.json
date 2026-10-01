@@ -1,0 +1,3177 @@
+{
+  "schema": 1,
+  "scope": "Controlled original-CC0 tuning study and general decoder safeguards; not general grammar accuracy.",
+  "baseline_commit": "e0dfd1a7cfde119827228e7a8f4fd2835ed697f2",
+  "executed_plan": {
+    "schema": 1,
+    "dataset_manifest_sha256": "882794e96c4eceb7b25757a7d8d11dabeb7403e0f1583408e7b6a70e9a88a0c9",
+    "labels_sha256": "8ed7cc46e4daafa1a970094ee8b60a930a56cb7a1336d32e34a1578462456d95",
+    "trainer_sha256": "151903f0c8249f29faf8ce04a04411a897add1707c24339d4b9f470adf4ba989",
+    "profiles": [
+      {
+        "name": "keep03-lr5e4",
+        "keep_weight": 0.3,
+        "learning_rate": 0.0005
+      },
+      {
+        "name": "keep10-lr5e4",
+        "keep_weight": 1.0,
+        "learning_rate": 0.0005
+      },
+      {
+        "name": "keep03-lr2e4",
+        "keep_weight": 0.3,
+        "learning_rate": 0.0002
+      },
+      {
+        "name": "keep10-lr2e4",
+        "keep_weight": 1.0,
+        "learning_rate": 0.0002
+      }
+    ],
+    "epochs": 8,
+    "batch_size": 128,
+    "max_length": 64,
+    "seed": 42,
+    "selection": "Development only; frozen challenge and natural test are confirmation audits after selection."
+  },
+  "dataset_manifest": {
+    "schema": 1,
+    "origin": "original-cc0-tuning-v1",
+    "license": "CC0-1.0",
+    "publication_allowed": true,
+    "evaluation_scope": "Synthetic token-label evaluation; independent natural/challenge evaluation required.",
+    "generator_sha256": "a165d1ebc59a4c02a356172fc85f18e61b89a525a216dd57c206e617911bf880",
+    "label_count": 66,
+    "counts": {
+      "ambiguous_read_removed": 96,
+      "evaluation_overlap_removed": 1
+    },
+    "excluded_evaluation_hashes": {
+      "dev": "b5581c7aa7dfcbacdf39b41256e3b01e13e85ace621baa766ac2b3868723f3a5",
+      "test": "22504390dc7921e1a4e85d77847b89953965ce385d22b428efec764e2abe6760"
+    },
+    "challenge_sha256": "b64f9616b8a39b4e638e183930a059362076442b9d5e605d2272c3574a8f37fb",
+    "source_manifests": {
+      "original": "1058c0ee7c2653372473f72558905cef7ec1a9096bf695120bc08ef5a323b787",
+      "extra": "c7dc7cd54ab28ed9937c41368d0d45cc881e6c42bc6504725dd1032290647e36"
+    },
+    "splits": {
+      "train": {
+        "rows": 58479,
+        "clean_rows": 18556,
+        "sha256": "83a5f49d8d983f4256647ddeccf37e8f9bbf1de424610398ed4ecf0d1d6c2fec",
+        "origins": {
+          "original-template-v1": 47405,
+          "original-clean-controls-v1": 1094,
+          "original-diverse-synthetic-v1": 9980
+        }
+      },
+      "dev": {
+        "rows": 7202,
+        "clean_rows": 2313,
+        "sha256": "a8d1f19e85fa693a6de2c0b10fe81706dd7af46628c849e1294fb5376b801f23",
+        "origins": {
+          "original-template-v1": 5825,
+          "original-clean-controls-v1": 145,
+          "original-diverse-synthetic-v1": 1232
+        }
+      },
+      "test": {
+        "rows": 7490,
+        "clean_rows": 2322,
+        "sha256": "9cc037be1f6943f97dc70c037cf8ac37c33da356d82a15ed8327f60761b72c2e",
+        "origins": {
+          "original-template-v1": 6153,
+          "original-clean-controls-v1": 117,
+          "original-diverse-synthetic-v1": 1220
+        }
+      }
+    }
+  },
+  "dataset_manifest_sha256": "882794e96c4eceb7b25757a7d8d11dabeb7403e0f1583408e7b6a70e9a88a0c9",
+  "base_training_versions": {
+    "torch": "2.8.0",
+    "transformers": "4.57.6",
+    "onnx": "1.19.1",
+    "onnxruntime": "1.23.2",
+    "numpy": "2.2.6"
+  },
+  "reference_dataset_manifest": {
+    "schema": 1,
+    "dataset": "JFLEG",
+    "revision": "ee06ff806a208aba815ac45313f4e750a48330a5",
+    "source_url": "https://github.com/keisks/jfleg",
+    "license": "CC-BY-NC-SA-4.0",
+    "evaluation_only": true,
+    "training_allowed": false,
+    "redistribution": "Separately licensed noncommercial evaluation; keep out of app bundles and training.",
+    "attribution": "Napoles, Sakaguchi, and Tetreault (2017), JFLEG: A Fluency Corpus and Benchmark for Grammatical Error Correction.",
+    "quality": "Human-written learner sources with four human fluency references; includes stylistic rewrites.",
+    "files": {
+      "dev/dev.src": {
+        "bytes": 72726,
+        "sha256": "4a0e8b86d18a1058460ff0a592dac1ba68986d135256efbd27e997ac43f295f8"
+      },
+      "dev/dev.ref0": {
+        "bytes": 73216,
+        "sha256": "adea6287c6e2240b7777e63cd56f8e228e742bbfb42c5152bc0bd2bc91f4e53e"
+      },
+      "dev/dev.ref1": {
+        "bytes": 73129,
+        "sha256": "d40d56ec7468ddab03fdcca97065ab3f9d391d749dbc7097b7c777a19ce4242e"
+      },
+      "dev/dev.ref2": {
+        "bytes": 73394,
+        "sha256": "b070691d633e0c4143d96ba21299ae71cb126086517d2970df47420842067793"
+      },
+      "dev/dev.ref3": {
+        "bytes": 73164,
+        "sha256": "9187fd834693fa77d07957991282d32d61ff84a207c25cbfab318c871bacdbc4"
+      },
+      "test/test.src": {
+        "bytes": 72684,
+        "sha256": "893db119162487aa7f956b65978453576919e6797cd6c1955f93b7a8b9f4bbd8"
+      },
+      "test/test.ref0": {
+        "bytes": 73090,
+        "sha256": "875953280a3ea1dea2827337b1778c0105f0c0aa79f2517a6e0e42db5e5e170c"
+      },
+      "test/test.ref1": {
+        "bytes": 73325,
+        "sha256": "190d3398f2765f54a39b5489d1e96c483412a656086c731f8712ad0591087d80"
+      },
+      "test/test.ref2": {
+        "bytes": 73018,
+        "sha256": "0e3c6abe934ccd16c9dffb2fd889d6f55afc3ad13a63c1e148c720bb4e99046b"
+      },
+      "test/test.ref3": {
+        "bytes": 73365,
+        "sha256": "19f49de6eff813b26505ecf756c20dc301aeb80696696b01ca950298f6e58441"
+      }
+    },
+    "splits": {
+      "dev": {
+        "rows": 754,
+        "sha256": "b5581c7aa7dfcbacdf39b41256e3b01e13e85ace621baa766ac2b3868723f3a5"
+      },
+      "test": {
+        "rows": 747,
+        "sha256": "22504390dc7921e1a4e85d77847b89953965ce385d22b428efec764e2abe6760"
+      }
+    }
+  },
+  "profiles": [
+    {
+      "name": "keep03-lr5e4",
+      "keep_weight": 0.3,
+      "learning_rate": 0.0005,
+      "training": {
+        "base_model": "google/bert_uncased_L-2_H-128_A-2",
+        "base_revision": "30b0a37ccaaa32f332884b96992754e246e48c5f",
+        "seed": 42,
+        "device": "cuda",
+        "parameters": 4377922,
+        "training_seconds": 34.9,
+        "training_config": {
+          "learning_rate": 0.0005,
+          "keep_weight": 0.3,
+          "batch_size": 128,
+          "max_length": 64,
+          "epochs": 8
+        },
+        "test": {
+          "threshold": 0.85,
+          "edit_precision": 0.99853515625,
+          "edit_recall": 0.9990229604298974,
+          "edit_f0_5": 0.9986326789725558,
+          "sentence_tag_accuracy": 0.9982643723487854,
+          "clean_sentence_false_positive_rate": 0.0,
+          "true_positive_edits": 6135,
+          "false_positive_edits": 9,
+          "missed_edits": 6,
+          "sentences": 7490
+        },
+        "scope": "Synthetic token-label evaluation; independent natural/challenge evaluation required.",
+        "publication_allowed": true,
+        "evaluation_sha256": "c066e12130c7754d2faddfe87f2e34117a2c76cf3de807543f4fecb693ac26db",
+        "selected_epoch": 7,
+        "synthetic_development": {
+          "threshold": 0.85,
+          "edit_precision": 0.9994804295116038,
+          "edit_recall": 0.9986156774528465,
+          "edit_f0_5": 0.9993073593073591,
+          "sentence_tag_accuracy": 0.9987503290176392,
+          "clean_sentence_false_positive_rate": 0.0,
+          "true_positive_edits": 5771,
+          "false_positive_edits": 3,
+          "missed_edits": 8,
+          "sentences": 7202
+        },
+        "exports": {
+          "model.onnx": {
+            "max_logit_difference": 2.193450927734375e-05,
+            "argmax_agreement": 1.0
+          },
+          "model_quantized.onnx": {
+            "max_logit_difference": 2.8308095932006836,
+            "argmax_agreement": 0.9999496936798096
+          }
+        }
+      },
+      "model_sha256": "3e0ad5141b7797249ca696b2d510162904a434df834c7dbfb89eab408ebc1b2d",
+      "diagnostic_manifest_sha256": "15c9597c7f463f6acefa508717bdf16957a68254a94d5d98fbdd1d89fec46b11",
+      "retained_manifest_sha256": "c9be69a6012814ea225ede3837fa7153a0905d27034aa5115105e48176890cf0",
+      "natural_dev_before_decoder_fix": {
+        "sha256": "d2f06e7cfd5b5fdbb674e19ed21637a94c0a93223bb1bf1153a19ec27fae0923",
+        "scope": "Complete-population JAX/WASM; actual ERRANT with best sentence F0.5 reference; not official JFLEG GLEU.",
+        "input_sha256": "b5581c7aa7dfcbacdf39b41256e3b01e13e85ace621baa766ac2b3868723f3a5",
+        "browser_report_sha256": "bddf1e59e255c5d224c38431fe35fed34b62198eb92071cfc4e40094b37c5146",
+        "engine_source_sha256": "c433773f7def4e231394caef32f8f6286962775c409bd36c73d64976a11a71f5",
+        "scorer_versions": {
+          "errant": "3.0.2",
+          "spacy": "3.8.7",
+          "en-core-web-sm": "3.8.0",
+          "rapidfuzz": "3.14.5"
+        },
+        "scores": {
+          "rules": {
+            "edit_precision": 0.7048710601719198,
+            "edit_recall": 0.15638906547997458,
+            "edit_f0_5": 0.4142809026608286,
+            "true_positive_edits": 246,
+            "false_positive_edits": 103,
+            "missed_edits": 1327,
+            "predicted_edits": 349,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 38,
+            "clean_sentence_false_positive_rate": 0.17592592592592593
+          },
+          "model_only": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.07051282051282051,
+              "edit_recall": 0.007768361581920904,
+              "edit_f0_5": 0.026960784313725485,
+              "true_positive_edits": 11,
+              "false_positive_edits": 145,
+              "missed_edits": 1405,
+              "predicted_edits": 156,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 31,
+              "clean_sentence_false_positive_rate": 0.14351851851851852
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 0.07317073170731707,
+              "edit_recall": 0.0063604240282685515,
+              "edit_f0_5": 0.02359727320398532,
+              "true_positive_edits": 9,
+              "false_positive_edits": 114,
+              "missed_edits": 1406,
+              "predicted_edits": 123,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 27,
+              "clean_sentence_false_positive_rate": 0.125
+            },
+            {
+              "threshold": 0.9,
+              "edit_precision": 0.07766990291262135,
+              "edit_recall": 0.005653710247349823,
+              "edit_f0_5": 0.021893814997263273,
+              "true_positive_edits": 8,
+              "false_positive_edits": 95,
+              "missed_edits": 1407,
+              "predicted_edits": 103,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 23,
+              "clean_sentence_false_positive_rate": 0.10648148148148148
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 0.04819277108433735,
+              "edit_recall": 0.002851033499643621,
+              "edit_f0_5": 0.011527377521613832,
+              "true_positive_edits": 4,
+              "false_positive_edits": 79,
+              "missed_edits": 1399,
+              "predicted_edits": 83,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 16,
+              "clean_sentence_false_positive_rate": 0.07407407407407407
+            },
+            {
+              "threshold": 0.98,
+              "edit_precision": 0.05263157894736842,
+              "edit_recall": 0.0021382751247327157,
+              "edit_f0_5": 0.00919681177191907,
+              "true_positive_edits": 3,
+              "false_positive_edits": 54,
+              "missed_edits": 1400,
+              "predicted_edits": 57,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 13,
+              "clean_sentence_false_positive_rate": 0.06018518518518518
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 0.09090909090909091,
+              "edit_recall": 0.0021382751247327157,
+              "edit_f0_5": 0.00977198697068404,
+              "true_positive_edits": 3,
+              "false_positive_edits": 30,
+              "missed_edits": 1400,
+              "predicted_edits": 33,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 7,
+              "clean_sentence_false_positive_rate": 0.032407407407407406
+            }
+          ],
+          "full_engine": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.5357917570498916,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.36111111111111116,
+              "true_positive_edits": 247,
+              "false_positive_edits": 214,
+              "missed_edits": 1329,
+              "predicted_edits": 461,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 58,
+              "clean_sentence_false_positive_rate": 0.26851851851851855
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 0.5538116591928252,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.36755952380952384,
+              "true_positive_edits": 247,
+              "false_positive_edits": 199,
+              "missed_edits": 1329,
+              "predicted_edits": 446,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 55,
+              "clean_sentence_false_positive_rate": 0.25462962962962965
+            },
+            {
+              "threshold": 0.9,
+              "edit_precision": 0.5730858468677494,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.37424242424242427,
+              "true_positive_edits": 247,
+              "false_positive_edits": 184,
+              "missed_edits": 1329,
+              "predicted_edits": 431,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 52,
+              "clean_sentence_false_positive_rate": 0.24074074074074073
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 0.592326139088729,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.3807028360049322,
+              "true_positive_edits": 247,
+              "false_positive_edits": 170,
+              "missed_edits": 1329,
+              "predicted_edits": 417,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 47,
+              "clean_sentence_false_positive_rate": 0.2175925925925926
+            },
+            {
+              "threshold": 0.98,
+              "edit_precision": 0.6237373737373737,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.3908227848101266,
+              "true_positive_edits": 247,
+              "false_positive_edits": 149,
+              "missed_edits": 1329,
+              "predicted_edits": 396,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 44,
+              "clean_sentence_false_positive_rate": 0.2037037037037037
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 0.660427807486631,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.40201822916666663,
+              "true_positive_edits": 247,
+              "false_positive_edits": 127,
+              "missed_edits": 1329,
+              "predicted_edits": 374,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 40,
+              "clean_sentence_false_positive_rate": 0.18518518518518517
+            }
+          ]
+        },
+        "model": {
+          "name": "gamma-eh-tiny-keep03-lr5e4",
+          "manifest_sha256": "140e6fe8ab97de6fceb78e081832a493d46bb9e0209727c40c5c302cb7e4c6e0",
+          "model_sha256": "3e0ad5141b7797249ca696b2d510162904a434df834c7dbfb89eab408ebc1b2d"
+        }
+      },
+      "natural_dev_after_decoder_fix": {
+        "sha256": "2dcd07e6d7a198ddbd24d805f08866f0523ef29c8b09ebe1dc6039a438759b4e",
+        "passed": true,
+        "scope": "Complete-population JAX/WASM; actual ERRANT with best sentence F0.5 reference; not official JFLEG GLEU.",
+        "input_sha256": "b5581c7aa7dfcbacdf39b41256e3b01e13e85ace621baa766ac2b3868723f3a5",
+        "browser_report_sha256": "26d8c9a4683c2f7a815d547566bf606cb2a217e8af4e1a6f1546fe34f8b5ee37",
+        "engine_source_sha256": "60e6c474c641694a90032a7e302eecb6e87bf80c8cb8018922427147494ae5f8",
+        "scorer_versions": {
+          "errant": "3.0.2",
+          "spacy": "3.8.7",
+          "en-core-web-sm": "3.8.0",
+          "rapidfuzz": "3.14.5"
+        },
+        "scores": {
+          "rules": {
+            "edit_precision": 0.7048710601719198,
+            "edit_recall": 0.15638906547997458,
+            "edit_f0_5": 0.4142809026608286,
+            "true_positive_edits": 246,
+            "false_positive_edits": 103,
+            "missed_edits": 1327,
+            "predicted_edits": 349,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 38,
+            "clean_sentence_false_positive_rate": 0.17592592592592593
+          },
+          "model_only": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.9090909090909091,
+              "edit_recall": 0.007067137809187279,
+              "edit_f0_5": 0.03427004797806717,
+              "true_positive_edits": 10,
+              "false_positive_edits": 1,
+              "missed_edits": 1405,
+              "predicted_edits": 11,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 2,
+              "clean_sentence_false_positive_rate": 0.009259259259259259
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 1.0,
+              "edit_recall": 0.005657708628005658,
+              "edit_f0_5": 0.02766251728907331,
+              "true_positive_edits": 8,
+              "false_positive_edits": 0,
+              "missed_edits": 1406,
+              "predicted_edits": 8,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 2,
+              "clean_sentence_false_positive_rate": 0.009259259259259259
+            },
+            {
+              "threshold": 0.85,
+              "edit_precision": 1.0,
+              "edit_recall": 0.005657708628005658,
+              "edit_f0_5": 0.02766251728907331,
+              "true_positive_edits": 8,
+              "false_positive_edits": 0,
+              "missed_edits": 1406,
+              "predicted_edits": 8,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 2,
+              "clean_sentence_false_positive_rate": 0.009259259259259259
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 1.0,
+              "edit_recall": 0.002851033499643621,
+              "edit_f0_5": 0.014094432699083864,
+              "true_positive_edits": 4,
+              "false_positive_edits": 0,
+              "missed_edits": 1399,
+              "predicted_edits": 4,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.004629629629629629
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 1.0,
+              "edit_recall": 0.0021382751247327157,
+              "edit_f0_5": 0.01060070671378092,
+              "true_positive_edits": 3,
+              "false_positive_edits": 0,
+              "missed_edits": 1400,
+              "predicted_edits": 3,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.004629629629629629
+            }
+          ],
+          "full_engine": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.85,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            }
+          ]
+        },
+        "model": {
+          "name": "gamma-eh-tiny-keep03-lr5e4",
+          "manifest_sha256": "15c9597c7f463f6acefa508717bdf16957a68254a94d5d98fbdd1d89fec46b11",
+          "model_sha256": "3e0ad5141b7797249ca696b2d510162904a434df834c7dbfb89eab408ebc1b2d"
+        }
+      },
+      "natural_calibration": {
+        "selected": {
+          "threshold": 1.0,
+          "edit_precision": 1.0,
+          "edit_f0_5": 0.0,
+          "true_positive_edits": 0,
+          "false_positive_edits": 0,
+          "clean_sentence_false_positive_rate": 0.0
+        },
+        "split": "dev",
+        "constraints_met": false,
+        "disable_model_edits": true,
+        "constraints": {
+          "min_precision": 0.95,
+          "max_clean_false_positive_rate": 0.02,
+          "min_predicted_edits": 25
+        },
+        "fallback_reason": "No development threshold meets precision, clean-text and edit-support requirements.",
+        "engine_source_sha256": "60e6c474c641694a90032a7e302eecb6e87bf80c8cb8018922427147494ae5f8",
+        "development_score_sha256": "2dcd07e6d7a198ddbd24d805f08866f0523ef29c8b09ebe1dc6039a438759b4e"
+      },
+      "challenge_before_decoder_fix": {
+        "browser_report_sha256": "2f6e405eddcb338b2b533f183a753a626c3407506fbcea7bd3efb01b789edc7f",
+        "engine_source_sha256": "c433773f7def4e231394caef32f8f6286962775c409bd36c73d64976a11a71f5",
+        "scope": "Inspected regression audit; not used to promote a candidate",
+        "scores": [
+          {
+            "threshold": 0.6,
+            "sentences": 512,
+            "fully_corrected": 52,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.8,
+            "sentences": 512,
+            "fully_corrected": 52,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.85,
+            "sentences": 512,
+            "fully_corrected": 52,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.95,
+            "sentences": 512,
+            "fully_corrected": 51,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.995,
+            "sentences": 512,
+            "fully_corrected": 51,
+            "clean_changed": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "keep10-lr5e4",
+      "keep_weight": 1.0,
+      "learning_rate": 0.0005,
+      "training": {
+        "base_model": "google/bert_uncased_L-2_H-128_A-2",
+        "base_revision": "30b0a37ccaaa32f332884b96992754e246e48c5f",
+        "seed": 42,
+        "device": "cuda",
+        "parameters": 4377922,
+        "training_seconds": 35.72,
+        "training_config": {
+          "learning_rate": 0.0005,
+          "keep_weight": 1.0,
+          "batch_size": 128,
+          "max_length": 64,
+          "epochs": 8
+        },
+        "test": {
+          "threshold": 0.6,
+          "edit_precision": 0.9995100440960314,
+          "edit_recall": 0.9965803615046409,
+          "edit_f0_5": 0.9989227303887964,
+          "sentence_tag_accuracy": 0.9967957139015198,
+          "clean_sentence_false_positive_rate": 0.0,
+          "true_positive_edits": 6120,
+          "false_positive_edits": 3,
+          "missed_edits": 21,
+          "sentences": 7490
+        },
+        "scope": "Synthetic token-label evaluation; independent natural/challenge evaluation required.",
+        "publication_allowed": true,
+        "evaluation_sha256": "a7052f967641fa626a87a5f93c9285476207fe46a4aadd7706a29136046c043f",
+        "selected_epoch": 7,
+        "synthetic_development": {
+          "threshold": 0.6,
+          "edit_precision": 0.9998265695456122,
+          "edit_recall": 0.9975774355424813,
+          "edit_f0_5": 0.9993759317685401,
+          "sentence_tag_accuracy": 0.9979172348976135,
+          "clean_sentence_false_positive_rate": 0.0,
+          "true_positive_edits": 5765,
+          "false_positive_edits": 1,
+          "missed_edits": 14,
+          "sentences": 7202
+        },
+        "exports": {
+          "model.onnx": {
+            "max_logit_difference": 4.00543212890625e-05,
+            "argmax_agreement": 1.0
+          },
+          "model_quantized.onnx": {
+            "max_logit_difference": 5.623005390167236,
+            "argmax_agreement": 0.9999496936798096
+          }
+        }
+      },
+      "model_sha256": "735bce7a90de0ebbf1459b8c7dffed6f87d4d83c7aa1fa42c76ab67159cabc44",
+      "diagnostic_manifest_sha256": "b58d5dca443e7d8e61e90fe2d74df8d6b24d2fb2590229714241b02189a5751f",
+      "retained_manifest_sha256": "172866332cbff0c1074b4e6f61818c5577ba25034ca852e7cd116baeec478755",
+      "natural_dev_before_decoder_fix": {
+        "sha256": "0b73b6cac6a80e561f6110a7641c5e540dac01f99a297a6c27fecf4926407c78",
+        "scope": "Complete-population JAX/WASM; actual ERRANT with best sentence F0.5 reference; not official JFLEG GLEU.",
+        "input_sha256": "b5581c7aa7dfcbacdf39b41256e3b01e13e85ace621baa766ac2b3868723f3a5",
+        "browser_report_sha256": "473a41f6e7c2da7dca035212f4c0a4c363fdb6ca366e92f176d6a2f05e51fd8e",
+        "engine_source_sha256": "c433773f7def4e231394caef32f8f6286962775c409bd36c73d64976a11a71f5",
+        "scorer_versions": {
+          "errant": "3.0.2",
+          "spacy": "3.8.7",
+          "en-core-web-sm": "3.8.0",
+          "rapidfuzz": "3.14.5"
+        },
+        "scores": {
+          "rules": {
+            "edit_precision": 0.7048710601719198,
+            "edit_recall": 0.15638906547997458,
+            "edit_f0_5": 0.4142809026608286,
+            "true_positive_edits": 246,
+            "false_positive_edits": 103,
+            "missed_edits": 1327,
+            "predicted_edits": 349,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 38,
+            "clean_sentence_false_positive_rate": 0.17592592592592593
+          },
+          "model_only": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.09,
+              "edit_recall": 0.0063604240282685515,
+              "edit_f0_5": 0.024793388429752063,
+              "true_positive_edits": 9,
+              "false_positive_edits": 91,
+              "missed_edits": 1406,
+              "predicted_edits": 100,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 14,
+              "clean_sentence_false_positive_rate": 0.06481481481481481
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 0.0945945945945946,
+              "edit_recall": 0.0049504950495049506,
+              "edit_f0_5": 0.02046783625730994,
+              "true_positive_edits": 7,
+              "false_positive_edits": 67,
+              "missed_edits": 1407,
+              "predicted_edits": 74,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 12,
+              "clean_sentence_false_positive_rate": 0.05555555555555555
+            },
+            {
+              "threshold": 0.9,
+              "edit_precision": 0.1,
+              "edit_recall": 0.004243281471004243,
+              "edit_f0_5": 0.018137847642079805,
+              "true_positive_edits": 6,
+              "false_positive_edits": 54,
+              "missed_edits": 1408,
+              "predicted_edits": 60,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 9,
+              "clean_sentence_false_positive_rate": 0.041666666666666664
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 0.13953488372093023,
+              "edit_recall": 0.004243281471004243,
+              "edit_f0_5": 0.018915510718789406,
+              "true_positive_edits": 6,
+              "false_positive_edits": 37,
+              "missed_edits": 1408,
+              "predicted_edits": 43,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 8,
+              "clean_sentence_false_positive_rate": 0.037037037037037035
+            },
+            {
+              "threshold": 0.98,
+              "edit_precision": 0.21739130434782608,
+              "edit_recall": 0.003536067892503536,
+              "edit_f0_5": 0.016600265604249667,
+              "true_positive_edits": 5,
+              "false_positive_edits": 18,
+              "missed_edits": 1409,
+              "predicted_edits": 23,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 5,
+              "clean_sentence_false_positive_rate": 0.023148148148148147
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 0.26666666666666666,
+              "edit_recall": 0.002828854314002829,
+              "edit_f0_5": 0.013568521031207599,
+              "true_positive_edits": 4,
+              "false_positive_edits": 11,
+              "missed_edits": 1410,
+              "predicted_edits": 15,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 5,
+              "clean_sentence_false_positive_rate": 0.023148148148148147
+            }
+          ],
+          "full_engine": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.6098765432098765,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.38642052565707136,
+              "true_positive_edits": 247,
+              "false_positive_edits": 158,
+              "missed_edits": 1329,
+              "predicted_edits": 405,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 46,
+              "clean_sentence_false_positive_rate": 0.21296296296296297
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 0.628498727735369,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.39231257941550196,
+              "true_positive_edits": 247,
+              "false_positive_edits": 146,
+              "missed_edits": 1329,
+              "predicted_edits": 393,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 45,
+              "clean_sentence_false_positive_rate": 0.20833333333333334
+            },
+            {
+              "threshold": 0.9,
+              "edit_precision": 0.6432291666666666,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.3968508997429306,
+              "true_positive_edits": 247,
+              "false_positive_edits": 137,
+              "missed_edits": 1329,
+              "predicted_edits": 384,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 42,
+              "clean_sentence_false_positive_rate": 0.19444444444444445
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 0.6586666666666666,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.40149544863459047,
+              "true_positive_edits": 247,
+              "false_positive_edits": 128,
+              "missed_edits": 1329,
+              "predicted_edits": 375,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 42,
+              "clean_sentence_false_positive_rate": 0.19444444444444445
+            },
+            {
+              "threshold": 0.98,
+              "edit_precision": 0.6842105263157895,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.4089403973509934,
+              "true_positive_edits": 247,
+              "false_positive_edits": 114,
+              "missed_edits": 1329,
+              "predicted_edits": 361,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 39,
+              "clean_sentence_false_positive_rate": 0.18055555555555555
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 0.6957746478873239,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41221628838451274,
+              "true_positive_edits": 247,
+              "false_positive_edits": 108,
+              "missed_edits": 1329,
+              "predicted_edits": 355,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 39,
+              "clean_sentence_false_positive_rate": 0.18055555555555555
+            }
+          ]
+        },
+        "model": {
+          "name": "gamma-eh-tiny-keep10-lr5e4",
+          "manifest_sha256": "c5f8811e17db8db5476269c2d0639ca80676725f89a8e9b73d5a3feb0d0f09f4",
+          "model_sha256": "735bce7a90de0ebbf1459b8c7dffed6f87d4d83c7aa1fa42c76ab67159cabc44"
+        }
+      },
+      "natural_dev_after_decoder_fix": {
+        "sha256": "5d1bcd7dea696310080e3513a65bdcbe464d0f8f1847728bd83499b195b6a4ad",
+        "passed": true,
+        "scope": "Complete-population JAX/WASM; actual ERRANT with best sentence F0.5 reference; not official JFLEG GLEU.",
+        "input_sha256": "b5581c7aa7dfcbacdf39b41256e3b01e13e85ace621baa766ac2b3868723f3a5",
+        "browser_report_sha256": "1665d0c804c973d80924c60b8fe8c473db3a73191755d8de90e590fc9bb93081",
+        "engine_source_sha256": "60e6c474c641694a90032a7e302eecb6e87bf80c8cb8018922427147494ae5f8",
+        "scorer_versions": {
+          "errant": "3.0.2",
+          "spacy": "3.8.7",
+          "en-core-web-sm": "3.8.0",
+          "rapidfuzz": "3.14.5"
+        },
+        "scores": {
+          "rules": {
+            "edit_precision": 0.7048710601719198,
+            "edit_recall": 0.15638906547997458,
+            "edit_f0_5": 0.4142809026608286,
+            "true_positive_edits": 246,
+            "false_positive_edits": 103,
+            "missed_edits": 1327,
+            "predicted_edits": 349,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 38,
+            "clean_sentence_false_positive_rate": 0.17592592592592593
+          },
+          "model_only": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.8181818181818182,
+              "edit_recall": 0.0063604240282685515,
+              "edit_f0_5": 0.030843043180260453,
+              "true_positive_edits": 9,
+              "false_positive_edits": 2,
+              "missed_edits": 1406,
+              "predicted_edits": 11,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 2,
+              "clean_sentence_false_positive_rate": 0.009259259259259259
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 0.7777777777777778,
+              "edit_recall": 0.0049504950495049506,
+              "edit_f0_5": 0.02413793103448276,
+              "true_positive_edits": 7,
+              "false_positive_edits": 2,
+              "missed_edits": 1407,
+              "predicted_edits": 9,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 2,
+              "clean_sentence_false_positive_rate": 0.009259259259259259
+            },
+            {
+              "threshold": 0.85,
+              "edit_precision": 0.75,
+              "edit_recall": 0.004243281471004243,
+              "edit_f0_5": 0.02074688796680498,
+              "true_positive_edits": 6,
+              "false_positive_edits": 2,
+              "missed_edits": 1408,
+              "predicted_edits": 8,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 2,
+              "clean_sentence_false_positive_rate": 0.009259259259259259
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 0.75,
+              "edit_recall": 0.004243281471004243,
+              "edit_f0_5": 0.02074688796680498,
+              "true_positive_edits": 6,
+              "false_positive_edits": 2,
+              "missed_edits": 1408,
+              "predicted_edits": 8,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 2,
+              "clean_sentence_false_positive_rate": 0.009259259259259259
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 1.0,
+              "edit_recall": 0.002828854314002829,
+              "edit_f0_5": 0.013986013986013988,
+              "true_positive_edits": 4,
+              "false_positive_edits": 0,
+              "missed_edits": 1410,
+              "predicted_edits": 4,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 2,
+              "clean_sentence_false_positive_rate": 0.009259259259259259
+            }
+          ],
+          "full_engine": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.85,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            }
+          ]
+        },
+        "model": {
+          "name": "gamma-eh-tiny-keep10-lr5e4",
+          "manifest_sha256": "b58d5dca443e7d8e61e90fe2d74df8d6b24d2fb2590229714241b02189a5751f",
+          "model_sha256": "735bce7a90de0ebbf1459b8c7dffed6f87d4d83c7aa1fa42c76ab67159cabc44"
+        }
+      },
+      "natural_calibration": {
+        "selected": {
+          "threshold": 1.0,
+          "edit_precision": 1.0,
+          "edit_f0_5": 0.0,
+          "true_positive_edits": 0,
+          "false_positive_edits": 0,
+          "clean_sentence_false_positive_rate": 0.0
+        },
+        "split": "dev",
+        "constraints_met": false,
+        "disable_model_edits": true,
+        "constraints": {
+          "min_precision": 0.95,
+          "max_clean_false_positive_rate": 0.02,
+          "min_predicted_edits": 25
+        },
+        "fallback_reason": "No development threshold meets precision, clean-text and edit-support requirements.",
+        "engine_source_sha256": "60e6c474c641694a90032a7e302eecb6e87bf80c8cb8018922427147494ae5f8",
+        "development_score_sha256": "5d1bcd7dea696310080e3513a65bdcbe464d0f8f1847728bd83499b195b6a4ad"
+      },
+      "challenge_before_decoder_fix": {
+        "browser_report_sha256": "4fa496958d05d133d7bea682f906df2e44cdfa6fcc623c6a2a8868c222dec1e6",
+        "engine_source_sha256": "c433773f7def4e231394caef32f8f6286962775c409bd36c73d64976a11a71f5",
+        "scope": "Inspected regression audit; not used to promote a candidate",
+        "scores": [
+          {
+            "threshold": 0.6,
+            "sentences": 512,
+            "fully_corrected": 46,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.8,
+            "sentences": 512,
+            "fully_corrected": 44,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.85,
+            "sentences": 512,
+            "fully_corrected": 44,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.95,
+            "sentences": 512,
+            "fully_corrected": 43,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.995,
+            "sentences": 512,
+            "fully_corrected": 42,
+            "clean_changed": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "keep03-lr2e4",
+      "keep_weight": 0.3,
+      "learning_rate": 0.0002,
+      "training": {
+        "base_model": "google/bert_uncased_L-2_H-128_A-2",
+        "base_revision": "30b0a37ccaaa32f332884b96992754e246e48c5f",
+        "seed": 42,
+        "device": "cuda",
+        "parameters": 4377922,
+        "training_seconds": 36.83,
+        "training_config": {
+          "learning_rate": 0.0002,
+          "keep_weight": 0.3,
+          "batch_size": 128,
+          "max_length": 64,
+          "epochs": 8
+        },
+        "test": {
+          "threshold": 0.8,
+          "edit_precision": 0.9980456026058632,
+          "edit_recall": 0.9978830809314444,
+          "edit_f0_5": 0.9980130940360249,
+          "sentence_tag_accuracy": 0.9973297715187073,
+          "clean_sentence_false_positive_rate": 0.0,
+          "true_positive_edits": 6128,
+          "false_positive_edits": 12,
+          "missed_edits": 13,
+          "sentences": 7490
+        },
+        "scope": "Synthetic token-label evaluation; independent natural/challenge evaluation required.",
+        "publication_allowed": true,
+        "evaluation_sha256": "646b668584b02e5d140d7e599293a96db1af033a1a92b70002e97662de09f0d1",
+        "selected_epoch": 8,
+        "synthetic_development": {
+          "threshold": 0.8,
+          "edit_precision": 0.9991344988748485,
+          "edit_recall": 0.9987887177712407,
+          "edit_f0_5": 0.9990653235019213,
+          "sentence_tag_accuracy": 0.9986115097999573,
+          "clean_sentence_false_positive_rate": 0.0,
+          "true_positive_edits": 5772,
+          "false_positive_edits": 5,
+          "missed_edits": 7,
+          "sentences": 7202
+        },
+        "exports": {
+          "model.onnx": {
+            "max_logit_difference": 3.1948089599609375e-05,
+            "argmax_agreement": 1.0
+          },
+          "model_quantized.onnx": {
+            "max_logit_difference": 2.718576192855835,
+            "argmax_agreement": 0.9999161958694458
+          }
+        }
+      },
+      "model_sha256": "b3f4888900b404b738c991137c6e87db0cca8b5ecd51069847b175890de82f26",
+      "diagnostic_manifest_sha256": "9de9c26d7e9954c5fb01c0a551095201f6f16546b28f27b40a62275bd32ac607",
+      "retained_manifest_sha256": "25b239f140bd6ed9e518f416671c288a74b1c29e4830564fe2e1eed4008925e3",
+      "natural_dev_before_decoder_fix": {
+        "sha256": "188ffa6761b184f192ad80409c744eb0621be9783b58d315ce722151007f41a9",
+        "scope": "Complete-population JAX/WASM; actual ERRANT with best sentence F0.5 reference; not official JFLEG GLEU.",
+        "input_sha256": "b5581c7aa7dfcbacdf39b41256e3b01e13e85ace621baa766ac2b3868723f3a5",
+        "browser_report_sha256": "a1cfa519c1203f686443aa32e6897206e2dc12ce84c621977b52822eb7b9b01e",
+        "engine_source_sha256": "c433773f7def4e231394caef32f8f6286962775c409bd36c73d64976a11a71f5",
+        "scorer_versions": {
+          "errant": "3.0.2",
+          "spacy": "3.8.7",
+          "en-core-web-sm": "3.8.0",
+          "rapidfuzz": "3.14.5"
+        },
+        "scores": {
+          "rules": {
+            "edit_precision": 0.7048710601719198,
+            "edit_recall": 0.15638906547997458,
+            "edit_f0_5": 0.4142809026608286,
+            "true_positive_edits": 246,
+            "false_positive_edits": 103,
+            "missed_edits": 1327,
+            "predicted_edits": 349,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 38,
+            "clean_sentence_false_positive_rate": 0.17592592592592593
+          },
+          "model_only": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.1388888888888889,
+              "edit_recall": 0.0071174377224199285,
+              "edit_f0_5": 0.029533372711163616,
+              "true_positive_edits": 10,
+              "false_positive_edits": 62,
+              "missed_edits": 1395,
+              "predicted_edits": 72,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 14,
+              "clean_sentence_false_positive_rate": 0.06481481481481481
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 0.17073170731707318,
+              "edit_recall": 0.004985754985754986,
+              "edit_f0_5": 0.022321428571428572,
+              "true_positive_edits": 7,
+              "false_positive_edits": 34,
+              "missed_edits": 1397,
+              "predicted_edits": 41,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 8,
+              "clean_sentence_false_positive_rate": 0.037037037037037035
+            },
+            {
+              "threshold": 0.9,
+              "edit_precision": 0.2608695652173913,
+              "edit_recall": 0.0042765502494654314,
+              "edit_f0_5": 0.020066889632107027,
+              "true_positive_edits": 6,
+              "false_positive_edits": 17,
+              "missed_edits": 1397,
+              "predicted_edits": 23,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 4,
+              "clean_sentence_false_positive_rate": 0.018518518518518517
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 0.38461538461538464,
+              "edit_recall": 0.003563791874554526,
+              "edit_f0_5": 0.01718213058419244,
+              "true_positive_edits": 5,
+              "false_positive_edits": 8,
+              "missed_edits": 1398,
+              "predicted_edits": 13,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 2,
+              "clean_sentence_false_positive_rate": 0.009259259259259259
+            },
+            {
+              "threshold": 0.98,
+              "edit_precision": 0.375,
+              "edit_recall": 0.0021382751247327157,
+              "edit_f0_5": 0.010452961672473867,
+              "true_positive_edits": 3,
+              "false_positive_edits": 5,
+              "missed_edits": 1400,
+              "predicted_edits": 8,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 2,
+              "clean_sentence_false_positive_rate": 0.009259259259259259
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 0.42857142857142855,
+              "edit_recall": 0.0021382751247327157,
+              "edit_f0_5": 0.010482180293501049,
+              "true_positive_edits": 3,
+              "false_positive_edits": 4,
+              "missed_edits": 1400,
+              "predicted_edits": 7,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 2,
+              "clean_sentence_false_positive_rate": 0.009259259259259259
+            }
+          ],
+          "full_engine": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.6432291666666666,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.3968508997429306,
+              "true_positive_edits": 247,
+              "false_positive_edits": 137,
+              "missed_edits": 1329,
+              "predicted_edits": 384,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 43,
+              "clean_sentence_false_positive_rate": 0.19907407407407407
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 0.6767123287671233,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.40678524374176545,
+              "true_positive_edits": 247,
+              "false_positive_edits": 118,
+              "missed_edits": 1329,
+              "predicted_edits": 365,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 41,
+              "clean_sentence_false_positive_rate": 0.18981481481481483
+            },
+            {
+              "threshold": 0.9,
+              "edit_precision": 0.6880222841225627,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.4100265604249668,
+              "true_positive_edits": 247,
+              "false_positive_edits": 112,
+              "missed_edits": 1329,
+              "predicted_edits": 359,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 40,
+              "clean_sentence_false_positive_rate": 0.18518518518518517
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 0.7017045454545454,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.4138739946380697,
+              "true_positive_edits": 247,
+              "false_positive_edits": 105,
+              "missed_edits": 1329,
+              "predicted_edits": 352,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.98,
+              "edit_precision": 0.7037037037037037,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.4144295302013423,
+              "true_positive_edits": 247,
+              "false_positive_edits": 104,
+              "missed_edits": 1329,
+              "predicted_edits": 351,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            }
+          ]
+        },
+        "model": {
+          "name": "gamma-eh-tiny-keep03-lr2e4",
+          "manifest_sha256": "8a0a28706c6c32cd55a1b8ed1649d1580b0443ce232065c42cb1367d54a0428e",
+          "model_sha256": "b3f4888900b404b738c991137c6e87db0cca8b5ecd51069847b175890de82f26"
+        }
+      },
+      "natural_dev_after_decoder_fix": {
+        "sha256": "1c31da7126ba8a305e67a4de59923dfdf85e7bc650d9fab9d8e93857f6354114",
+        "passed": true,
+        "scope": "Complete-population JAX/WASM; actual ERRANT with best sentence F0.5 reference; not official JFLEG GLEU.",
+        "input_sha256": "b5581c7aa7dfcbacdf39b41256e3b01e13e85ace621baa766ac2b3868723f3a5",
+        "browser_report_sha256": "007ffc0bd96626ddf176893dd51b498108627a415b330400a8f33b291a856542",
+        "engine_source_sha256": "60e6c474c641694a90032a7e302eecb6e87bf80c8cb8018922427147494ae5f8",
+        "scorer_versions": {
+          "errant": "3.0.2",
+          "spacy": "3.8.7",
+          "en-core-web-sm": "3.8.0",
+          "rapidfuzz": "3.14.5"
+        },
+        "scores": {
+          "rules": {
+            "edit_precision": 0.7048710601719198,
+            "edit_recall": 0.15638906547997458,
+            "edit_f0_5": 0.4142809026608286,
+            "true_positive_edits": 246,
+            "false_positive_edits": 103,
+            "missed_edits": 1327,
+            "predicted_edits": 349,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 38,
+            "clean_sentence_false_positive_rate": 0.17592592592592593
+          },
+          "model_only": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.7272727272727273,
+              "edit_recall": 0.005698005698005698,
+              "edit_f0_5": 0.027624309392265196,
+              "true_positive_edits": 8,
+              "false_positive_edits": 3,
+              "missed_edits": 1396,
+              "predicted_edits": 11,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.004629629629629629
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 0.75,
+              "edit_recall": 0.0042765502494654314,
+              "edit_f0_5": 0.020905923344947733,
+              "true_positive_edits": 6,
+              "false_positive_edits": 2,
+              "missed_edits": 1397,
+              "predicted_edits": 8,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.004629629629629629
+            },
+            {
+              "threshold": 0.85,
+              "edit_precision": 0.8571428571428571,
+              "edit_recall": 0.0042765502494654314,
+              "edit_f0_5": 0.020964360587002098,
+              "true_positive_edits": 6,
+              "false_positive_edits": 1,
+              "missed_edits": 1397,
+              "predicted_edits": 7,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.004629629629629629
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 1.0,
+              "edit_recall": 0.003563791874554526,
+              "edit_f0_5": 0.017568517217146876,
+              "true_positive_edits": 5,
+              "false_positive_edits": 0,
+              "missed_edits": 1398,
+              "predicted_edits": 5,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.004629629629629629
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 1.0,
+              "edit_recall": 0.0021382751247327157,
+              "edit_f0_5": 0.01060070671378092,
+              "true_positive_edits": 3,
+              "false_positive_edits": 0,
+              "missed_edits": 1400,
+              "predicted_edits": 3,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.004629629629629629
+            }
+          ],
+          "full_engine": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.85,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            }
+          ]
+        },
+        "model": {
+          "name": "gamma-eh-tiny-keep03-lr2e4",
+          "manifest_sha256": "9de9c26d7e9954c5fb01c0a551095201f6f16546b28f27b40a62275bd32ac607",
+          "model_sha256": "b3f4888900b404b738c991137c6e87db0cca8b5ecd51069847b175890de82f26"
+        }
+      },
+      "natural_calibration": {
+        "selected": {
+          "threshold": 1.0,
+          "edit_precision": 1.0,
+          "edit_f0_5": 0.0,
+          "true_positive_edits": 0,
+          "false_positive_edits": 0,
+          "clean_sentence_false_positive_rate": 0.0
+        },
+        "split": "dev",
+        "constraints_met": false,
+        "disable_model_edits": true,
+        "constraints": {
+          "min_precision": 0.95,
+          "max_clean_false_positive_rate": 0.02,
+          "min_predicted_edits": 25
+        },
+        "fallback_reason": "No development threshold meets precision, clean-text and edit-support requirements.",
+        "engine_source_sha256": "60e6c474c641694a90032a7e302eecb6e87bf80c8cb8018922427147494ae5f8",
+        "development_score_sha256": "1c31da7126ba8a305e67a4de59923dfdf85e7bc650d9fab9d8e93857f6354114"
+      },
+      "challenge_before_decoder_fix": {
+        "browser_report_sha256": "d23f97c88b523621a93a389a760e5df0ce60acbfc15722813f1ff464e32a33c6",
+        "engine_source_sha256": "c433773f7def4e231394caef32f8f6286962775c409bd36c73d64976a11a71f5",
+        "scope": "Inspected regression audit; not used to promote a candidate",
+        "scores": [
+          {
+            "threshold": 0.6,
+            "sentences": 512,
+            "fully_corrected": 52,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.8,
+            "sentences": 512,
+            "fully_corrected": 50,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.85,
+            "sentences": 512,
+            "fully_corrected": 50,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.95,
+            "sentences": 512,
+            "fully_corrected": 47,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.995,
+            "sentences": 512,
+            "fully_corrected": 44,
+            "clean_changed": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "keep10-lr2e4",
+      "keep_weight": 1.0,
+      "learning_rate": 0.0002,
+      "training": {
+        "base_model": "google/bert_uncased_L-2_H-128_A-2",
+        "base_revision": "30b0a37ccaaa32f332884b96992754e246e48c5f",
+        "seed": 42,
+        "device": "cuda",
+        "parameters": 4377922,
+        "training_seconds": 35.06,
+        "training_config": {
+          "learning_rate": 0.0002,
+          "keep_weight": 1.0,
+          "batch_size": 128,
+          "max_length": 64,
+          "epochs": 8
+        },
+        "test": {
+          "threshold": 0.8,
+          "edit_precision": 1.0,
+          "edit_recall": 0.9952776420778375,
+          "edit_f0_5": 0.9990519467782537,
+          "sentence_tag_accuracy": 0.9962616562843323,
+          "clean_sentence_false_positive_rate": 0.0,
+          "true_positive_edits": 6112,
+          "false_positive_edits": 0,
+          "missed_edits": 29,
+          "sentences": 7490
+        },
+        "scope": "Synthetic token-label evaluation; independent natural/challenge evaluation required.",
+        "publication_allowed": true,
+        "evaluation_sha256": "df0fef0fc957d4ea721d2225df1734d78e55a726a2f54a48215024873aeb54f9",
+        "selected_epoch": 8,
+        "synthetic_development": {
+          "threshold": 0.8,
+          "edit_precision": 0.9998263888888889,
+          "edit_recall": 0.9965391936321163,
+          "edit_f0_5": 0.9991672160727298,
+          "sentence_tag_accuracy": 0.9970841407775879,
+          "clean_sentence_false_positive_rate": 0.0,
+          "true_positive_edits": 5759,
+          "false_positive_edits": 1,
+          "missed_edits": 20,
+          "sentences": 7202
+        },
+        "exports": {
+          "model.onnx": {
+            "max_logit_difference": 3.0517578125e-05,
+            "argmax_agreement": 1.0
+          },
+          "model_quantized.onnx": {
+            "max_logit_difference": 3.5154528617858887,
+            "argmax_agreement": 0.9999496936798096
+          }
+        }
+      },
+      "model_sha256": "7d2bf6d455f41b7d2c2a4c0e71510f26c8e106ead5fc8367730610f9ffc2de01",
+      "diagnostic_manifest_sha256": "bca10063dfcbaef37f38b3d62682dea23e6cad2763b1d6c172930de49a78f5e8",
+      "retained_manifest_sha256": "16bcfd9d34bce468168486dad6a8027ada05a282bc7015ab85ae1e33b30512a3",
+      "natural_dev_before_decoder_fix": {
+        "sha256": "975c07846cf277c52ab3a7ad76a7d528bbccd314dc494d37dcb986a6dbb6048b",
+        "scope": "Complete-population JAX/WASM; actual ERRANT with best sentence F0.5 reference; not official JFLEG GLEU.",
+        "input_sha256": "b5581c7aa7dfcbacdf39b41256e3b01e13e85ace621baa766ac2b3868723f3a5",
+        "browser_report_sha256": "fbdd5e3374b9ff8a5361493f9d7bf452d08897774147a5c748c2deab86914f24",
+        "engine_source_sha256": "c433773f7def4e231394caef32f8f6286962775c409bd36c73d64976a11a71f5",
+        "scorer_versions": {
+          "errant": "3.0.2",
+          "spacy": "3.8.7",
+          "en-core-web-sm": "3.8.0",
+          "rapidfuzz": "3.14.5"
+        },
+        "scores": {
+          "rules": {
+            "edit_precision": 0.7048710601719198,
+            "edit_recall": 0.15638906547997458,
+            "edit_f0_5": 0.4142809026608286,
+            "true_positive_edits": 246,
+            "false_positive_edits": 103,
+            "missed_edits": 1327,
+            "predicted_edits": 349,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 38,
+            "clean_sentence_false_positive_rate": 0.17592592592592593
+          },
+          "model_only": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.13333333333333333,
+              "edit_recall": 0.0056939501779359435,
+              "edit_f0_5": 0.024316109422492405,
+              "true_positive_edits": 8,
+              "false_positive_edits": 52,
+              "missed_edits": 1397,
+              "predicted_edits": 60,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 10,
+              "clean_sentence_false_positive_rate": 0.046296296296296294
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 0.1724137931034483,
+              "edit_recall": 0.003563791874554526,
+              "edit_f0_5": 0.016458196181698487,
+              "true_positive_edits": 5,
+              "false_positive_edits": 24,
+              "missed_edits": 1398,
+              "predicted_edits": 29,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 3,
+              "clean_sentence_false_positive_rate": 0.013888888888888888
+            },
+            {
+              "threshold": 0.9,
+              "edit_precision": 0.21052631578947367,
+              "edit_recall": 0.002851033499643621,
+              "edit_f0_5": 0.01352265043948614,
+              "true_positive_edits": 4,
+              "false_positive_edits": 15,
+              "missed_edits": 1399,
+              "predicted_edits": 19,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 3,
+              "clean_sentence_false_positive_rate": 0.013888888888888888
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 0.25,
+              "edit_recall": 0.002851033499643621,
+              "edit_f0_5": 0.013633265167007498,
+              "true_positive_edits": 4,
+              "false_positive_edits": 12,
+              "missed_edits": 1399,
+              "predicted_edits": 16,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 2,
+              "clean_sentence_false_positive_rate": 0.009259259259259259
+            },
+            {
+              "threshold": 0.98,
+              "edit_precision": 0.25,
+              "edit_recall": 0.0021382751247327157,
+              "edit_f0_5": 0.010337698139214336,
+              "true_positive_edits": 3,
+              "false_positive_edits": 9,
+              "missed_edits": 1400,
+              "predicted_edits": 12,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 2,
+              "clean_sentence_false_positive_rate": 0.009259259259259259
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 0.3333333333333333,
+              "edit_recall": 0.0021382751247327157,
+              "edit_f0_5": 0.010423905489923557,
+              "true_positive_edits": 3,
+              "false_positive_edits": 6,
+              "missed_edits": 1400,
+              "predicted_edits": 9,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 2,
+              "clean_sentence_false_positive_rate": 0.009259259259259259
+            }
+          ],
+          "full_engine": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.6569148936170213,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.400974025974026,
+              "true_positive_edits": 247,
+              "false_positive_edits": 129,
+              "missed_edits": 1329,
+              "predicted_edits": 376,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 40,
+              "clean_sentence_false_positive_rate": 0.18518518518518517
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 0.6785714285714286,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.4073218997361478,
+              "true_positive_edits": 247,
+              "false_positive_edits": 117,
+              "missed_edits": 1329,
+              "predicted_edits": 364,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.9,
+              "edit_precision": 0.6880222841225627,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.4100265604249668,
+              "true_positive_edits": 247,
+              "false_positive_edits": 112,
+              "missed_edits": 1329,
+              "predicted_edits": 359,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 0.6918767507002801,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.4111185086551265,
+              "true_positive_edits": 247,
+              "false_positive_edits": 110,
+              "missed_edits": 1329,
+              "predicted_edits": 357,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.98,
+              "edit_precision": 0.6957746478873239,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41221628838451274,
+              "true_positive_edits": 247,
+              "false_positive_edits": 108,
+              "missed_edits": 1329,
+              "predicted_edits": 355,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 0.7017045454545454,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.4138739946380697,
+              "true_positive_edits": 247,
+              "false_positive_edits": 105,
+              "missed_edits": 1329,
+              "predicted_edits": 352,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            }
+          ]
+        },
+        "model": {
+          "name": "gamma-eh-tiny-keep10-lr2e4",
+          "manifest_sha256": "4031848f949b0076362b80b0678a4be82bab9bb988f7c043a03921c15ce2b9e2",
+          "model_sha256": "7d2bf6d455f41b7d2c2a4c0e71510f26c8e106ead5fc8367730610f9ffc2de01"
+        }
+      },
+      "natural_dev_after_decoder_fix": {
+        "sha256": "d0d0fc9f3cec772ee3fd98ecd92eb7446c010882ef6803fbe849bb67fb61f851",
+        "passed": true,
+        "scope": "Complete-population JAX/WASM; actual ERRANT with best sentence F0.5 reference; not official JFLEG GLEU.",
+        "input_sha256": "b5581c7aa7dfcbacdf39b41256e3b01e13e85ace621baa766ac2b3868723f3a5",
+        "browser_report_sha256": "d8fe2c5e2e3559608ff23f328171bad4cbdd7d747c91fd98d60fb5650bd87d43",
+        "engine_source_sha256": "60e6c474c641694a90032a7e302eecb6e87bf80c8cb8018922427147494ae5f8",
+        "scorer_versions": {
+          "errant": "3.0.2",
+          "spacy": "3.8.7",
+          "en-core-web-sm": "3.8.0",
+          "rapidfuzz": "3.14.5"
+        },
+        "scores": {
+          "rules": {
+            "edit_precision": 0.7048710601719198,
+            "edit_recall": 0.15638906547997458,
+            "edit_f0_5": 0.4142809026608286,
+            "true_positive_edits": 246,
+            "false_positive_edits": 103,
+            "missed_edits": 1327,
+            "predicted_edits": 349,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 38,
+            "clean_sentence_false_positive_rate": 0.17592592592592593
+          },
+          "model_only": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.7777777777777778,
+              "edit_recall": 0.004985754985754986,
+              "edit_f0_5": 0.024305555555555556,
+              "true_positive_edits": 7,
+              "false_positive_edits": 2,
+              "missed_edits": 1397,
+              "predicted_edits": 9,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.004629629629629629
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 1.0,
+              "edit_recall": 0.003563791874554526,
+              "edit_f0_5": 0.017568517217146876,
+              "true_positive_edits": 5,
+              "false_positive_edits": 0,
+              "missed_edits": 1398,
+              "predicted_edits": 5,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.004629629629629629
+            },
+            {
+              "threshold": 0.85,
+              "edit_precision": 1.0,
+              "edit_recall": 0.002851033499643621,
+              "edit_f0_5": 0.014094432699083864,
+              "true_positive_edits": 4,
+              "false_positive_edits": 0,
+              "missed_edits": 1399,
+              "predicted_edits": 4,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.004629629629629629
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 1.0,
+              "edit_recall": 0.002851033499643621,
+              "edit_f0_5": 0.014094432699083864,
+              "true_positive_edits": 4,
+              "false_positive_edits": 0,
+              "missed_edits": 1399,
+              "predicted_edits": 4,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.004629629629629629
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 1.0,
+              "edit_recall": 0.0021382751247327157,
+              "edit_f0_5": 0.01060070671378092,
+              "true_positive_edits": 3,
+              "false_positive_edits": 0,
+              "missed_edits": 1400,
+              "predicted_edits": 3,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.004629629629629629
+            }
+          ],
+          "full_engine": [
+            {
+              "threshold": 0.6,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.8,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.85,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.95,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            },
+            {
+              "threshold": 0.995,
+              "edit_precision": 0.7057142857142857,
+              "edit_recall": 0.1567258883248731,
+              "edit_f0_5": 0.41498655913978494,
+              "true_positive_edits": 247,
+              "false_positive_edits": 103,
+              "missed_edits": 1329,
+              "predicted_edits": 350,
+              "sentences": 754,
+              "clean_sentences": 216,
+              "clean_sentences_changed": 38,
+              "clean_sentence_false_positive_rate": 0.17592592592592593
+            }
+          ]
+        },
+        "model": {
+          "name": "gamma-eh-tiny-keep10-lr2e4",
+          "manifest_sha256": "bca10063dfcbaef37f38b3d62682dea23e6cad2763b1d6c172930de49a78f5e8",
+          "model_sha256": "7d2bf6d455f41b7d2c2a4c0e71510f26c8e106ead5fc8367730610f9ffc2de01"
+        }
+      },
+      "natural_calibration": {
+        "selected": {
+          "threshold": 1.0,
+          "edit_precision": 1.0,
+          "edit_f0_5": 0.0,
+          "true_positive_edits": 0,
+          "false_positive_edits": 0,
+          "clean_sentence_false_positive_rate": 0.0
+        },
+        "split": "dev",
+        "constraints_met": false,
+        "disable_model_edits": true,
+        "constraints": {
+          "min_precision": 0.95,
+          "max_clean_false_positive_rate": 0.02,
+          "min_predicted_edits": 25
+        },
+        "fallback_reason": "No development threshold meets precision, clean-text and edit-support requirements.",
+        "engine_source_sha256": "60e6c474c641694a90032a7e302eecb6e87bf80c8cb8018922427147494ae5f8",
+        "development_score_sha256": "d0d0fc9f3cec772ee3fd98ecd92eb7446c010882ef6803fbe849bb67fb61f851"
+      },
+      "challenge_before_decoder_fix": {
+        "browser_report_sha256": "1dbc91ee20af0154671171599cc769a089a6d8d14222622375e62a9b6d13a83c",
+        "engine_source_sha256": "c433773f7def4e231394caef32f8f6286962775c409bd36c73d64976a11a71f5",
+        "scope": "Inspected regression audit; not used to promote a candidate",
+        "scores": [
+          {
+            "threshold": 0.6,
+            "sentences": 512,
+            "fully_corrected": 48,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.8,
+            "sentences": 512,
+            "fully_corrected": 48,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.85,
+            "sentences": 512,
+            "fully_corrected": 48,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.95,
+            "sentences": 512,
+            "fully_corrected": 48,
+            "clean_changed": 0
+          },
+          {
+            "threshold": 0.995,
+            "sentences": 512,
+            "fully_corrected": 43,
+            "clean_changed": 0
+          }
+        ]
+      }
+    }
+  ],
+  "promotion": {
+    "qualified_profiles": [],
+    "weights_changed": false,
+    "decision": "Retain existing checkpoint; all four new weights fail natural development qualification. Ship only the general decoder safeguard."
+  },
+  "baseline_decoder_comparison": {
+    "development_before": {
+      "sha256": "a735914e71e641d1ea675089905398b3d1b73267ca85126df11d164512ab0514",
+      "passed": true,
+      "scope": "Complete-population JAX/WASM; actual ERRANT with best sentence F0.5 reference; not official JFLEG GLEU.",
+      "input_sha256": "b5581c7aa7dfcbacdf39b41256e3b01e13e85ace621baa766ac2b3868723f3a5",
+      "browser_report_sha256": "77643da75c7540c1ba22ea2ed781fcd0a69ca4e9f075a749b221d99a3d562fed",
+      "engine_source_sha256": "326e6c4f4c508a09219046ac17549a7843d10f6ce0e6c143df68eef22d39bb50",
+      "scorer_versions": {
+        "errant": "3.0.2",
+        "spacy": "3.8.7",
+        "en-core-web-sm": "3.8.0",
+        "rapidfuzz": "3.14.5"
+      },
+      "scores": {
+        "rules": {
+          "edit_precision": 0.7048710601719198,
+          "edit_recall": 0.15638906547997458,
+          "edit_f0_5": 0.4142809026608286,
+          "true_positive_edits": 246,
+          "false_positive_edits": 103,
+          "missed_edits": 1327,
+          "predicted_edits": 349,
+          "sentences": 754,
+          "clean_sentences": 216,
+          "clean_sentences_changed": 38,
+          "clean_sentence_false_positive_rate": 0.17592592592592593
+        },
+        "model_only": [
+          {
+            "threshold": 0.85,
+            "edit_precision": 0.08029197080291971,
+            "edit_recall": 0.007829181494661922,
+            "edit_f0_5": 0.02816180235535074,
+            "true_positive_edits": 11,
+            "false_positive_edits": 126,
+            "missed_edits": 1394,
+            "predicted_edits": 137,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 26,
+            "clean_sentence_false_positive_rate": 0.12037037037037036
+          }
+        ],
+        "full_engine": [
+          {
+            "threshold": 0.85,
+            "edit_precision": 0.5501113585746102,
+            "edit_recall": 0.1567258883248731,
+            "edit_f0_5": 0.3662514827995255,
+            "true_positive_edits": 247,
+            "false_positive_edits": 202,
+            "missed_edits": 1329,
+            "predicted_edits": 449,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 54,
+            "clean_sentence_false_positive_rate": 0.25
+          }
+        ]
+      },
+      "model": {
+        "name": "gamma-eh-tiny-edit-v1",
+        "manifest_sha256": "8f2880d15e8289d26aecaaae22d35d94f6f808ef9fb5933239c53da83124c7bf",
+        "model_sha256": "cb3280db7b33a7273ae75e87c8c5d432c63f9bdac89101d93dda72c776b38266"
+      }
+    },
+    "development_after": {
+      "sha256": "fbcceac05b4c755f6a334938c472ef0d8b7fa6e9d3505f685b47066e8ce9cb27",
+      "passed": true,
+      "scope": "Complete-population JAX/WASM; actual ERRANT with best sentence F0.5 reference; not official JFLEG GLEU.",
+      "input_sha256": "b5581c7aa7dfcbacdf39b41256e3b01e13e85ace621baa766ac2b3868723f3a5",
+      "browser_report_sha256": "da6b9f49e171eedbaa1707cf931bdc1bc3f167244774fa3e22da88ae99a33916",
+      "engine_source_sha256": "60e6c474c641694a90032a7e302eecb6e87bf80c8cb8018922427147494ae5f8",
+      "scorer_versions": {
+        "errant": "3.0.2",
+        "spacy": "3.8.7",
+        "en-core-web-sm": "3.8.0",
+        "rapidfuzz": "3.14.5"
+      },
+      "scores": {
+        "rules": {
+          "edit_precision": 0.7048710601719198,
+          "edit_recall": 0.15638906547997458,
+          "edit_f0_5": 0.4142809026608286,
+          "true_positive_edits": 246,
+          "false_positive_edits": 103,
+          "missed_edits": 1327,
+          "predicted_edits": 349,
+          "sentences": 754,
+          "clean_sentences": 216,
+          "clean_sentences_changed": 38,
+          "clean_sentence_false_positive_rate": 0.17592592592592593
+        },
+        "model_only": [
+          {
+            "threshold": 0.6,
+            "edit_precision": 0.8333333333333334,
+            "edit_recall": 0.01048951048951049,
+            "edit_f0_5": 0.04993342210386152,
+            "true_positive_edits": 15,
+            "false_positive_edits": 3,
+            "missed_edits": 1415,
+            "predicted_edits": 18,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 3,
+            "clean_sentence_false_positive_rate": 0.013888888888888888
+          },
+          {
+            "threshold": 0.8,
+            "edit_precision": 0.8571428571428571,
+            "edit_recall": 0.008397480755773267,
+            "edit_f0_5": 0.0404040404040404,
+            "true_positive_edits": 12,
+            "false_positive_edits": 2,
+            "missed_edits": 1417,
+            "predicted_edits": 14,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 3,
+            "clean_sentence_false_positive_rate": 0.013888888888888888
+          },
+          {
+            "threshold": 0.85,
+            "edit_precision": 0.9090909090909091,
+            "edit_recall": 0.007122507122507123,
+            "edit_f0_5": 0.03453038674033149,
+            "true_positive_edits": 10,
+            "false_positive_edits": 1,
+            "missed_edits": 1394,
+            "predicted_edits": 11,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 1,
+            "clean_sentence_false_positive_rate": 0.004629629629629629
+          },
+          {
+            "threshold": 0.95,
+            "edit_precision": 1.0,
+            "edit_recall": 0.004985754985754986,
+            "edit_f0_5": 0.024441340782122907,
+            "true_positive_edits": 7,
+            "false_positive_edits": 0,
+            "missed_edits": 1397,
+            "predicted_edits": 7,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 1,
+            "clean_sentence_false_positive_rate": 0.004629629629629629
+          },
+          {
+            "threshold": 0.995,
+            "edit_precision": 1.0,
+            "edit_recall": 0.0021382751247327157,
+            "edit_f0_5": 0.01060070671378092,
+            "true_positive_edits": 3,
+            "false_positive_edits": 0,
+            "missed_edits": 1400,
+            "predicted_edits": 3,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 1,
+            "clean_sentence_false_positive_rate": 0.004629629629629629
+          }
+        ],
+        "full_engine": [
+          {
+            "threshold": 0.6,
+            "edit_precision": 0.7057142857142857,
+            "edit_recall": 0.1567258883248731,
+            "edit_f0_5": 0.41498655913978494,
+            "true_positive_edits": 247,
+            "false_positive_edits": 103,
+            "missed_edits": 1329,
+            "predicted_edits": 350,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 38,
+            "clean_sentence_false_positive_rate": 0.17592592592592593
+          },
+          {
+            "threshold": 0.8,
+            "edit_precision": 0.7057142857142857,
+            "edit_recall": 0.1567258883248731,
+            "edit_f0_5": 0.41498655913978494,
+            "true_positive_edits": 247,
+            "false_positive_edits": 103,
+            "missed_edits": 1329,
+            "predicted_edits": 350,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 38,
+            "clean_sentence_false_positive_rate": 0.17592592592592593
+          },
+          {
+            "threshold": 0.85,
+            "edit_precision": 0.7057142857142857,
+            "edit_recall": 0.1567258883248731,
+            "edit_f0_5": 0.41498655913978494,
+            "true_positive_edits": 247,
+            "false_positive_edits": 103,
+            "missed_edits": 1329,
+            "predicted_edits": 350,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 38,
+            "clean_sentence_false_positive_rate": 0.17592592592592593
+          },
+          {
+            "threshold": 0.95,
+            "edit_precision": 0.7057142857142857,
+            "edit_recall": 0.1567258883248731,
+            "edit_f0_5": 0.41498655913978494,
+            "true_positive_edits": 247,
+            "false_positive_edits": 103,
+            "missed_edits": 1329,
+            "predicted_edits": 350,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 38,
+            "clean_sentence_false_positive_rate": 0.17592592592592593
+          },
+          {
+            "threshold": 0.995,
+            "edit_precision": 0.7057142857142857,
+            "edit_recall": 0.1567258883248731,
+            "edit_f0_5": 0.41498655913978494,
+            "true_positive_edits": 247,
+            "false_positive_edits": 103,
+            "missed_edits": 1329,
+            "predicted_edits": 350,
+            "sentences": 754,
+            "clean_sentences": 216,
+            "clean_sentences_changed": 38,
+            "clean_sentence_false_positive_rate": 0.17592592592592593
+          }
+        ]
+      },
+      "model": {
+        "name": "gamma-eh-tiny-edit-v1",
+        "manifest_sha256": "8f2880d15e8289d26aecaaae22d35d94f6f808ef9fb5933239c53da83124c7bf",
+        "model_sha256": "cb3280db7b33a7273ae75e87c8c5d432c63f9bdac89101d93dda72c776b38266"
+      }
+    },
+    "test_before": {
+      "sha256": "83a79a329c9f479f4474c2485c307f6955355a876c0a2f206648c34d4dd955b0",
+      "passed": true,
+      "scope": "Complete-population JAX/WASM; actual ERRANT with best sentence F0.5 reference; not official JFLEG GLEU.",
+      "input_sha256": "22504390dc7921e1a4e85d77847b89953965ce385d22b428efec764e2abe6760",
+      "browser_report_sha256": "59dbd1de68512cb2b04ad7b0112ef993b02a741b109923a70a01f07327fde932",
+      "engine_source_sha256": "326e6c4f4c508a09219046ac17549a7843d10f6ce0e6c143df68eef22d39bb50",
+      "scorer_versions": {
+        "errant": "3.0.2",
+        "spacy": "3.8.7",
+        "en-core-web-sm": "3.8.0",
+        "rapidfuzz": "3.14.5"
+      },
+      "scores": {
+        "rules": {
+          "edit_precision": 0.71900826446281,
+          "edit_recall": 0.16904145077720206,
+          "edit_f0_5": 0.43558077436582116,
+          "true_positive_edits": 261,
+          "false_positive_edits": 102,
+          "missed_edits": 1283,
+          "predicted_edits": 363,
+          "sentences": 747,
+          "clean_sentences": 182,
+          "clean_sentences_changed": 2,
+          "clean_sentence_false_positive_rate": 0.01098901098901099
+        },
+        "model_only": [
+          {
+            "threshold": 0.85,
+            "edit_precision": 0.050724637681159424,
+            "edit_recall": 0.004720161834120027,
+            "edit_f0_5": 0.0171990171990172,
+            "true_positive_edits": 7,
+            "false_positive_edits": 131,
+            "missed_edits": 1476,
+            "predicted_edits": 138,
+            "sentences": 747,
+            "clean_sentences": 182,
+            "clean_sentences_changed": 23,
+            "clean_sentence_false_positive_rate": 0.12637362637362637
+          }
+        ],
+        "full_engine": [
+          {
+            "threshold": 0.85,
+            "edit_precision": 0.5529661016949152,
+            "edit_recall": 0.16904145077720206,
+            "edit_f0_5": 0.3802447552447552,
+            "true_positive_edits": 261,
+            "false_positive_edits": 211,
+            "missed_edits": 1283,
+            "predicted_edits": 472,
+            "sentences": 747,
+            "clean_sentences": 182,
+            "clean_sentences_changed": 24,
+            "clean_sentence_false_positive_rate": 0.13186813186813187
+          }
+        ]
+      },
+      "model": {
+        "name": "gamma-eh-tiny-edit-v1",
+        "manifest_sha256": "8f2880d15e8289d26aecaaae22d35d94f6f808ef9fb5933239c53da83124c7bf",
+        "model_sha256": "cb3280db7b33a7273ae75e87c8c5d432c63f9bdac89101d93dda72c776b38266"
+      }
+    },
+    "test_after": {
+      "sha256": "d2cb119d3f22d4c2fea1a2e18c684a28a4b69d1ef63a84ee72dfe5cd0a209fd9",
+      "passed": true,
+      "scope": "Complete-population JAX/WASM; actual ERRANT with best sentence F0.5 reference; not official JFLEG GLEU.",
+      "input_sha256": "22504390dc7921e1a4e85d77847b89953965ce385d22b428efec764e2abe6760",
+      "browser_report_sha256": "0296168e81eaefb1ca6fd1dbe3bc812d27c05255a3109a610a97e59423a4c681",
+      "engine_source_sha256": "60e6c474c641694a90032a7e302eecb6e87bf80c8cb8018922427147494ae5f8",
+      "scorer_versions": {
+        "errant": "3.0.2",
+        "spacy": "3.8.7",
+        "en-core-web-sm": "3.8.0",
+        "rapidfuzz": "3.14.5"
+      },
+      "scores": {
+        "rules": {
+          "edit_precision": 0.71900826446281,
+          "edit_recall": 0.16904145077720206,
+          "edit_f0_5": 0.43558077436582116,
+          "true_positive_edits": 261,
+          "false_positive_edits": 102,
+          "missed_edits": 1283,
+          "predicted_edits": 363,
+          "sentences": 747,
+          "clean_sentences": 182,
+          "clean_sentences_changed": 2,
+          "clean_sentence_false_positive_rate": 0.01098901098901099
+        },
+        "model_only": [
+          {
+            "threshold": 0.85,
+            "edit_precision": 0.875,
+            "edit_recall": 0.004720161834120027,
+            "edit_f0_5": 0.0231023102310231,
+            "true_positive_edits": 7,
+            "false_positive_edits": 1,
+            "missed_edits": 1476,
+            "predicted_edits": 8,
+            "sentences": 747,
+            "clean_sentences": 182,
+            "clean_sentences_changed": 0,
+            "clean_sentence_false_positive_rate": 0.0
+          }
+        ],
+        "full_engine": [
+          {
+            "threshold": 0.85,
+            "edit_precision": 0.71900826446281,
+            "edit_recall": 0.16904145077720206,
+            "edit_f0_5": 0.43558077436582116,
+            "true_positive_edits": 261,
+            "false_positive_edits": 102,
+            "missed_edits": 1283,
+            "predicted_edits": 363,
+            "sentences": 747,
+            "clean_sentences": 182,
+            "clean_sentences_changed": 2,
+            "clean_sentence_false_positive_rate": 0.01098901098901099
+          }
+        ]
+      },
+      "model": {
+        "name": "gamma-eh-tiny-edit-v1",
+        "manifest_sha256": "8f2880d15e8289d26aecaaae22d35d94f6f808ef9fb5933239c53da83124c7bf",
+        "model_sha256": "cb3280db7b33a7273ae75e87c8c5d432c63f9bdac89101d93dda72c776b38266"
+      }
+    },
+    "challenge_after": {
+      "schema": 1,
+      "evaluated_at": "2026-10-01T07:43:01.296Z",
+      "runtime": {
+        "schema": 1,
+        "engine": "jax-js",
+        "weights": "model.onnx",
+        "dtype": "float32",
+        "versions": {
+          "@jax-js/jax": "0.1.25",
+          "@jax-js/onnx": "0.1.2",
+          "onnx-buf": "1.20.0-1",
+          "@bufbuild/protobuf": "2.16.0"
+        }
+      },
+      "evaluation_backend": "wasm",
+      "infrastructure_passed": true,
+      "network": [],
+      "page_errors": [],
+      "scope": "Original synthetic templates only; not general grammar accuracy.",
+      "corpus_sha256": "b64f9616b8a39b4e638e183930a059362076442b9d5e605d2272c3574a8f37fb",
+      "engine_source_sha256": "60e6c474c641694a90032a7e302eecb6e87bf80c8cb8018922427147494ae5f8",
+      "model_name": "gamma-eh-tiny-edit-v1",
+      "model_sha256": "cb3280db7b33a7273ae75e87c8c5d432c63f9bdac89101d93dda72c776b38266",
+      "model_manifest_sha256": "8f2880d15e8289d26aecaaae22d35d94f6f808ef9fb5933239c53da83124c7bf",
+      "confidence_threshold": 0.85,
+      "chromium_version": "149.0.7827.55",
+      "model_label_coverage": {
+        "erroneous_cases": 240,
+        "representable": 160,
+        "unsupported_cases_included": 80
+      },
+      "scores": {
+        "rules": {
+          "sentences": 512,
+          "exact_matches": 304,
+          "exact_match_rate": 0.59375,
+          "clean_sentences": 272,
+          "clean_preserved": 272,
+          "clean_false_positives": 0,
+          "clean_false_positive_rate": 0,
+          "erroneous_sentences": 240,
+          "fully_corrected": 32,
+          "complete_correction_rate": 0.13333333333333333,
+          "abstentions": 176,
+          "error_abstention_rate": 0.7333333333333333,
+          "incorrect_or_partial_outputs": 32,
+          "suggestion_sources": {
+            "rule": 48,
+            "dictionary": 16
+          },
+          "by_family": {
+            "agreement-attraction": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "article-exceptions": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "compound-subjects": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "embedded-agreement": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "inverted-questions": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "modal-auxiliaries": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "multiple-errors": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 0,
+              "error_abstention_rate": 0,
+              "incorrect_or_partial_outputs": 16,
+              "suggestion_sources": {
+                "rule": 16
+              }
+            },
+            "negative-auxiliaries": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "past-attraction": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "protected-prose": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "relative-clauses": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "reserved-spelling": {
+              "sentences": 32,
+              "exact_matches": 32,
+              "exact_match_rate": 1,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 16,
+              "complete_correction_rate": 1,
+              "abstentions": 0,
+              "error_abstention_rate": 0,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {
+                "dictionary": 16
+              }
+            },
+            "reserved-subjects": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "unicode-offsets": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 0,
+              "error_abstention_rate": 0,
+              "incorrect_or_partial_outputs": 16,
+              "suggestion_sources": {
+                "rule": 16
+              }
+            },
+            "valid-constructions": {
+              "sentences": 32,
+              "exact_matches": 32,
+              "exact_match_rate": 1,
+              "clean_sentences": 32,
+              "clean_preserved": 32,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 0,
+              "fully_corrected": 0,
+              "complete_correction_rate": null,
+              "abstentions": 0,
+              "error_abstention_rate": null,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "window-boundaries": {
+              "sentences": 32,
+              "exact_matches": 32,
+              "exact_match_rate": 1,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 16,
+              "complete_correction_rate": 1,
+              "abstentions": 0,
+              "error_abstention_rate": 0,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {
+                "rule": 16
+              }
+            }
+          }
+        },
+        "full_engine": {
+          "sentences": 512,
+          "exact_matches": 323,
+          "exact_match_rate": 0.630859375,
+          "clean_sentences": 272,
+          "clean_preserved": 272,
+          "clean_false_positives": 0,
+          "clean_false_positive_rate": 0,
+          "erroneous_sentences": 240,
+          "fully_corrected": 51,
+          "complete_correction_rate": 0.2125,
+          "abstentions": 161,
+          "error_abstention_rate": 0.6708333333333333,
+          "incorrect_or_partial_outputs": 28,
+          "suggestion_sources": {
+            "model": 19,
+            "rule": 48,
+            "dictionary": 16
+          },
+          "by_family": {
+            "agreement-attraction": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "article-exceptions": {
+              "sentences": 32,
+              "exact_matches": 29,
+              "exact_match_rate": 0.90625,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 13,
+              "complete_correction_rate": 0.8125,
+              "abstentions": 3,
+              "error_abstention_rate": 0.1875,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {
+                "model": 13
+              }
+            },
+            "compound-subjects": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "embedded-agreement": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "inverted-questions": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "modal-auxiliaries": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "multiple-errors": {
+              "sentences": 32,
+              "exact_matches": 18,
+              "exact_match_rate": 0.5625,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 2,
+              "complete_correction_rate": 0.125,
+              "abstentions": 0,
+              "error_abstention_rate": 0,
+              "incorrect_or_partial_outputs": 14,
+              "suggestion_sources": {
+                "rule": 16,
+                "model": 2
+              }
+            },
+            "negative-auxiliaries": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "past-attraction": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "protected-prose": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "relative-clauses": {
+              "sentences": 32,
+              "exact_matches": 16,
+              "exact_match_rate": 0.5,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 0,
+              "complete_correction_rate": 0,
+              "abstentions": 16,
+              "error_abstention_rate": 1,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "reserved-spelling": {
+              "sentences": 32,
+              "exact_matches": 32,
+              "exact_match_rate": 1,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 16,
+              "complete_correction_rate": 1,
+              "abstentions": 0,
+              "error_abstention_rate": 0,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {
+                "dictionary": 16
+              }
+            },
+            "reserved-subjects": {
+              "sentences": 32,
+              "exact_matches": 18,
+              "exact_match_rate": 0.5625,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 2,
+              "complete_correction_rate": 0.125,
+              "abstentions": 14,
+              "error_abstention_rate": 0.875,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {
+                "model": 2
+              }
+            },
+            "unicode-offsets": {
+              "sentences": 32,
+              "exact_matches": 18,
+              "exact_match_rate": 0.5625,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 2,
+              "complete_correction_rate": 0.125,
+              "abstentions": 0,
+              "error_abstention_rate": 0,
+              "incorrect_or_partial_outputs": 14,
+              "suggestion_sources": {
+                "rule": 16,
+                "model": 2
+              }
+            },
+            "valid-constructions": {
+              "sentences": 32,
+              "exact_matches": 32,
+              "exact_match_rate": 1,
+              "clean_sentences": 32,
+              "clean_preserved": 32,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 0,
+              "fully_corrected": 0,
+              "complete_correction_rate": null,
+              "abstentions": 0,
+              "error_abstention_rate": null,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {}
+            },
+            "window-boundaries": {
+              "sentences": 32,
+              "exact_matches": 32,
+              "exact_match_rate": 1,
+              "clean_sentences": 16,
+              "clean_preserved": 16,
+              "clean_false_positives": 0,
+              "clean_false_positive_rate": 0,
+              "erroneous_sentences": 16,
+              "fully_corrected": 16,
+              "complete_correction_rate": 1,
+              "abstentions": 0,
+              "error_abstention_rate": 0,
+              "incorrect_or_partial_outputs": 0,
+              "suggestion_sources": {
+                "rule": 16
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "limitations": [
+    "Only one training seed; all synthetic families remain narrow.",
+    "Natural scoring is custom best-sentence-reference ERRANT, not official JFLEG GLEU.",
+    "JFLEG clean identity can match one reference while another permits an edit.",
+    "Rules/dictionary false corrections remain in full-engine metrics.",
+    "The challenge was inspected; clean training controls share some challenge structures.",
+    "No new checkpoint qualifies; high precision with fewer than 25 edits is insufficient evidence."
+  ]
+}

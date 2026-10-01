@@ -34,7 +34,13 @@ INT8 agreement is 0.999916. Complete training/calibration/export evidence is in
 
 **These high scores measure held-out combinations of the same synthetic template
 families and vocabulary. They do not establish general grammar accuracy.**
-There are no reported BEA/CoNLL/JFLEG/ERRANT benchmark scores.
+The separate [controlled tuning study](../docs/model-tuning.md#measured-result)
+reports actual-browser JFLEG outputs with custom best-reference ERRANT scoring,
+not official JFLEG GLEU. The study retained these weights and improved decoder
+safety: test full-engine F0.5 is 43.56 versus 38.02 before the guard, with unchanged
+261 correct edits and false edits reduced from 211 to 102 across 747 sentences.
+Neural-only recall remains 0.47%; its eight predictions are too few to qualify
+a broadly reliable correction policy.
 
 ## Browser engine validation and limitations
 
@@ -58,6 +64,12 @@ ambiguous contexts abstain, regardless of model confidence; see
 [the verb-suggestion safeguard](../docs/dataset-and-training.md#conservative-verb-suggestions).
 Rule/model overlap gives rules priority. Classifier
 metrics above do not include these runtime guards.
+
+Lexical replacements now preserve known words, require bounded spelling evidence
+for unknown words, and reject pieces inside identifiers/compounds. Article insertion
+requires a closed supported singular object; duplicate deletion retains the first
+whole word. These restrictions intentionally abstain on ambiguous homophones and
+unsupported grammar. See [decoder restrictions](../docs/model-tuning.md#decoder-restrictions).
 
 Local AI is disabled by default and marked experimental; users can explicitly
 enable it. The finite vocabulary cannot perform general rewriting, arbitrary

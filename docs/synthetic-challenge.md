@@ -1,5 +1,10 @@
 # Harder synthetic evaluation and training augmentation
 
+The subsequent [tuning study](model-tuning.md#measured-result) retained the original
+weights and added lexical safeguards. Its full-engine regression result is 323/512
+exact, 51/240 complete corrections and 272/272 clean texts preserved. The original
+baseline below remains the before-change receipt.
+
 The near-perfect original template scores do not test unfamiliar vocabulary or
 complex subjects. `training/synthetic_challenge.py` adds an original CC0 corpus
 and a separate, more demanding synthetic challenge. It uses no customer text,

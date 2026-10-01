@@ -1,11 +1,12 @@
 import { JaxSession } from './jax-runtime';
 import { preserveCase } from './edits';
-import { validArticleEdit, validVerbEdit } from './guards';
+import { validAppendEdit, validReplacementEdit } from './guards';
 import { protectedSpans } from './rules';
+import { spellingWords } from './spelling';
 import { WordPieceTokenizer } from './tokenizer';
 import type { EngineOptions, Suggestion } from './types';
 
-interface ModelManifest { confidenceThreshold: number; maxSequenceLength: number }
+interface ModelManifest { confidenceThreshold: number; maxSequenceLength: number; disableModelEdits?: boolean }
 interface LoadedModel {
   session: JaxSession;
   tokenizer: WordPieceTokenizer;
@@ -37,6 +38,7 @@ async function load(options: EngineOptions): Promise<LoadedModel> {
       !Number.isInteger(manifest.maxSequenceLength) || manifest.maxSequenceLength < 3 || manifest.maxSequenceLength > 512) {
     throw new Error('Invalid model manifest');
   }
+  if ('disableModelEdits' in manifest && typeof manifest.disableModelEdits !== 'boolean') throw new Error('Invalid model edit policy');
   if (!Array.isArray(labels) || labels[0] !== 'KEEP' || !labels.every(label => typeof label === 'string')) {
     throw new Error('Invalid model edit vocabulary');
   }
@@ -59,10 +61,13 @@ function getModel(options: EngineOptions): Promise<LoadedModel> {
 
 export async function analyzeModel(text: string, options: EngineOptions, ruleSuggestions: Suggestion[] = []): Promise<{suggestions: Suggestion[]; backend: 'webgpu' | 'wasm'}> {
   const {session, tokenizer, labels, manifest, backend} = await getModel(options);
+  if (manifest.disableModelEdits) return {suggestions: [], backend};
   const threshold = options.confidenceThreshold ?? manifest.confidenceThreshold;
   if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1) throw new Error('Confidence threshold must be between zero and one');
   const suggestions: Suggestion[] = [];
   const protectedRanges = protectedSpans(text);
+  const wholeWords = new Set([...spellingWords(text)].filter(match => /^[A-Za-z]+(?:['’][A-Za-z]+)*$/u.test(match[0]))
+    .map(match => `${match.index}:${match.index + match[0].length}`));
   for (const chunk of tokenizer.chunks(text, manifest.maxSequenceLength)) {
     const first = chunk.positions[0]?.word.start ?? 0;
     const last = chunk.positions.at(-1)?.word.end ?? 0;
@@ -77,6 +82,7 @@ export async function analyzeModel(text: string, options: EngineOptions, ruleSug
     }
     for (const [index, {word, position}] of chunk.positions.entries()) {
       if (!/^[A-Za-z]+(?:['’][A-Za-z]+)*$/u.test(word.text)) continue;
+      if (!wholeWords.has(`${word.start}:${word.end}`)) continue;
       if (protectedRanges.some(range => word.start < range.end && range.start < word.end)) continue;
       const row = logits.data.subarray(position * labels.length, (position + 1) * labels.length);
       let best = 0;
@@ -86,28 +92,30 @@ export async function analyzeModel(text: string, options: EngineOptions, ruleSug
       const confidence = 1 / row.reduce((sum, value) => sum + Math.exp(value - peak), 0);
       if (confidence < threshold) continue;
       const tag = labels[best];
+      const next = chunk.positions[index + 1]?.word;
+      const nextWord = next && wholeWords.has(`${next.start}:${next.end}`) ? next.text : '';
       let {start, end} = word;
       let replacement: string;
       if (tag === 'DELETE') {
         // Training deletion labels come only from adjacent-token duplication.
         // An out-of-domain DELETE must not erase an arbitrary valid word.
         const lower = word.text.toLowerCase();
-        if (['had', 'that'].includes(lower) ||
-            (chunk.positions[index - 1]?.word.text.toLowerCase() !== lower &&
-             chunk.positions[index + 1]?.word.text.toLowerCase() !== lower)) continue;
-        // Remove adjacent horizontal whitespace, never a paragraph boundary.
-        if (/[ \t]/u.test(text[end] ?? '')) { while (/[ \t]/u.test(text[end] ?? '')) end++; }
-        else { while (start > 0 && /[ \t]/u.test(text[start - 1])) start--; }
+        const previous = chunk.positions[index - 1]?.word;
+        // Keep the first word even if both duplicates receive DELETE logits.
+        // Evidence must be a whole adjacent token, not an identifier fragment.
+        if (['had', 'that'].includes(lower) || !previous || previous.text.toLowerCase() !== lower ||
+            !wholeWords.has(`${previous.start}:${previous.end}`) || !/^[ \t]+$/u.test(text.slice(previous.end, start))) continue;
+        // Leading gaps keep multiple deletions disjoint and preserve paragraphs.
+        while (start > 0 && /[ \t]/u.test(text[start - 1])) start--;
         replacement = '';
       } else if (tag.startsWith('REPLACE:')) {
         const proposed = tag.slice(8);
-        if (!validVerbEdit(text, word, proposed)) continue;
-        if (['a', 'an'].includes(proposed) && !validArticleEdit(proposed, chunk.positions[index + 1]?.word.text ?? '')) continue;
+        if (!validReplacementEdit(text, word, proposed, nextWord)) continue;
         replacement = preserveCase(word.text, tag.slice(8));
         if (replacement === word.text) continue;
       } else if (tag.startsWith('APPEND:')) {
         const proposed = tag.slice(7);
-        if (['a', 'an'].includes(proposed) && !validArticleEdit(proposed, chunk.positions[index + 1]?.word.text ?? '')) continue;
+        if (!validAppendEdit(text, word, proposed, nextWord ? next : undefined)) continue;
         start = end;
         replacement = ' ' + tag.slice(7);
       } else continue;
