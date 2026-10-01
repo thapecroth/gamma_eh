@@ -45,6 +45,7 @@ async function fixture(t) {
   await put(root, 'models/browser/dataset-manifest.json', {license: 'CC0-1.0', origin: 'original-template-v1'});
   for (const name of ['LICENSE', 'NOTICE', 'licenses/onnxruntime/LICENSE',
     'licenses/onnxruntime/ThirdPartyNotices.txt', 'licenses/onnxruntime/README.md',
+    'licenses/spelling/README.md', 'licenses/spelling/SymSpell-LICENSE', 'licenses/spelling/SCOWL-Copyright',
     'node_modules/flatbuffers/LICENSE', 'node_modules/react/LICENSE', 'node_modules/react-dom/LICENSE', 'node_modules/scheduler/LICENSE']) {
     await put(root, name, `Fictional notice: ${name}\n`);
   }
@@ -96,7 +97,8 @@ test('packages root-level manifests, local inference assets, instructions, and l
     const names = new Set(listing.trim().split('\n'));
     for (const required of ['INSTALL.md', 'LICENSE', 'NOTICE', 'MODEL_CARD.md', 'models/model.onnx',
       'models/model_quantized.onnx', 'runtime/ort-wasm-simd-threaded.asyncify.wasm',
-      'licenses/onnxruntime/LICENSE', 'licenses/onnxruntime/ThirdPartyNotices.txt', 'licenses/flatbuffers/LICENSE']) assert(names.has(required), required);
+      'licenses/onnxruntime/LICENSE', 'licenses/onnxruntime/ThirdPartyNotices.txt', 'licenses/flatbuffers/LICENSE',
+      'licenses/spelling/README.md', 'licenses/spelling/SymSpell-LICENSE', 'licenses/spelling/SCOWL-Copyright']) assert(names.has(required), required);
     assert(!listing.includes('private') && !listing.includes('secret') && !listing.includes('pilot'));
     const {stdout: instructions} = await run('unzip', ['-p', join(output, name), 'INSTALL.md']);
     assert.match(instructions, /Experimental synthetic-template baseline/u);

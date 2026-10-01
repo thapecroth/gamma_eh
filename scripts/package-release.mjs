@@ -116,6 +116,9 @@ async function licenses(root, stage, web, version) {
   for (const filename of ['LICENSE', 'ThirdPartyNotices.txt', 'README.md']) {
     await copy(join(root, 'licenses/onnxruntime', filename), join(stage, 'licenses/onnxruntime', filename));
   }
+  for (const filename of ['README.md', 'SymSpell-LICENSE', 'SCOWL-Copyright']) {
+    await copy(join(root, 'licenses/spelling', filename), join(stage, 'licenses/spelling', filename));
+  }
   // FlatBuffers is embedded by ORT; React and Scheduler are web-editor-only.
   for (const name of web ? ['flatbuffers', 'react', 'react-dom', 'scheduler'] : ['flatbuffers']) {
     await copy(join(root, 'node_modules', name, 'LICENSE'), join(stage, 'licenses', name, 'LICENSE'));
