@@ -1,8 +1,8 @@
 # Project documentation
 
+- [Windows WebGPU initialization](windows-webgpu.md): adapter options, runtime warnings, and rebuilding an unpacked extension.
 - [Chrome Web Store](chrome-web-store.md): unlisted submission material and automated approved updates.
 - [Extension privacy policy](privacy.md): local text processing, settings, site access, and controls.
-
 - [JAX JS inference](jax-js-runtime.md): bundled WebGPU/WASM runtime, FP32 parity, GPU fallback, and release metadata.
 - [Research and architecture](research-and-architecture.md): current WebGPU stack, model choices, correction flow, extension boundaries.
 - [Local spelling](local-spelling.md): bundled dictionary, symmetric-delete lookup, ranking, provenance and safety boundaries.
@@ -19,3 +19,5 @@
 - [Chrome extension](../apps/extension/README.md): unpacked installation and site permissions.
 - [Inline suggestions](inline-suggestions.md): red underlines, hover cards, keyboard access, measurement and browser checks.
 - [Model card](../models/MODEL_CARD.md): trained checkpoint scope and measured results.
+
+- [Firefox extension](firefox.md): installation and browser-specific background setup.
