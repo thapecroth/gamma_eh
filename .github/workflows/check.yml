@@ -50,6 +50,8 @@ jobs:
         run: npm run test:browser
       - name: Verify extension popup and editing flows
         run: npm run test:extension
+      - name: Verify Chrome Web Store screenshots with the real extension
+        run: npm run webstore:screenshots
       - name: Preserve E2E evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -63,5 +65,6 @@ jobs:
             artifacts/agents/extension-*/browser.json
             artifacts/agents/extension-*/*.png
             artifacts/agents/extension-*/trace.zip
+            docs/assets/webstore/*.png
           if-no-files-found: warn
           retention-days: 7
