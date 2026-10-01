@@ -55,9 +55,11 @@ async function screenshots() {
       if (!request.url().startsWith(origin + '/') && !request.url().startsWith('chrome-extension://')) requests.push(request.resourceType());
     });
     await context.route('**/*', route => route.request().url().startsWith(origin + '/') || route.request().url().startsWith('chrome-extension://') ? route.continue() : route.abort());
-    const background = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker');
     const page = await context.newPage();
     await page.goto(origin);
+    await page.locator('#draft').focus();
+    // Automatic checking wakes the background worker on the first supported field.
+    const background = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker');
     const extensionId = new URL(background.url()).hostname;
     const popupPromise = context.waitForEvent('page');
     await background.evaluate(async ({url, origin}) => {
