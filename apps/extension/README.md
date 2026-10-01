@@ -35,6 +35,10 @@ root, then use `dist/extension/` as the installation folder.
    for keyboard access and **Escape** to close. Choose **Pause this field** in
    the card to stop checking that field.
 
+Installing alone does not enable checking. Use the toolbar popup to grant site
+access, then focus a nonempty supported field to see inline suggestions. Plain
+single-line `<input>` fields are not currently supported.
+
 Keep the extracted folder on disk. To update an unpacked installation, replace
 the contents of that same folder with the new release, click **Reload** on its
 card in `chrome://extensions`, and reload website tabs. Keep the folder path
