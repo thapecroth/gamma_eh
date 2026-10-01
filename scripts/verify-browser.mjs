@@ -19,6 +19,7 @@ import { verifyWindowsWebGPU } from './verify-windows-webgpu.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const temporary = await mkdtemp(join(tmpdir(), 'gamma-browser-check-'));
 const {artifactDir, webOutput, extensionOutput} = buildPaths(root);
+const firefoxOutput = join(dirname(extensionOutput), 'firefox');
 await mkdir(artifactDir, {recursive: true});
 const failures = [];
 const evidence = {web: {}, model: {}, extension: {}, network: []};
@@ -71,13 +72,13 @@ try {
     plugins: [webGPUAdapterEsbuildPlugin()], bundle: true, format: 'esm', platform: 'browser', target: 'chrome116'});
   await cp(join(root, 'tests/browser-windows-worker.mjs'), join(temporary, 'test-windows-worker.mjs'));
   const webDir = webOutput;
-  for (const directory of [webOutput, extensionOutput]) {
+  for (const directory of [webOutput, extensionOutput, firefoxOutput]) {
     assert.deepEqual(JSON.parse(await readFile(join(directory, 'inference-runtime.json'), 'utf8')), runtimeManifest);
   }
   evidence.model.runtime = runtimeManifest;
   const modelManifest = JSON.parse(await readFile(join(webDir, 'models/manifest.json'), 'utf8'));
   for (const filename of ['model.onnx', 'model_quantized.onnx']) {
-    for (const directory of [webDir, extensionOutput]) {
+    for (const directory of [webDir, extensionOutput, firefoxOutput]) {
       const bytes = await readFile(join(directory, 'models', filename));
       assert.equal(createHash('sha256').update(bytes).digest('hex'), modelManifest.files[filename].sha256,
         'Built apps must contain the exact exported weights');
@@ -93,8 +94,10 @@ try {
       return;
     }
     const testModule = ['/test-engine.mjs', '/test-model-probe.mjs', '/test-windows-worker.mjs'].includes(pathname);
-    const directory = pathname.startsWith('/extension/') ? extensionOutput : webDir;
-    const relative = directory === extensionOutput ? pathname.slice('/extension'.length) : pathname === '/' ? '/index.html' : pathname;
+    const application = [{prefix: '/extension', directory: extensionOutput}, {prefix: '/firefox', directory: firefoxOutput}]
+      .find(({prefix}) => pathname.startsWith(prefix + '/'));
+    const directory = application?.directory ?? webDir;
+    const relative = application ? pathname.slice(application.prefix.length) : pathname === '/' ? '/index.html' : pathname;
     const filename = testModule ? join(temporary, pathname.slice(1)) : resolve(directory, '.' + relative);
     if (!testModule && !filename.startsWith(directory + sep)) { response.writeHead(403).end(); return; }
     try {
@@ -267,6 +270,7 @@ try {
     {name: 'engine'},
     {name: 'web-worker', url: '/assets/' + webWorkers[0]},
     {name: 'extension-worker', url: '/extension/inference-worker.mjs'},
+    {name: 'firefox-worker', url: '/firefox/inference-worker.mjs'},
   ]);
   // Exercise the actual dev worker as well: dependency optimization is a
   // separate path from both production bundlers and can hide adapter requests.

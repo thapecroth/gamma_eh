@@ -18,3 +18,5 @@
 - [Chrome extension](../apps/extension/README.md): unpacked installation and site permissions.
 - [Inline suggestions](inline-suggestions.md): red underlines, hover cards, keyboard access, measurement and browser checks.
 - [Model card](../models/MODEL_CARD.md): trained checkpoint scope and measured results.
+
+- [Firefox extension](firefox.md): installation and browser-specific background setup.

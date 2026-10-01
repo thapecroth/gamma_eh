@@ -32,15 +32,19 @@ contain ORT or its placement diagnostics.
 The adapter tests check Windows and other platform descriptors, preservation of
 other options, immutability, and failure on upstream drift. Browser verification
 captures actual adapter requests while simulating Windows client hints in the
-engine probe, the built web and extension inference workers, and the Vite
+engine probe, the built web and Chrome/Firefox extension workers, and the Vite
 development worker (including its dependency optimization path). Each scope
 must execute real model corrections with both WebGPU and GPU-unavailable WASM
 fallback, with no ignored-preference warnings or uncaught errors. CI runs these
 checks through `npm run check` and `GAMMA_TEST_WEBGPU=1 npm run test:browser`.
 An upstream runtime change or a build that bypasses the transform fails these
 checks instead of silently reintroducing the warning. A Linux browser with
-simulated Windows metadata verifies the option passed by the build;
-it does not establish behavior on a physical Windows GPU.
+simulated Windows metadata verifies the option passed by the build; the Firefox
+worker bundle is also executed in that Chromium harness. These checks do not
+establish behavior on a physical Windows GPU or in the Firefox browser.
+
+The release workflow extracts all three packaged apps before running browser
+verification, so the same checks cover the workers users receive in ZIP files.
 
 Rebuild and reload the unpacked extension from the rebuilt directory. Previously
 recorded Chrome extension warnings stay in the Errors page until **Clear all**

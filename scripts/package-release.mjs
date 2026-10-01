@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
+import { firefoxManifest } from './firefox-manifest.mjs';
 import { buildPaths } from './paths.mjs';
 import { runtimeManifest, runtimeVersions } from './inference-runtime.mjs';
 
@@ -139,7 +140,9 @@ async function licenses(root, stage, web, version) {
   }
 }
 
-function installInstructions(version, web) {
+function installInstructions(version, web, firefox = false) {
+  if (firefox) return `# Gamma EH ${version} — Firefox extension\n\nUse Firefox 140 or newer. Extract this ZIP, open about:debugging#/runtime/this-firefox,\nchoose Load Temporary Add-on and select manifest.json. Open the popup, Enable on this site, grant access, and reload tabs.\nTemporary installs disappear on restart. Permanent installation requires Mozilla signing.\nLocal AI is opt-in; use the popup to pause checking globally or remove site access.\n`;
+
   return web ? `# Gamma EH ${version} — web editor\n\nServe this extracted directory with a static HTTP server on localhost or HTTPS.\nDo not open index.html as file://; workers and WebGPU need a secure origin.\nFor example, with Python 3: python -m http.server 8080 --bind 127.0.0.1\nThen open http://localhost:8080. Enable Local AI to try the model.\n`
     : `# Gamma EH ${version} — Chrome extension\n\n1. Extract the ZIP into a permanent folder. No build tools are required.\n2. Open chrome://extensions in Chrome 116 or newer.\n3. Enable Developer mode, click Load unpacked, and select this folder\n   (the one containing manifest.json). Keep the folder after installation.\n4. Open a normal website, click Gamma EH, and Enable on this site.\n5. Use a textarea or plain-text contenteditable. Local AI is opt-in.\n\nTo update an unpacked install, replace the contents of the same folder,\nclick Reload on its card in chrome://extensions, and refresh website tabs.\nRemoving the installation resets settings and site permissions.\nUnpacked installs do not auto-update. Once a Chrome Web Store listing is\navailable, switch to its store install once to receive automatic updates.\nSee https://github.com/thapecroth/gamma_eh/blob/main/docs/chrome-web-store.md\nfor publication status and instructions. This ZIP is also the store upload\npackage; downloading a ZIP does not install a store-managed extension.\n`;
 }
@@ -157,9 +160,9 @@ export async function packageBuiltRelease(root, {environment = {}, tag} = {}) {
     await mkdir(output);
     reserved = true;
     const sums = [];
-    for (const [kind, directory] of [['chrome', meta.extensionOutput], ['web', meta.webOutput]]) {
+    for (const [kind, directory] of [['chrome', meta.extensionOutput], ['firefox', join(dirname(meta.extensionOutput), 'firefox')], ['web', meta.webOutput]]) {
       const files = await filesBelow(directory);
-      const required = kind === 'chrome' ? extensionFiles : ['index.html'];
+      const required = kind === 'chrome' ? extensionFiles : kind === 'firefox' ? ['manifest.json', 'background.js', 'content.js', 'popup.js', 'popup.html', 'popup.css', 'inference-worker.mjs'] : ['index.html'];
       for (const filename of [...required, 'inference-runtime.json']) {
         if (!files.includes(filename)) throw new Error(`Incomplete ${kind} build: missing ${filename}`);
       }
@@ -167,9 +170,9 @@ export async function packageBuiltRelease(root, {environment = {}, tag} = {}) {
         throw new Error('Built JAX runtime manifest differs from the pinned runtime.');
       }
       if (files.some(name => name.startsWith('runtime/'))) throw new Error('Obsolete external runtime assets must not ship with JAX.');
-      if (kind === 'chrome') {
+      if (kind !== 'web') {
         const built = await json(join(directory, 'manifest.json'));
-        if (JSON.stringify(built) !== JSON.stringify(meta.extension)) throw new Error('Built extension manifest differs from its source.');
+        if (JSON.stringify(built) !== JSON.stringify(kind === 'firefox' ? firefoxManifest(meta.extension) : meta.extension)) throw new Error('Built extension manifest differs from its source.');
         await validateExtensionIcons(directory, built);
       }
       const modelFiles = files.filter(name => name.startsWith('models/')).map(name => name.slice(7));
@@ -183,7 +186,7 @@ export async function packageBuiltRelease(root, {environment = {}, tag} = {}) {
       await mkdir(stage);
       for (const filename of files) await copy(join(directory, filename), join(stage, filename));
       await licenses(root, stage, kind === 'web', meta.version);
-      await writeFile(join(stage, 'INSTALL.md'), installInstructions(meta.version, kind === 'web')
+      await writeFile(join(stage, 'INSTALL.md'), installInstructions(meta.version, kind === 'web', kind === 'firefox')
         + '\nExperimental synthetic-template baseline; not general grammar accuracy.\nText stays local. WebGPU is preferred with WASM fallback.\nSee MODEL_CARD.md for limitations and licenses/ for upstream notices.\n', {flag: 'wx'});
       const asset = `gamma-eh-${kind}-v${meta.version}.zip`;
       await run('zip', ['-q', '-r', '-X', join(output, asset), '.'], {cwd: stage});
@@ -195,8 +198,9 @@ export async function packageBuiltRelease(root, {environment = {}, tag} = {}) {
       + 'Download gamma-eh-chrome-v' + meta.version + '.zip, extract it, and load the folder\n'
       + 'in chrome://extensions → Developer mode → Load unpacked. No Node.js or build step.\n'
       + 'Keep the folder on disk, grant checking per site, and opt into Local AI if desired.\n\n'
+      + 'The Firefox ZIP loads temporarily via about:debugging; permanent installs require Mozilla signing.\n\n'
       + 'The web ZIP is a static editor bundle; serve it on localhost or HTTPS.\n'
-      + 'SHA256SUMS.txt contains checksums for both ZIPs. Licenses and instructions are inside.\n\n'
+      + 'SHA256SUMS.txt contains checksums for all three ZIPs. Licenses and instructions are inside.\n\n'
       + 'This is an experimental model trained on original CC0 synthetic templates.\n'
       + 'It is not yet a general Grammarly replacement. This release is gated on actual\n'
       + 'WASM/WebGPU web-editor and extension checks. Hosted WebGPU uses SwiftShader\n'
