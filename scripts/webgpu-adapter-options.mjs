@@ -10,7 +10,7 @@ export function patchWebGPUAdapterRequest(source) {
     (_request, argument) => {
       count++;
       return `navigator.gpu.requestAdapter((options => {
-        const platform = globalThis.navigator?.userAgentData?.platform ?? globalThis.navigator?.platform ?? globalThis.navigator?.userAgent ?? '';
+        const platform = globalThis.navigator?.userAgentData?.platform || globalThis.navigator?.platform || globalThis.navigator?.userAgent || '';
         if (!/(?:^Win|Windows)/i.test(platform)) return options;
         const supported = {...options};
         delete supported.powerPreference;
@@ -21,16 +21,40 @@ export function patchWebGPUAdapterRequest(source) {
   return code;
 }
 
-const jaxBackend = /[/\\]@jax-js[/\\]jax[/\\]dist[/\\]backend-[^/\\]+\.js$/u;
+const jaxModule = /[/\\]@jax-js[/\\]jax[/\\].*\.[cm]?js$/u;
+
+function adapterGuard() {
+  const modules = new Set();
+  const patched = new Set();
+  return {
+    transform(source, id) {
+      modules.add(id);
+      if (!/\brequestAdapter\b/u.test(source)) return;
+      const code = patchWebGPUAdapterRequest(source);
+      patched.add(id);
+      return code;
+    },
+    finish() {
+      if (modules.size && patched.size !== 1) {
+        throw new Error(`Expected one JAX module with a patched WebGPU adapter request; found ${patched.size}. Review the pinned runtime before building.`);
+      }
+    },
+  };
+}
 
 export function webGPUAdapterVitePlugin() {
+  let guard = adapterGuard();
   return {
     name: 'windows-webgpu-adapter-options',
     enforce: 'pre',
+    buildStart() { guard = adapterGuard(); },
     transform(source, id) {
-      if (!jaxBackend.test(id.split('?')[0])) return;
-      return {code: patchWebGPUAdapterRequest(source), map: null};
+      const path = id.split('?')[0];
+      if (!jaxModule.test(path)) return;
+      const code = guard.transform(source, path);
+      if (code !== undefined) return {code, map: null};
     },
+    buildEnd(error) { if (!error) guard.finish(); },
   };
 }
 
@@ -38,11 +62,14 @@ export function webGPUAdapterEsbuildPlugin() {
   return {
     name: 'windows-webgpu-adapter-options',
     setup(build) {
+      let guard;
+      build.onStart(() => { guard = adapterGuard(); });
       // esbuild's Go regexp parser does not accept JavaScript's Unicode flag.
-      build.onLoad({filter: new RegExp(jaxBackend.source)}, async ({path}) => ({
-        contents: patchWebGPUAdapterRequest(await readFile(path, 'utf8')),
-        loader: 'js',
-      }));
+      build.onLoad({filter: new RegExp(jaxModule.source)}, async ({path}) => {
+        const source = await readFile(path, 'utf8');
+        return {contents: guard.transform(source, path) ?? source, loader: 'js'};
+      });
+      build.onEnd(result => { if (!result.errors.length) guard.finish(); });
     },
   };
 }

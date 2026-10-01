@@ -10,8 +10,11 @@ failed correction or an account/model-service limit.
 request. Windows calls omit only `powerPreference`; feature-level and fallback
 options stay intact. Other platforms keep the library's original preference.
 Detection uses browser client hints when present, then the legacy platform and
-user agent. The transform expects exactly one supported request and fails the
-build if the pinned library changes its layout.
+user agent. Empty descriptors fall through to the next platform source.
+The transform scans JAX package modules regardless of filename or directory.
+It expects exactly one module with one supported request and fails the build
+if the pinned library removes, splits, or changes its adapter initialization.
+Builds without JAX remain supported.
 
 The Vite plugin covers web worker builds and the esbuild plugin covers extension
 workers. Neither modifies `navigator`, filters the console, fetches executable
@@ -28,9 +31,15 @@ contain ORT or its placement diagnostics.
 
 The adapter tests check Windows and other platform descriptors, preservation of
 other options, immutability, and failure on upstream drift. Browser verification
-should capture actual adapter requests while simulating Windows client hints,
-execute real model corrections, and exercise GPU-unavailable fallback. A Linux
-browser with simulated Windows metadata verifies the option passed by the build;
+captures actual adapter requests while simulating Windows client hints in the
+engine probe, the built web and extension inference workers, and the Vite
+development worker (including its dependency optimization path). Each scope
+must execute real model corrections with both WebGPU and GPU-unavailable WASM
+fallback, with no ignored-preference warnings or uncaught errors. CI runs these
+checks through `npm run check` and `GAMMA_TEST_WEBGPU=1 npm run test:browser`.
+An upstream runtime change or a build that bypasses the transform fails these
+checks instead of silently reintroducing the warning. A Linux browser with
+simulated Windows metadata verifies the option passed by the build;
 it does not establish behavior on a physical Windows GPU.
 
 Rebuild and reload the unpacked extension from the rebuilt directory. Previously
