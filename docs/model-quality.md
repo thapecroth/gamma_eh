@@ -6,6 +6,11 @@ promoting a student. Synthetic classifier scores remain synthetic scores.
 Raw corpora, checkpoints, predictions, and provider-derived weights stay in
 Git-ignored directories. Typed user text is never sent to a teacher.
 
+The [completed comparison](model-quality-results.md) records 10,436 GLM pairs,
+10,000 C4 pairs, four trained students, and 81,054 actual browser predictions.
+Mixed data and model capacity improved diagnostic scores, but no student met
+the release gates. The original bundled weights remain in place.
+
 ## Frozen evaluation population
 
 `training/import_jfleg.py` imports the official JFLEG repository at
@@ -122,7 +127,7 @@ artifacts/training-env/bin/python training/data.py
 artifacts/training-env/bin/python training/experiments.py \
   --template data/generated \
   --weak data/imported/c4-quality-v2/candidates.jsonl \
-  --weak data/teacher/glm-quality/candidates.jsonl \
+  --weak data/teacher/glm-quality-training/candidates.jsonl \
   --evaluation-dir data/imported/jfleg-evaluation \
   --output artifacts/model-quality-v2 --rows 20000 --max-labels 2048 \
   --epochs 8 --batch-size 32 --scorer errant \
@@ -139,6 +144,13 @@ counts. Every mixed arm trains identical rows with the same schedule and seed.
 Label inventories remain train-derived and can differ between template/mixed
 datasets. Because all training rows fit 64 WordPieces, the 128 comparison tests
 inference context; it does not establish long-context training quality.
+
+The completed run used the frozen `glm-quality-training` pool of 5,249 pairs,
+selecting 5,000 before tag/vocabulary filtering. Its mixed arms ultimately
+trained 10,000 template, 1,647 C4 and 4,290 GLM rows. The larger completed
+`glm-quality` corpus was generated concurrently and is available for future
+experiments; using it above produces a new comparison rather than reproducing
+the frozen results. Final exports are under `artifacts/model-quality-v3/`.
 
 Run arms sequentially. The plan verifies dataset, label, manifest, and evaluation
 hashes before each run. Checkpoint selection uses decoded natural development
@@ -161,7 +173,7 @@ INT8 remains a portable diagnostic export, not the current browser weights. Test
 ```sh
 node scripts/evaluate-browser.mjs \
   --input data/imported/jfleg-evaluation/test.jsonl \
-  --model-dir artifacts/model-quality-v2/mixed-tiny64/model \
+  --model-dir artifacts/model-quality-v3/mixed-tiny64/model \
   --output artifacts/browser-quality/mixed-tiny64-test.json \
   --modes rules,model,combined --passes 1,2
 artifacts/training-env/bin/python training/evaluate.py \
@@ -174,12 +186,20 @@ Browser evaluation bundles the actual JAX engine, records its runtime versions
 and bundle hash, checks model asset hashes,
 serves only local assets, blocks unexpected network requests, and checks protected
 text canaries outside the benchmark denominator. It records actual corrected
-text, suggestions, inference counts, startup, and warm p50/p95 analysis latency.
-Failures remain represented. `--limit` is a smoke subset and cannot be scored as
+text, suggestions, inference counts, startup, and p50/p95 analysis latency.
+Failures remain represented. Latency samples are post-initialization and
+include first-use shape compilation; condition order warms caches. `--limit` is a smoke subset and cannot be scored as
 the complete benchmark. Default measurements use WASM; `--webgpu` records the
 actual backend and may fall back to WASM. Software adapters do not prove physical
 GPU performance. This engine evaluation is separate from web-worker/MV3 browser
 verification (`npm run test:browser`).
+
+All four completed candidate manifests disable neural edits. To inspect a
+candidate's unconstrained behavior, use a separate private diagnostic directory
+with the development diagnostic threshold and `disableModelEdits: false`;
+never modify the calibrated export or treat these diagnostic profiles as a
+deployment recommendation. The public aggregate report records both policies
+and diagnostics, with no-edit precision represented as null.
 
 ## Sources
 

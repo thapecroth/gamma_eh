@@ -42,14 +42,14 @@ populations, guards, and scoring methods.
 
 The complete JFLEG test population contains 747 sentences with four fluency
 references each, including 182 sources accepted unchanged by at least one
-reference. Actual Chromium/WASM predictions at the existing 0.85 threshold,
-one correction pass, produced:
+reference. Actual JAX JS FP32 Chromium/WASM predictions with the current engine
+at the existing 0.85 threshold, one correction pass, produced:
 
 | Engine | Edit precision | Edit recall | Edit F0.5 | Clean sources changed |
 | --- | --- | --- | --- | --- |
-| Rules | 90.91% | 0.67% | 3.27% | 0/182 |
-| Neural | 6.27% | 1.06% | 3.16% | 52/182 |
-| Combined | 7.72% | 1.32% | 3.92% | 52/182 |
+| Rules, including local dictionary | 71.90% | 16.90% | 43.56% | 2/182 |
+| Neural | 5.07% | 0.47% | 1.72% | 23/182 |
+| Combined | 55.30% | 16.90% | 38.02% | 24/182 |
 
 These are custom best-sentence-reference scores using actual ERRANT edit
 extraction, not official JFLEG GLEU, BEA scores, or universal grammar accuracy.
@@ -60,6 +60,16 @@ development calibration before promoting another student. The independent
 benchmark was never added to training. See the [quality workflow](../docs/model-quality.md)
 for frozen population hashes, methodology, controlled candidates, and deployment
 gates. Raw benchmark text and browser predictions stay local.
+
+Development has 754 sentences and 216 accepted unchanged sources. Rules change
+38/216 development clean sources, neural changes 26/216, and combined changes
+54/216. The low test rules clean-change rate does not certify development
+quality. Four controlled schema-2 students were also trained and executed in the
+browser. The best development diagnostic was mixed data with a larger BERT;
+its test neural F0.5 reached 7.78%, but edit precision was only 19.77%. None
+met the precision, clean-text and minimum-support gates, so their exports
+disable neural edits and the bundled weights remain unchanged. See the
+[completed results](../docs/model-quality-results.md) and aggregate hashes.
 
 ## Browser engine validation and limitations
 
@@ -86,13 +96,15 @@ metrics above do not include these runtime guards.
 
 Local AI is disabled by default and marked experimental; users can explicitly
 enable it. The finite vocabulary cannot perform general rewriting, arbitrary
-insertions, clause rearrangement, broad spelling correction, or style/tone
-explanations. Long texts lose context across64-token windows. Do not use the
+insertions, clause rearrangement, or style/tone explanations. Broad local spelling
+suggestions now come from the separate bundled dictionary. Long texts lose
+context across 64-token windows. Do not use the
 checkpoint to label its own evaluation set. Hardware/OS coverage remains limited
 to this local Chromium validation; the browser's chosen adapter must be recorded
 before making hardware latency claims.
 
-The next quality step is broader licensed correction data and teacher-generated
-training pairs plus independently reviewed natural development/test data. See
-[the larger dataset workflow](../docs/massive-dataset.md). Raw teacher outputs
-must remain train-only weak supervision until independently reviewed.
+The completed quality round added 10,000 C4 and 10,436 GLM teacher pairs.
+Its results point to correction-label review and clean-text precision as the
+next bottlenecks. See [the quality results](../docs/model-quality-results.md)
+and [the larger dataset workflow](../docs/massive-dataset.md). Raw teacher outputs
+remain train-only weak supervision until independently reviewed.
