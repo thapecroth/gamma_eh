@@ -104,7 +104,7 @@ to this local Chromium validation; the browser's chosen adapter must be recorded
 before making hardware latency claims.
 
 The completed quality round added 10,000 C4 and 10,436 GLM teacher pairs.
-Its results point to correction-label review and clean-text precision as the
-next bottlenecks. See [the quality results](../docs/model-quality-results.md)
+Next steps include correction-label review and clean-text precision improvements.
+See [the quality results](../docs/model-quality-results.md)
 and [the larger dataset workflow](../docs/massive-dataset.md). Raw teacher outputs
 remain train-only weak supervision until independently reviewed.

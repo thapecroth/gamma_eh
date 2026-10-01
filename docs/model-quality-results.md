@@ -158,9 +158,10 @@ GPU performance remains unmeasured.
 ## Next quality bottlenecks
 
 The completed teacher corpus is available for a later training round, but more
-weak labels alone do not solve precision. The measured bottlenecks are label
-quality, the large train-derived payload inventory, clean-text changes, and
-rules false positives on development. A reviewed, licensed correction subset
+weak labels alone do not solve precision. Observed failures include low neural
+precision, clean-text changes, and rules false positives on development. Label
+quality and the large train-derived payload inventory are possible contributors;
+this comparison did not isolate their causal effects. A reviewed, licensed correction subset
 and targeted development-error inspection are the next useful experiments.
 Keep test frozen, preserve weak-label provenance, and require the same release
 gates for any future model.
