@@ -6,6 +6,7 @@ import { build as buildWeb } from 'vite';
 import { firefoxManifest } from './firefox-manifest.mjs';
 import { buildPaths } from './paths.mjs';
 import { runtimeManifest } from './inference-runtime.mjs';
+import { webGPUAdapterEsbuildPlugin } from './webgpu-adapter-options.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const {webOutput, extensionOutput, modelDirectory} = buildPaths(root);
@@ -21,7 +22,7 @@ await buildWeb({ configFile: join(root, 'apps/web/vite.config.ts'), build: {outD
 await rm(extensionOutput, { recursive: true, force: true });
 await mkdir(extensionOutput, { recursive: true });
 
-const common = { define: {GAMMA_FIREFOX: 'false'}, bundle: true, minify: true, platform: 'browser', target: 'chrome116', alias: { '@gamma/engine': join(root, 'packages/engine/src/index.ts') }, outdir: extensionOutput, logLevel: 'info' };
+const common = { plugins: [webGPUAdapterEsbuildPlugin()], define: {GAMMA_FIREFOX: 'false'}, bundle: true, minify: true, platform: 'browser', target: 'chrome116', alias: { '@gamma/engine': join(root, 'packages/engine/src/index.ts') }, outdir: extensionOutput, logLevel: 'info' };
 await buildScripts({ ...common, format: 'esm', entryPoints: { background: join(root, 'apps/extension/src/background.ts'), offscreen: join(root, 'apps/extension/src/offscreen.ts'), 'inference-worker': join(root, 'apps/extension/src/inference-worker.ts') }, outExtension: { '.js': '.mjs' } });
 await buildScripts({ ...common, format: 'iife', entryPoints: { content: join(root, 'apps/extension/src/content.ts'), popup: join(root, 'apps/extension/src/popup.ts') } });
 

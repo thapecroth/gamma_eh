@@ -121,9 +121,11 @@ jobs:
           GAMMA_BUILD_BACKUP=$(mktemp -d)
           mv dist/extension "$GAMMA_BUILD_BACKUP/extension"
           mv dist/web "$GAMMA_BUILD_BACKUP/web"
-          mkdir dist/extension dist/web
+          mv dist/firefox "$GAMMA_BUILD_BACKUP/firefox"
+          mkdir dist/extension dist/web dist/firefox
           unzip -q "artifacts/releases/$GAMMA_RELEASE_TAG/gamma-eh-chrome-$GAMMA_RELEASE_TAG.zip" -d dist/extension
           unzip -q "artifacts/releases/$GAMMA_RELEASE_TAG/gamma-eh-web-$GAMMA_RELEASE_TAG.zip" -d dist/web
+          unzip -q "artifacts/releases/$GAMMA_RELEASE_TAG/gamma-eh-firefox-$GAMMA_RELEASE_TAG.zip" -d dist/firefox
           npm run test:browser
           npm run test:extension
       - uses: actions/upload-artifact@v4
