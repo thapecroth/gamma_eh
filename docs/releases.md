@@ -13,7 +13,7 @@ itself a published release: publication requires a successful tagged run.
 | `gamma-eh-web-vX.Y.Z.zip` | Extract and serve the root folder on localhost or HTTPS. |
 | `SHA256SUMS.txt` | Verify both downloaded ZIPs. |
 
-Both ZIPs include the public baseline model, local ONNX Runtime assets, licenses,
+Both ZIPs include the public baseline model, bundled JAX JS runtime metadata, licenses,
 model card, and `INSTALL.md`. No build tools or inference server are needed for
 the extension. GitHub's automatic source archives are not installable packages.
 
@@ -113,8 +113,8 @@ version rather than replacing downloads.
 - Every exported model hash is checked against its manifest; both compiled apps
   must contain exactly those model files. A test-only permission manifest is
   refused. Hidden files, symlinks, and unexpected model files fail closed.
-- Runtime notices are vendored from ONNX Runtime 1.30.0; updating the runtime
-  requires updating notices and the packager's version pin together.
+- Runtime notices cover pinned JAX JS and Protocol Buffers packages; updating
+  the runtime requires updating notices, version pins, and built metadata together.
 - No private teacher corpus, isolated student checkpoint, API key, or provider
   configuration belongs in a release. The workflow uploads only public packages
   and browser-test evidence, not arbitrary contents of `artifacts/`.

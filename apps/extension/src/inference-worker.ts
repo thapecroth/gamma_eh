@@ -1,7 +1,7 @@
 import { analyzeRules, analyzeText, type AnalysisResult } from '@gamma/engine';
 import type { CheckMessage } from './protocol';
 
-type Request = CheckMessage & { modelBaseUrl: string; wasmBaseUrl: string };
+type Request = CheckMessage & { modelBaseUrl: string };
 const pending = new Map<string, Request>();
 let busy = false;
 
@@ -15,7 +15,7 @@ async function drain() {
       try {
         const started = performance.now();
         const result: AnalysisResult = request.useAI
-          ? await analyzeText(request.text, { modelBaseUrl: request.modelBaseUrl, wasmBaseUrl: request.wasmBaseUrl })
+          ? await analyzeText(request.text, { modelBaseUrl: request.modelBaseUrl })
           : { text: request.text, suggestions: analyzeRules(request.text), backend: 'rules', elapsedMs: performance.now() - started };
         self.postMessage({ requestId: request.requestId, result });
       } catch (error) {

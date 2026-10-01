@@ -29,6 +29,6 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (r
     sendResponse({ requestId: message.requestId, error: 'Local analysis timed out. Try a shorter passage.' });
   }, 90_000);
   pending.set(message.requestId, { resolve: sendResponse, timeout });
-  worker.postMessage({ ...message, modelBaseUrl: chrome.runtime.getURL('models/'), wasmBaseUrl: chrome.runtime.getURL('runtime/') });
+  worker.postMessage({ ...message, modelBaseUrl: chrome.runtime.getURL('models/') });
   return true;
 });

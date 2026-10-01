@@ -8,6 +8,7 @@ import { buildPaths } from './paths.mjs';
 import { browserArguments, findChromium } from './browser-environment.mjs';
 import { acquireLock, hash, jsonFile, runId, sourceStamp } from './agent-runtime.mjs';
 import { verifyInline } from './verify-inline.mjs';
+import { extensionElement as shadowNode } from './extension-shadow.mjs';
 
 export const fields = ['draft', 'private', 'payment', 'optout', 'plain', 'rich'];
 const actions = ['popup', 'focus', 'fill', 'read', 'accept', 'dismiss', 'close', 'assertText', 'assertPanel', 'assertBackend', 'staleAccept'];
@@ -69,6 +70,7 @@ const fixtureHtml = `<!doctype html><html lang="en"><title>Fictional Gamma EH fi
 export const mandatoryScenarios = [
   {id: 'rules-and-popup', steps: [step('popup', 'useAI', false), step('focus', 'draft'), step('assertBackend', null, null, 'rules'), step('accept'), step('accept'), step('assertText', 'draft', null, 'She has a friend.'), step('popup', 'enabled', false), step('assertPanel', null, null, 'hidden'), step('popup', 'enabled', true), step('fill', 'draft', 'She have a book.'), step('assertBackend', null, null, 'rules')]},
   {id: 'ai-opt-in', steps: [step('popup', 'useAI', true), step('focus', 'draft'), step('assertBackend', null, null, 'ai'), step('accept'), step('accept'), step('assertText', 'draft', null, 'She has a friend.'), step('popup', 'useAI', false), step('assertBackend', null, null, 'rules')]},
+  {id: 'ai-model-offsets-and-stale', steps: [step('popup', 'useAI', true), step('fill', 'draft', '😀. The students has a notebook.'), step('assertBackend', null, null, 'ai'), step('staleAccept', 'draft', '😀 Newly changed text.', '😀 Newly changed text.'), step('fill', 'draft', '😀. The students has a notebook.'), step('assertBackend', null, null, 'ai'), step('accept'), step('assertText', 'draft', null, '😀. The students have a notebook.')]},
   {id: 'dismiss-preserves-text', steps: [step('focus', 'draft'), step('assertBackend', null, null, 'rules'), step('dismiss'), step('assertPanel', null, null, 'visible'), step('assertText', 'draft', null, 'She have a freind.')]},
   ...['private', 'payment', 'optout'].map(field => ({id: `protected-${field}`, steps: [step('focus', 'draft'), step('assertPanel', null, null, 'visible'), step('focus', field), step('assertPanel', null, null, 'hidden'), step('assertText', field, null, 'She have a freind.')]})),
   {id: 'plain-editable', steps: [step('focus', 'plain'), step('assertBackend', null, null, 'rules'), step('accept'), step('assertText', 'plain', null, 'She has a book.')]},
@@ -76,20 +78,6 @@ export const mandatoryScenarios = [
   {id: 'utf16-offsets', steps: [step('fill', 'draft', '😀 A freind.'), step('assertBackend', null, null, 'rules'), step('accept'), step('assertText', 'draft', null, '😀 A friend.')]},
   {id: 'stale-suggestion', steps: [step('focus', 'draft'), step('assertBackend', null, null, 'rules'), step('staleAccept', 'draft', '😀 Newly changed text.', '😀 Newly changed text.'), step('assertText', 'draft', null, '😀 Newly changed text.')]},
 ];
-
-async function shadowNode(context, page, selector) {
-  const session = await context.newCDPSession(page);
-  const {root} = await session.send('DOM.getDocument', {depth: -1, pierce: true});
-  function host(node) {
-    if (node.attributes?.includes('data-gamma-ignore') && node.shadowRoots?.some(shadow => shadow.shadowRootType === 'closed')) return node;
-    for (const child of [...node.children ?? [], ...node.shadowRoots ?? []]) { const found = host(child); if (found) return found; }
-  }
-  const shadow = host(root)?.shadowRoots?.[0];
-  const {nodeId} = shadow ? await session.send('DOM.querySelector', {nodeId: shadow.nodeId, selector}) : {};
-  if (!nodeId) { await session.detach(); return null; }
-  const {object} = await session.send('DOM.resolveNode', {nodeId});
-  return {session, objectId: object.objectId};
-}
 
 async function panelText(context, page) {
   const node = await shadowNode(context, page, '.checker-status');

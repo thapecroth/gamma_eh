@@ -1,6 +1,6 @@
 import type { AnalysisResult, Suggestion } from '@gamma/engine';
 import { isEligible, isPlainEditable, readText, type Editable } from './editable';
-import { measureHighlights, type HighlightRect } from './highlights';
+import { measureHighlights, visibleFieldBounds, type HighlightRect } from './highlights';
 
 interface Actions {
   accept: (suggestion: Suggestion) => void;
@@ -40,6 +40,8 @@ export class InlineSuggestions {
   private pinned = false;
   private hideTimer: ReturnType<typeof setTimeout> | undefined;
   private frame = 0;
+  private layoutFrame = 0;
+  private lastBounds: DOMRect | null = null;
   private resize = new ResizeObserver(() => this.refresh());
   private mutation = new MutationObserver(() => this.refresh());
 
@@ -84,6 +86,7 @@ export class InlineSuggestions {
   clear() {
     this.close(); this.resize.disconnect(); this.mutation.disconnect();
     cancelAnimationFrame(this.frame); this.frame = 0;
+    cancelAnimationFrame(this.layoutFrame); this.layoutFrame = 0; this.lastBounds = null;
     this.field = null; this.snapshot = null; this.result = null; this.useAI = false; this.rects = []; this.suggestions = [];
     this.marks.replaceChildren(); this.host.remove();
   }
@@ -113,6 +116,23 @@ export class InlineSuggestions {
     this.field = field; document.documentElement.append(this.host);
     this.resize.observe(field);
     this.mutation.observe(field, {attributes: true, characterData: true, childList: true, subtree: true});
+    for (let parent = field.parentElement; parent; parent = parent.parentElement) {
+      this.resize.observe(parent);
+      this.mutation.observe(parent, {attributes: true});
+    }
+    this.lastBounds = field.getBoundingClientRect();
+    this.layoutFrame = requestAnimationFrame(() => this.watchLayout());
+  }
+
+  private watchLayout() {
+    if (!this.field?.isConnected) { this.clear(); return; }
+    // Transforms and layout shifts can move a field without resizing it. Read
+    // one bounding box per frame; remeasure text only when that box changes.
+    const bounds = this.field.getBoundingClientRect();
+    const previous = this.lastBounds;
+    if (!previous || bounds.left !== previous.left || bounds.top !== previous.top || bounds.width !== previous.width || bounds.height !== previous.height) this.refresh();
+    this.lastBounds = bounds;
+    this.layoutFrame = requestAnimationFrame(() => this.watchLayout());
   }
 
   private valid() {
@@ -127,10 +147,11 @@ export class InlineSuggestions {
   private position() {
     if (!this.valid() || !this.field) { this.clear(); return; }
     const field = this.field;
-    this.rects = this.snapshot === null ? [] : measureHighlights(field, this.snapshot, this.suggestions, this.shadow);
+    const clip = visibleFieldBounds(field);
+    this.rects = this.snapshot === null || !clip ? [] : measureHighlights(field, this.snapshot, this.suggestions, this.shadow, clip);
     this.paint();
     const rect = field.getBoundingClientRect();
-    const onScreen = rect.bottom > 0 && rect.top < innerHeight && rect.right > 0 && rect.left < innerWidth && getComputedStyle(field).visibility === 'visible' && field.getClientRects().length > 0;
+    const onScreen = clip !== null;
     this.badge.hidden = !onScreen;
     this.badge.style.left = `${Math.max(12, Math.min(innerWidth - this.badge.offsetWidth - 12, rect.right - this.badge.offsetWidth - 8))}px`;
     this.badge.style.top = `${Math.max(12, Math.min(innerHeight - 42, rect.bottom + 6))}px`;

@@ -7,10 +7,9 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { buildPaths } from './paths.mjs';
+import { runtimeManifest, runtimeVersions } from './inference-runtime.mjs';
 
 const run = promisify(execFile);
-const runtimeVersion = '1.30.0'; // Keep licenses/onnxruntime in sync with this pin.
-const runtimeFiles = ['ort-wasm-simd-threaded.asyncify.wasm', 'ort-wasm-simd-threaded.asyncify.mjs'];
 const extensionFiles = ['manifest.json', 'background.mjs', 'content.js', 'popup.js', 'popup.html', 'popup.css', 'offscreen.html', 'offscreen.mjs', 'inference-worker.mjs'];
 const json = async filename => JSON.parse(await readFile(filename, 'utf8'));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -84,9 +83,11 @@ async function metadata(root, environment, tag) {
   const pkg = await json(join(root, 'package.json'));
   const extension = await json(join(root, 'apps/extension/manifest.json'));
   const version = releaseVersion(pkg.version, extension.version, tag);
-  if (pkg.dependencies?.['onnxruntime-web'] !== runtimeVersion
-      || (await json(join(root, 'node_modules/onnxruntime-web/package.json'))).version !== runtimeVersion) {
-    throw new Error('ONNX Runtime version must match the bundled upstream notices.');
+  for (const [name, version] of Object.entries(runtimeVersions)) {
+    if ((pkg.dependencies?.[name] ?? pkg.overrides?.[name]) !== version
+        || (await json(join(root, 'node_modules', name, 'package.json'))).version !== version) {
+      throw new Error(`JAX runtime version for ${name} must match the bundled upstream notices.`);
+    }
   }
   return {...paths, version, extension, model: await publicModel(root)};
 }
@@ -113,11 +114,14 @@ async function licenses(root, stage, web, version) {
     .replaceAll('](browser/', '](models/')
     .replaceAll('](../docs/', `](https://github.com/thapecroth/gamma_eh/blob/v${version}/docs/`);
   await writeFile(join(stage, 'MODEL_CARD.md'), card, {flag: 'wx'});
-  for (const filename of ['LICENSE', 'ThirdPartyNotices.txt', 'README.md']) {
-    await copy(join(root, 'licenses/onnxruntime', filename), join(stage, 'licenses/onnxruntime', filename));
+  for (const filename of ['jax-js/LICENSE', 'jax-js/README.md', 'onnx/LICENSE', 'onnx/README.md',
+    'protobuf/LICENSE', 'protobuf/BSD-3-Clause.txt', 'protobuf/README.md']) {
+    await copy(join(root, 'licenses', filename), join(stage, 'licenses', filename));
   }
-  // FlatBuffers is embedded by ORT; React and Scheduler are web-editor-only.
-  for (const name of web ? ['flatbuffers', 'react', 'react-dom', 'scheduler'] : ['flatbuffers']) {
+  for (const filename of ['README.md', 'SymSpell-LICENSE', 'SCOWL-Copyright']) {
+    await copy(join(root, 'licenses/spelling', filename), join(stage, 'licenses/spelling', filename));
+  }
+  for (const name of web ? ['react', 'react-dom', 'scheduler'] : []) {
     await copy(join(root, 'node_modules', name, 'LICENSE'), join(stage, 'licenses', name, 'LICENSE'));
   }
 }
@@ -143,9 +147,13 @@ export async function packageBuiltRelease(root, {environment = {}, tag} = {}) {
     for (const [kind, directory] of [['chrome', meta.extensionOutput], ['web', meta.webOutput]]) {
       const files = await filesBelow(directory);
       const required = kind === 'chrome' ? extensionFiles : ['index.html'];
-      for (const filename of [...required, ...runtimeFiles.map(name => `runtime/${name}`)]) {
+      for (const filename of [...required, 'inference-runtime.json']) {
         if (!files.includes(filename)) throw new Error(`Incomplete ${kind} build: missing ${filename}`);
       }
+      if (JSON.stringify(await json(join(directory, 'inference-runtime.json'))) !== JSON.stringify(runtimeManifest)) {
+        throw new Error('Built JAX runtime manifest differs from the pinned runtime.');
+      }
+      if (files.some(name => name.startsWith('runtime/'))) throw new Error('Obsolete external runtime assets must not ship with JAX.');
       if (kind === 'chrome') {
         const built = await json(join(directory, 'manifest.json'));
         if (JSON.stringify(built) !== JSON.stringify(meta.extension)) throw new Error('Built extension manifest differs from its source.');

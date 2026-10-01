@@ -38,8 +38,10 @@ There are no reported BEA/CoNLL/JFLEG/ERRANT benchmark scores.
 
 ## Browser engine validation and limitations
 
-The trained quantized model executed in headless Chromium with the real web
-editor and MV3 offscreen/worker path. WebGPU also executed with Chrome's explicit
+The browser apps now execute the FP32 graph through JAX JS on WASM and WebGPU;
+the INT8 export remains for evaluation. See [runtime validation](../docs/jax-js-runtime.md).
+The original ONNX Runtime validation executed the quantized model in headless
+Chromium with the real web editor and MV3 offscreen/worker path. WebGPU also executed with Chrome's explicit
 headless WebGPU flag, using its SwiftShader software adapter. Physical-GPU
 browser execution and hardware latency remain unverified. A small original natural-text smoke set
 matched 14/15 expected outputs after conservative runtime guards. The model
@@ -50,7 +52,11 @@ Before guards, the model produced incorrect article edits and arbitrary
 deletions on unseen text. The engine consequently restricts article changes to
 known sound classes, permits model deletions only for adjacent duplicates,
 and skips neural inference in windows containing protected code/URLs or
-rule-driven deletions. Rule/model overlap gives rules priority. Classifier
+rule-driven deletions. Verb replacements must agree with a supported simple
+sentence-initial subject and preserve verb family and tense. Unknown or
+ambiguous contexts abstain, regardless of model confidence; see
+[the verb-suggestion safeguard](../docs/dataset-and-training.md#conservative-verb-suggestions).
+Rule/model overlap gives rules priority. Classifier
 metrics above do not include these runtime guards.
 
 Local AI is disabled by default and marked experimental; users can explicitly

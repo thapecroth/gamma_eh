@@ -9,9 +9,9 @@ export interface HighlightRect {
   suggestion: Suggestion;
 }
 
-// Measure text without inserting markup into the site's editor or changing its
-// selection. Textareas need a typography-matched mirror; plain editors use Range.
-export function measureHighlights(field: Editable, text: string, suggestions: Suggestion[], container: ShadowRoot): HighlightRect[] {
+export interface FieldBounds { left: number; top: number; right: number; bottom: number }
+
+export function visibleFieldBounds(field: Editable): FieldBounds | null {
   const bounds = field.getBoundingClientRect();
   const scaleX = bounds.width / (field.offsetWidth || bounds.width);
   const scaleY = bounds.height / (field.offsetHeight || bounds.height);
@@ -21,18 +21,34 @@ export function measureHighlights(field: Editable, text: string, suggestions: Su
   let bottom = Math.min(innerHeight, bounds.top + (field.clientTop + field.clientHeight) * scaleY);
   // A nested scrolling container can clip the editor before the viewport does.
   for (let parent = field.parentElement; parent; parent = parent.parentElement) {
+    // The document scroller is already clipped by the viewport above. Its
+    // document-relative bounding box would subtract the page scroll twice.
+    if (parent === document.scrollingElement) continue;
     const style = getComputedStyle(parent);
     const rect = parent.getBoundingClientRect();
+    const parentScaleX = rect.width / (parent.offsetWidth || rect.width);
+    const parentScaleY = rect.height / (parent.offsetHeight || rect.height);
     if (/(auto|scroll|hidden|clip)/u.test(style.overflowX)) {
-      left = Math.max(left, rect.left + parent.clientLeft);
-      right = Math.min(right, rect.left + parent.clientLeft + parent.clientWidth);
+      left = Math.max(left, rect.left + parent.clientLeft * parentScaleX);
+      right = Math.min(right, rect.left + (parent.clientLeft + parent.clientWidth) * parentScaleX);
     }
     if (/(auto|scroll|hidden|clip)/u.test(style.overflowY)) {
-      top = Math.max(top, rect.top + parent.clientTop);
-      bottom = Math.min(bottom, rect.top + parent.clientTop + parent.clientHeight);
+      top = Math.max(top, rect.top + parent.clientTop * parentScaleY);
+      bottom = Math.min(bottom, rect.top + (parent.clientTop + parent.clientHeight) * parentScaleY);
     }
   }
-  if (right <= left || bottom <= top || !field.getClientRects().length || getComputedStyle(field).visibility !== 'visible') return [];
+  if (right <= left || bottom <= top || !field.getClientRects().length || getComputedStyle(field).visibility !== 'visible') return null;
+  return {left, top, right, bottom};
+}
+
+// Measure text without inserting markup into the site's editor or changing its
+// selection. Textareas need a typography-matched mirror; plain editors use Range.
+export function measureHighlights(field: Editable, text: string, suggestions: Suggestion[], container: ShadowRoot, clip = visibleFieldBounds(field)): HighlightRect[] {
+  if (!clip) return [];
+  const {left, top, right, bottom} = clip;
+  const bounds = field.getBoundingClientRect();
+  const scaleX = bounds.width / (field.offsetWidth || bounds.width);
+  const scaleY = bounds.height / (field.offsetHeight || bounds.height);
 
   let mirror: HTMLDivElement | undefined;
   let mirrorBounds: DOMRect | undefined;
@@ -40,10 +56,10 @@ export function measureHighlights(field: Editable, text: string, suggestions: Su
   if (field instanceof HTMLTextAreaElement) {
     mirror = document.createElement('div');
     const style = getComputedStyle(field);
-    for (const property of ['font-family', 'font-size', 'font-weight', 'font-style', 'font-stretch', 'font-variant', 'font-kerning', 'font-feature-settings', 'font-variation-settings', 'line-height', 'letter-spacing', 'word-spacing', 'text-align', 'text-indent', 'text-transform', 'direction', 'tab-size', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left', 'word-break', 'overflow-wrap']) {
+    for (const property of ['font-family', 'font-size', 'font-weight', 'font-style', 'font-stretch', 'font-variant', 'font-kerning', 'font-feature-settings', 'font-variation-settings', 'line-height', 'letter-spacing', 'word-spacing', 'text-align', 'text-indent', 'text-transform', 'direction', 'tab-size', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left', 'word-break', 'overflow-wrap', 'white-space']) {
       mirror.style.setProperty(property, style.getPropertyValue(property));
     }
-    Object.assign(mirror.style, {position: 'fixed', left: '-100000px', top: '0', width: `${field.clientWidth}px`, boxSizing: 'border-box', visibility: 'hidden', whiteSpace: field.wrap === 'off' ? 'pre' : 'pre-wrap', overflowWrap: field.wrap === 'off' ? 'normal' : 'break-word'});
+    Object.assign(mirror.style, {position: 'fixed', left: '-100000px', top: '0', width: `${field.clientWidth}px`, boxSizing: 'border-box', visibility: 'hidden'});
     textNode = document.createTextNode(text);
     mirror.append(textNode, document.createTextNode('\u200b'));
     container.append(mirror);
