@@ -12,11 +12,14 @@ const labels = ['KEEP', 'REPLACE:am', 'REPLACE:is', 'REPLACE:are', 'REPLACE:was'
 const vocabulary = '[PAD]\n[UNK]\n[CLS]\n[SEP]\nam\nis\nare\nwas\nwere\nhas\nhave\ngo\ngoes\nread\nreads\nfreind\n';
 const ids = vocabulary.trim().split('\n');
 let predictions: Record<string, string>;
+let modelKey = 0;
+let modelBaseUrl: string;
 
 afterEach(() => vi.unstubAllGlobals());
 
 beforeEach(() => {
   predictions = {};
+  modelBaseUrl = `/safety-model-${modelKey++}/`;
   vi.stubGlobal('fetch', async (url: string) => {
     if (url.endsWith('manifest.json')) return new Response(JSON.stringify({confidenceThreshold: .85, maxSequenceLength: 8}));
     if (url.endsWith('labels.json')) return new Response(JSON.stringify(labels));
@@ -36,7 +39,7 @@ beforeEach(() => {
 });
 
 async function correct(text: string): Promise<string> {
-  const result = await analyzeModel(text, {preferWebGPU: false});
+  const result = await analyzeModel(text, {modelBaseUrl, preferWebGPU: false});
   expect(result.backend).toBe('wasm');
   return applySuggestions(text, result.suggestions);
 }
@@ -105,7 +108,7 @@ describe('model verb safety at high confidence', () => {
   it('preserves case and exact UTF-16 offsets for a supported model edit', async () => {
     const text = '😀. My cats IS hungry.';
     predictions.is = 'REPLACE:are';
-    const {suggestions} = await analyzeModel(text, {preferWebGPU: false});
+    const {suggestions} = await analyzeModel(text, {modelBaseUrl, preferWebGPU: false});
     expect(suggestions).toHaveLength(1);
     expect(suggestions[0]).toMatchObject({start: 12, end: 14, original: 'IS', replacement: 'ARE', source: 'model'});
     expect(applySuggestions(text, suggestions)).toBe('😀. My cats ARE hungry.');

@@ -4,6 +4,7 @@
 - [Chrome Web Store](chrome-web-store.md): unlisted submission material and automated approved updates.
 - [Extension privacy policy](privacy.md): local text processing, settings, site access, and controls.
 - [JAX JS inference](jax-js-runtime.md): bundled WebGPU/WASM runtime, FP32 parity, GPU fallback, and release metadata.
+- [Inference performance](inference-performance.md): measured bottlenecks, bounded sentence reuse, compiled shape reuse, and reproducible browser benchmarks.
 - [Research and architecture](research-and-architecture.md): current WebGPU stack, model choices, correction flow, extension boundaries.
 - [Grammar correction literature review](gec-literature-review.md): evidence for compact edit models and span generation, browser tradeoffs, and a controlled experiment plan.
 - [Local spelling](local-spelling.md): bundled dictionary, symmetric-delete lookup, ranking, provenance and safety boundaries.
