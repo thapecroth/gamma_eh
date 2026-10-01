@@ -9,7 +9,7 @@ The model card and committed evaluation JSON report exact model/dataset evidence
 - `GAMMA_TEST_WEBGPU=1 npm run test:browser`: actual WebGPU inference and a neural-only correction passed, including MV3 offscreen inference, pause/resume, and site reenable. Adapter was Google's **SwiftShader software adapter**; no physical-GPU performance claim is made.
 - Browser runs made no external network requests and had no uncaught page exceptions.
 - The natural 15-case smoke set matched 14/15 expected outputs. One subject/verb case was missed; this is not a quality benchmark.
-- The extension fixture grants localhost in a temporary test-only manifest copy. The shipping manifest has only optional site permissions. Chrome's native permission dialog was not automated.
+- At the time of this initial validation, the extension fixture granted localhost in a temporary test-only manifest copy and the shipping manifest had only optional site permissions. Current [browser verification](browser-testing.md) uses the unchanged shipping manifest with automatic site activation. Chrome's native installation dialog is not automated.
 - The pinned C4 mirror streamed 1,000 valid pairs from 1,013 rows and exited normally after synchronous-reader repair. Preparation reports its limited edit alignment coverage and correctly leaves dev/test empty for unreviewed data.
 - A million-pair teacher generation dry run planned 50,000 requests without calling any model endpoint.
 - A subsequent [live GLM teacher pilot](live-pilot.md) generated 80 candidates,

@@ -56,7 +56,7 @@ or establish general grammar quality.
 
 ## Scope and remaining gates
 
-The additional `npm run test:extension` suite exercises real popup activation
+The additional `npm run test:extension` suite exercises automatic site activation
 and settings, stale edits, emoji offsets, dismissing and protected fields. It
 runs in hosted browser and release jobs and saves traces and screenshots under
 `artifacts/agents/extension-*/`. For Luna-driven scenarios and the Codex repair
@@ -67,9 +67,22 @@ fixtures. It does not upload the private, output-terms-unverified GLM corpus or
 student weights, store teacher credentials, or connect back to the development
 machine. A hosted app pass cannot prove the unfinished live teacher pipeline.
 
-The extension fixture still grants localhost in a test-only manifest copy.
-Chrome's native installation and optional-site permission dialog require a
-separate interactive verification with the unchanged shipping manifest. Rich
-editors and nested/shadow frames are still unsupported, not claimed as tested
+The extension fixtures load an unchanged copy of the shipping manifest with
+automatic HTTP/HTTPS content scripts. Checking starts without popup activation
+or dynamic per-site registration, using rules by default and Local AI only after
+opt-in. Both localhost and `gamma-http.test` point to the same local server; the
+latter is an ordinary insecure HTTP origin. Session identifiers use
+`crypto.getRandomValues` so startup also works where `crypto.randomUUID` is
+unavailable. The HTTP fixture must be insecure and have no `randomUUID`.
+
+The test exercises the real popup's per-site pause and resume buttons, verifies
+that pauses affect every same-site tab and persist across navigation, and checks
+that another site's suggestions remain enabled. Resuming restarts checking in
+the already-focused field. Global pause, protected fields, plain contenteditable
+corrections, rich-DOM preservation, and zero external requests remain checked.
+
+Chrome's native installation and site-access controls require separate interactive
+verification. Existing website tabs must be reloaded after an extension update.
+Rich editors and nested/shadow frames are still unsupported, not claimed as tested
 correction targets. Software WebGPU is functional proof, not physical-GPU
 performance evidence. See [Live pilot](live-pilot.md) for the private-student run.

@@ -1,7 +1,7 @@
 import type { AnalysisResult } from '@gamma/engine';
 
-export interface Settings { enabled: boolean; useAI: boolean }
-export const DEFAULT_SETTINGS: Settings = { enabled: true, useAI: false };
+export interface Settings { enabled: boolean; useAI: boolean; disabledSites: string[] }
+export const DEFAULT_SETTINGS: Settings = { enabled: true, useAI: false, disabledSites: [] };
 export const MAX_FIELD_LENGTH = 6_000;
 
 export interface CheckMessage {
@@ -24,7 +24,8 @@ export function isCheckMessage(value: unknown): value is CheckMessage {
 
 export function getSettings(value: Record<string, unknown>): Settings {
   return { enabled: typeof value.enabled === 'boolean' ? value.enabled : DEFAULT_SETTINGS.enabled,
-    useAI: typeof value.useAI === 'boolean' ? value.useAI : DEFAULT_SETTINGS.useAI };
+    useAI: typeof value.useAI === 'boolean' ? value.useAI : DEFAULT_SETTINGS.useAI,
+    disabledSites: Array.isArray(value.disabledSites) ? value.disabledSites.filter((site): site is string => typeof site === 'string') : [] };
 }
 
 export function sitePattern(url: string): string | null {
@@ -35,8 +36,7 @@ export function sitePattern(url: string): string | null {
   } catch { return null; }
 }
 
-export function scriptId(pattern: string): string {
-  let hash = 2166136261;
-  for (const char of pattern) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
-  return `gamma-site-${(hash >>> 0).toString(16)}`;
+export function isSiteEnabled(url: string, settings: Settings): boolean {
+  const pattern = sitePattern(url);
+  return settings.enabled && pattern !== null && !settings.disabledSites.includes(pattern);
 }

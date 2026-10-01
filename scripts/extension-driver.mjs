@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, mkdir, readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -113,7 +113,7 @@ export async function runExtensionScenarios({root, directory, plan = null, id = 
   const shippingBytes = await readFile(shippingPath);
   const temporary = await mkdtemp(join(directory, 'session-'));
   const evidence = {runId: id, ...stamp, planHash: hash(plan), manifestHash: hash(shippingBytes), fixtureHash: hash(fixtureHtml),
-    permissionBoundary: 'Temporary extension copy has static localhost permission. Real popup enables scripts; native optional permission grant/revoke is not verified.',
+    permissionBoundary: 'Unchanged shipping manifest enables HTTP/HTTPS sites by default. Native Chrome installation and site-access controls are not automated.',
     defaultSettings: null, scenarios: [], screenshots: [], blockedRequests: [], networkViolations: [], errors: [], passed: false};
   let context;
   let server;
@@ -134,12 +134,12 @@ export async function runExtensionScenarios({root, directory, plan = null, id = 
     const extension = join(temporary, 'extension');
     await cp(buildPaths(root).extensionOutput, extension, {recursive: true});
     const manifest = JSON.parse(shippingBytes.toString());
-    assert.equal(manifest.host_permissions, undefined, 'Shipping extension must request optional host permissions');
-    assert.equal(manifest.content_scripts, undefined);
+    assert.deepEqual(manifest.host_permissions, ['http://*/*', 'https://*/*']);
+    assert.deepEqual(manifest.content_scripts, [{matches: manifest.host_permissions, js: ['content.js'], run_at: 'document_idle', all_frames: false}]);
     assert.equal(manifest.content_security_policy?.extension_pages,
       "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; worker-src 'self'; connect-src 'self'", 'Bundled-only extension CSP must remain intact');
-    await writeFile(join(extension, 'manifest.json'), JSON.stringify({...manifest, host_permissions: ['http://127.0.0.1/*']}));
-    evidence.fixtureGrantManifestHash = hash(await readFile(join(extension, 'manifest.json')));
+    evidence.loadedManifestHash = hash(await readFile(join(extension, 'manifest.json')));
+    assert.equal(evidence.loadedManifestHash, evidence.manifestHash);
     server = createServer((_request, response) => { response.setHeader('Content-Type', 'text/html'); response.end(fixtureHtml); });
     server.on('connection', socket => { sockets.add(socket); socket.once('close', () => sockets.delete(socket)); });
     await new Promise((ready, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', ready); });
@@ -188,11 +188,11 @@ export async function runExtensionScenarios({root, directory, plan = null, id = 
     await popup.locator('#site-name').filter({hasText: '127.0.0.1'}).waitFor();
     evidence.defaultSettings = {enabled: await popup.locator('#enabled').isChecked(), useAI: await popup.locator('#use-ai').isChecked()};
     assert.deepEqual(evidence.defaultSettings, {enabled: true, useAI: false}, 'Fresh install must keep AI opt-in');
-    await popup.locator('#enable-site').click();
-    await popup.getByRole('status').filter({hasText: 'Ready.'}).waitFor();
+    await popup.locator('#site-detail').filter({hasText: 'Enabled automatically.'}).waitFor();
+    assert.equal(await popup.locator('#enable-site').isVisible(), false);
     const registered = await background.evaluate(() => chrome.scripting.getRegisteredContentScripts());
-    assert.equal(registered.length, 1, 'Real popup handler must register the site');
-    evidence.popupEnableHandler = true;
+    assert.equal(registered.length, 0, 'Default activation must not require a per-site registration');
+    evidence.defaultSiteActivation = true;
     evidence.popupTabId = popupTabId;
 
     async function setting(name, value) {

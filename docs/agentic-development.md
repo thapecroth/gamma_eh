@@ -142,11 +142,10 @@ SwiftShader software adapter, so this is functional execution evidence.
 
 ## Boundaries
 
-The test-only extension copy has a static localhost host grant; its source and
-copied manifest hashes are recorded. This exercises the real popup activation
-handler but **does not verify Chrome's native optional permission prompt or
-revocation lifecycle**. The shipping manifest remains unchanged. That still
-needs interactive verification with the installed package.
+The extension driver now loads an unchanged copy of the shipping manifest and
+records both manifest hashes. It verifies automatic site activation and uses
+the real popup for global settings. Chrome's native installation and site-access
+controls still need interactive verification with the installed package.
 
 Only fictional fixtures and their screenshots are sent to Codex/Luna. Customer
 writing, browser profiles and teacher datasets are not inputs. The extension

@@ -6,9 +6,9 @@
 - [End-to-end teacher pilot](live-pilot.md): real CLIProxyAPI calls, isolated student training and builds, and browser verification.
 - [Roadmap](roadmap.md): baseline status and the gates for a useful general writing assistant.
 - [Initial validation](validation.md): local checks, browser execution, and known verification limits.
-- [Browser verification](browser-testing.md): capability preflight, hosted E2E lane, strict correction checks, and remaining verification gates.
+- [Browser verification](browser-testing.md): capability preflight, hosted E2E lane, automatic site activation, popup pauses, and strict correction checks.
 - [Agentic development](agentic-development.md): supervised local Codex coding loop, Luna-max extension scenarios, evidence and bounded repair.
 - [Frontend toolchain](toolchain.md): project-local Vite+, version alignment, and web/extension packaging.
 - [Releases](releases.md): ready-built Chrome/web ZIPs, checksums, installation, and gated publication.
-- [Chrome extension](../apps/extension/README.md): unpacked installation and site permissions.
+- [Chrome extension](../apps/extension/README.md): unpacked installation, automatic site access, and per-site pauses.
 - [Model card](../models/MODEL_CARD.md): trained checkpoint scope and measured results.

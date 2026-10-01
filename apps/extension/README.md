@@ -17,27 +17,37 @@ root, then use `dist/extension/` as the installation folder.
    support (Chrome 116 or newer).
 2. Enable **Developer mode**, choose **Load unpacked**, and select
    the extracted release folder (or `dist/extension/` for a source build).
-3. Open a website, select the Gamma EH toolbar button, and choose **Enable on
-   this site**. Chrome requests access to that site only.
+3. Open or reload a website. Suggestions are enabled automatically on HTTP and
+   HTTPS sites; there is no per-site activation step.
 4. Focus an ordinary textarea or plain-text contenteditable field. Suggestions
    appear in a small panel. Choose **Accept** or **Dismiss**; close the panel to
    pause that field.
 
 Keep the extracted folder on disk. To update, remove the old unpacked extension,
-extract the new release, and load its folder. Re-enable the desired sites; this
-resets preferences. Unpacked installs do not auto-update. This is developer-mode
+extract the new release, and load its folder. This resets preferences.
+Unpacked installs do not auto-update. This is developer-mode
 installation, not a Chrome Web Store or one-click CRX installer. See the
 [release runbook](../../docs/releases.md) for checksums and publication details.
 
-The popup can pause suggestions everywhere, disable experimental local AI, or
-remove a site's permission. Password inputs, payment/authentication fields,
+The popup can pause suggestions everywhere, enable experimental local AI, or
+**Pause on this site**. A site pause applies to the current HTTP/HTTPS hostname
+across its paths and ports, is saved locally, and affects every open tab on that
+site. **Resume on this site** restores checking without reloading. Local AI stays
+off by default. Password inputs, payment/authentication fields,
 fields marked `spellcheck="false"`, `data-private`, `data-sensitive`, or
 `data-gamma-ignore`, and unsupported rich editors are excluded. Iframes are not
 checked. The extension limits each checked field to 6,000 UTF-16 code units.
 
+Chrome must allow site access on all sites for automatic checking. If access is
+restricted, adjust it in Chrome's extension settings and reload the page.
+Internal browser pages, Chrome-protected pages, and file URLs are unavailable.
+After reloading or updating the extension, reload existing website tabs once.
+Updates remove obsolete per-site script registrations and preserve stored
+checker preferences and site pauses when the extension is reloaded in place.
+
 Typed text is sent only between the extension's content script and its bundled
 inference worker. It is not stored or transmitted to a server. Permissions and
-checker preferences are stored locally. A tiny model trained on synthetic data
+checker preferences and site pauses are stored locally. A tiny model trained on synthetic data
 is an experimental baseline, not evidence of real-world grammar accuracy.
 
 The extension checks the original text and offsets before accepting a
