@@ -152,10 +152,10 @@ try {
   await page.getByRole('button', {name: 'Accept all suggestions'}).click();
   assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), 'She has a friend.');
   evidence.web.acceptAll = true;
-  await page.getByLabel('Your writing', {exact: true}).fill('😀 The students has a notebook.');
+  await page.getByLabel('Your writing', {exact: true}).fill('😀. The students has a notebook.');
   await page.waitForFunction(() => document.querySelector('.accept-all-button')?.disabled === false);
   await page.getByRole('button', {name: 'Accept all suggestions'}).click();
-  assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), '😀 The students have a notebook.');
+  assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), '😀. The students have a notebook.');
   evidence.web.modelCorrectionWithUTF16 = true;
   await page.getByRole('checkbox').focus();
   await page.getByRole('checkbox').press('Space');
@@ -370,10 +370,10 @@ try {
   assert.equal(await fixture.locator('#draft').inputValue(), protectedSpelling);
   evidence.extension.protectedDictionaryTokens = true;
   await background.evaluate(() => chrome.storage.local.set({useAI: true}));
-  await fixture.locator('#draft').fill('😀 The students has a notebook.');
+  await fixture.locator('#draft').fill('😀. The students has a notebook.');
   await waitPanel(fixture, /1 suggestion.*Local AI/u);
   await acceptFirst(fixture);
-  assert.equal(await fixture.locator('#draft').inputValue(), '😀 The students have a notebook.');
+  assert.equal(await fixture.locator('#draft').inputValue(), '😀. The students have a notebook.');
   evidence.extension.modelCorrectionWithUTF16 = true;
   for (const id of ['private', 'payment', 'optout']) {
     await fixture.locator('#' + id).focus();

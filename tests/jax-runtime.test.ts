@@ -43,7 +43,7 @@ describe('JAX model migration', () => {
     vi.stubGlobal('fetch', async (url: string) => unavailable ? new Response('', {status: 404})
       : new Response(await readFile(new URL(url.split('/').at(-1)!, modelDirectory))));
     const options = {modelBaseUrl: '/jax-retry/', preferWebGPU: false};
-    const text = '😀 The students has a notebook.';
+    const text = '😀. The students has a notebook.';
     const failed = await analyzeText(text, options);
     expect(failed.backend).toBe('rules');
     expect(failed.modelError).toMatch(/404/u);
@@ -51,9 +51,9 @@ describe('JAX model migration', () => {
     const recovered = await analyzeText(text, options);
     expect(recovered.backend).toBe('wasm');
     const edit = recovered.suggestions.find(item => item.source === 'model')!;
-    expect(edit).toMatchObject({start: 16, end: 19, original: 'has', replacement: 'have'});
-    expect(applySuggestions(text, recovered.suggestions)).toBe('😀 The students have a notebook.');
-    expect(() => applySuggestions('😀 The students had a notebook.', recovered.suggestions)).toThrow(/changed/u);
+    expect(edit).toMatchObject({start: 17, end: 20, original: 'has', replacement: 'have'});
+    expect(applySuggestions(text, recovered.suggestions)).toBe('😀. The students have a notebook.');
+    expect(() => applySuggestions('😀. The students had a notebook.', recovered.suggestions)).toThrow(/changed/u);
   });
 
   it('rejects unusable context lengths before model execution', async () => {
