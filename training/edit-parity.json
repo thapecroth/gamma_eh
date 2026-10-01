@@ -1,0 +1,26 @@
+{
+  "schema": 2,
+  "cases": [
+    {"word": "TEH", "tag": "REPLACE:the", "tokens": ["THE"]},
+    {"word": "hello", "tag": "CASE:TITLE", "tokens": ["Hello"]},
+    {"word": "HELLO", "tag": "CASE:LOWER", "tokens": ["hello"]},
+    {"word": "hello", "tag": "CASE:UPPER", "tokens": ["HELLO"]},
+    {"word": "study", "tag": "SUFFIX:Y_TO_IES", "tokens": ["studies"]},
+    {"word": "STUDIES", "tag": "SUFFIX:IES_TO_Y", "tokens": ["STUDY"]},
+    {"word": "Watch", "tag": "SUFFIX:ADD_ES", "tokens": ["Watches"]},
+    {"word": "watches", "tag": "SUFFIX:REMOVE_ES", "tokens": ["watch"]},
+    {"word": "walk", "tag": "SUFFIX:ADD_S", "tokens": ["walks"]},
+    {"word": "walks", "tag": "SUFFIX:REMOVE_S", "tokens": ["walk"]},
+    {"word": "word", "tag": "REPLACE_EXACT:New York", "tokens": ["New", "York"]},
+    {"word": "Hello", "tag": "APPEND_EXACT:,", "tokens": ["Hello", ","]},
+    {"word": "book", "tag": "PREPEND_EXACT:a small", "tokens": ["a", "small", "book"]},
+    {"word": "duplicate", "tag": "DELETE", "tokens": []}
+  ],
+  "invalid": [
+    {"word": "a", "tag": "SUFFIX:REMOVE_ES"},
+    {"word": "abc1", "tag": "SUFFIX:ADD_S"},
+    {"word": "word", "tag": "REPLACE_EXACT:one two three four five"},
+    {"word": "word", "tag": "APPEND_EXACT:"},
+    {"word": "word", "tag": "CASE:INVALID"}
+  ]
+}

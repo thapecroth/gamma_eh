@@ -43,7 +43,11 @@ def render(words):
     return re.sub(r"\s+([.,!?;:])", r"\1", " ".join(words))
 
 
-def edit_tags(source, target):
+def edit_tags(source, target, schema=1):
+    if schema == 2:
+        from edit_ops import align_v2
+        return align_v2(source, target)
+    if schema != 1: raise ValueError("Unsupported edit schema")
     a, b = tokens(source), tokens(target)
     tags = ["KEEP"] * len(a)
     for kind, i, j, k, l in difflib.SequenceMatcher(a=a, b=b, autojunk=False).get_opcodes():

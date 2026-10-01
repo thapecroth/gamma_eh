@@ -15,6 +15,12 @@ def group_id(target):
     return hashlib.sha256(normalized(target).casefold().encode()).hexdigest()
 
 
+def evaluation_keys(rows):
+    """Exclude both sides of every heldout pair from either training field."""
+    return {normalized(value).casefold() for row in rows
+            for value in [row["source"], *row.get("references", [row.get("target")]) ]}
+
+
 def pair_id(source, target):
     return hashlib.sha256((normalized(source) + "\0" + normalized(target)).encode()).hexdigest()
 
