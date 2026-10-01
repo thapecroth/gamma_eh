@@ -145,6 +145,21 @@ def acquire_run_lock(path):
     return lock
 
 
+def token_usage_counts(usage):
+    """Flatten standard numeric token fields; cache/reasoning details are nested."""
+    result = Counter()
+    fields = {"prompt_tokens", "completion_tokens", "total_tokens", "input_tokens", "output_tokens",
+              "cache_creation_input_tokens", "cache_read_input_tokens", "cached_tokens", "audio_tokens",
+              "reasoning_tokens", "accepted_prediction_tokens", "rejected_prediction_tokens"}
+    if not isinstance(usage, dict): return result
+    for key, value in usage.items():
+        if key in fields and isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0 and math.isfinite(value):
+            result[key] = value
+        elif key in {"prompt_tokens_details", "completion_tokens_details", "input_tokens_details", "output_tokens_details"}:
+            for field, count in token_usage_counts(value).items(): result[key + "." + field] = count
+    return result
+
+
 def materialize_snapshot(db, output, config, fingerprint, rejected):
     """Export committed rows without calling the provider, including incomplete runs."""
     partial = output / 'candidates.partial.jsonl'
@@ -161,7 +176,7 @@ def materialize_snapshot(db, output, config, fingerprint, rejected):
     planned = math.ceil(config["pairs"] / config["batch_size"])
     usage = Counter()
     for (value,) in db.execute("SELECT usage FROM jobs WHERE status='done' AND usage IS NOT NULL"):
-        usage.update(json.loads(value))
+        usage.update(token_usage_counts(json.loads(value)))
     manifest = {"schema": 1, "config": config, "fingerprint": fingerprint,
                 "status_counts": statuses, "planned_requests": planned,
                 "unfinished_requests": planned - statuses.get("done", 0),

@@ -302,3 +302,16 @@ def test_rejected_legacy_resume_cannot_save_the_wrong_prompt(tmp_path, monkeypat
     assert not (run / "prompt.txt").exists()
     generate(args_for(run, pairs=1))
     assert (run / "prompt.txt").read_text() == original
+
+
+def test_nested_cached_token_usage_is_numeric_and_resumable():
+    from collections import Counter
+    usage = {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30,
+             "prompt_tokens_details": {"cached_tokens": 8},
+             "completion_tokens_details": {"reasoning_tokens": 5},
+             "input_tokens": -1, "output_tokens": True, "metadata": "ignored"}
+    totals = Counter()
+    for _ in range(2): totals.update(generate_llm.token_usage_counts(usage))
+    assert totals == {"prompt_tokens": 20, "completion_tokens": 40, "total_tokens": 60,
+                      "prompt_tokens_details.cached_tokens": 16, "completion_tokens_details.reasoning_tokens": 10}
+    assert generate_llm.token_usage_counts(None) == {}

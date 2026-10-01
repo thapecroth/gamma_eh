@@ -109,7 +109,8 @@ async function analyzePass(text: string, options: EngineOptions, model: LoadedMo
       const peak = row[best];
       const confidence = 1 / row.reduce((sum, value) => sum + Math.exp(value - peak), 0);
       const tag = labels[best];
-      const requiredConfidence = Math.max(threshold, manifest.confidenceThresholds?.[tagCategory(tag)] ?? threshold);
+      const requiredConfidence = Math.max(threshold, manifest.confidenceThreshold,
+        manifest.confidenceThresholds?.[tagCategory(tag)] ?? threshold);
       if (!Number.isFinite(confidence) || confidence < requiredConfidence) continue;
       const edit = decodeProposal(text, words, index, tag, confidence, manifest.editSchema ?? 1);
       if (!edit) continue;

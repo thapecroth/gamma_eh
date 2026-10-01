@@ -59,6 +59,14 @@ describe('model deployment policy', () => {
     expect(result.modelRuns).toBe(1);
   });
 
+  it('never relaxes the calibrated global threshold with a caller override', async () => {
+    manifest.confidenceThreshold = 1;
+    runtime.predict = (ids, position) => ids[position] === 4 ? 1 : 0;
+    const result = await analyzeText('hello.', {...options(), mode: 'model', confidenceThreshold: .1});
+    expect(result.suggestions).toEqual([]);
+    expect(result.modelRuns).toBe(1);
+  });
+
   it('composes punctuation insertion and stops when the next pass has no edits', async () => {
     runtime.predict = (ids, position) => ids[position] === 4 && !ids.includes(8) ? 4 : 0;
     const result = await analyzeText('😀 hello world.', {...options(), mode: 'model', maxPasses: 3});
