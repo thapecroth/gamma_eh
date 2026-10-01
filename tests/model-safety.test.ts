@@ -3,13 +3,8 @@ import { applySuggestions } from '../packages/engine/src/edits';
 import { analyzeModel } from '../packages/engine/src/model';
 
 const runtime = vi.hoisted(() => ({run: vi.fn()}));
-vi.mock('onnxruntime-web/webgpu', () => ({
-  env: {wasm: {}},
-  InferenceSession: {create: async () => ({run: runtime.run})},
-  Tensor: class {
-    constructor(public type: string, public data: BigInt64Array, public dims: number[]) {}
-    dispose() {}
-  },
+vi.mock('../packages/engine/src/jax-runtime', () => ({
+  JaxSession: {create: async () => ({backend: 'wasm', run: runtime.run})},
 }));
 
 const labels = ['KEEP', 'REPLACE:am', 'REPLACE:is', 'REPLACE:are', 'REPLACE:was', 'REPLACE:were',
@@ -30,13 +25,13 @@ beforeEach(() => {
   });
   // Force the selected edit to essentially 100% confidence, independent of
   // the real weights. The context guard must still reject a harmful change.
-  runtime.run.mockImplementation(async (feed: {input_ids: {data: BigInt64Array}}) => {
-    const data = new Float32Array(feed.input_ids.data.length * labels.length).fill(-20);
-    for (const [position, id] of feed.input_ids.data.entries()) {
+  runtime.run.mockImplementation(async (tokenIds: number[]) => {
+    const data = new Float32Array(tokenIds.length * labels.length).fill(-20);
+    for (const [position, id] of tokenIds.entries()) {
       const prediction = predictions[ids[Number(id)]] ?? 'KEEP';
       data[position * labels.length + labels.indexOf(prediction)] = 20;
     }
-    return {logits: {data, dims: [1, feed.input_ids.data.length, labels.length], dispose() {}}};
+    return {data, dims: [1, tokenIds.length, labels.length]};
   });
 });
 

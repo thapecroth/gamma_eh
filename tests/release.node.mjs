@@ -7,19 +7,15 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { promisify } from 'node:util';
 import { packageBuiltRelease, publicBuildPaths, releaseVersion } from '../scripts/package-release.mjs';
+import { runtimeManifest, runtimeVersions } from '../scripts/inference-runtime.mjs';
 
 const run = promisify(execFile);
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 
-test('vendored ONNX Runtime notices exactly match the pinned upstream files', async () => {
-  const expected = {
-    LICENSE: '48bc6bb4996ac924359e8e28b9ae88970e5ed3fc',
-    'ThirdPartyNotices.txt': '75af6ad7e3db5c34e9ff923734ea49056c578d5f',
-  };
-  for (const [filename, upstreamBlob] of Object.entries(expected)) {
-    const bytes = await readFile(new URL(`../licenses/onnxruntime/${filename}`, import.meta.url));
-    const blob = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
-    assert.equal(blob, upstreamBlob, `${filename} must remain a byte-for-byte upstream copy`);
+test('vendored JAX licenses match the installed runtime', async () => {
+  const notice = await readFile(new URL('../licenses/jax-js/LICENSE', import.meta.url));
+  for (const name of ['jax', 'onnx']) {
+    assert(notice.equals(await readFile(new URL(`../node_modules/@jax-js/${name}/LICENSE`, import.meta.url))));
   }
 });
 
@@ -31,10 +27,10 @@ async function put(root, filename, content) {
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'gamma-release-test-'));
   t.after(() => rm(root, {recursive: true, force: true}));
-  await put(root, 'package.json', {version: '0.1.0', dependencies: {'onnxruntime-web': '1.30.0'}});
+  await put(root, 'package.json', {version: '0.1.0', dependencies: runtimeVersions});
   const extension = {manifest_version: 3, name: 'Fictional fixture', version: '0.1.0'};
   await put(root, 'apps/extension/manifest.json', extension);
-  await put(root, 'node_modules/onnxruntime-web/package.json', {version: '1.30.0'});
+  for (const [name, version] of Object.entries(runtimeVersions)) await put(root, `node_modules/${name}/package.json`, {version});
   const model = {model_license: 'Apache-2.0', files: {}};
   for (const name of ['model.onnx', 'model_quantized.onnx', 'vocab.txt', 'labels.json', 'config.json']) {
     const bytes = Buffer.from(`Fictional ${name}; not an executable model`);
@@ -43,10 +39,10 @@ async function fixture(t) {
   }
   await put(root, 'models/browser/manifest.json', model);
   await put(root, 'models/browser/dataset-manifest.json', {license: 'CC0-1.0', origin: 'original-template-v1'});
-  for (const name of ['LICENSE', 'NOTICE', 'licenses/onnxruntime/LICENSE',
-    'licenses/onnxruntime/ThirdPartyNotices.txt', 'licenses/onnxruntime/README.md',
+  for (const name of ['LICENSE', 'NOTICE', 'licenses/jax-js/LICENSE', 'licenses/jax-js/README.md',
     'licenses/spelling/README.md', 'licenses/spelling/SymSpell-LICENSE', 'licenses/spelling/SCOWL-Copyright',
-    'node_modules/flatbuffers/LICENSE', 'node_modules/react/LICENSE', 'node_modules/react-dom/LICENSE', 'node_modules/scheduler/LICENSE']) {
+    'licenses/onnx/LICENSE', 'licenses/onnx/README.md',
+    'licenses/protobuf/LICENSE', 'licenses/protobuf/BSD-3-Clause.txt', 'licenses/protobuf/README.md', 'node_modules/react/LICENSE', 'node_modules/react-dom/LICENSE', 'node_modules/scheduler/LICENSE']) {
     await put(root, name, `Fictional notice: ${name}\n`);
   }
   await put(root, 'models/MODEL_CARD.md', 'Fictional card: [data](browser/dataset-manifest.json) [docs](../docs/massive-dataset.md)\n');
@@ -55,9 +51,7 @@ async function fixture(t) {
       await mkdir(join(root, 'dist', kind, 'models'), {recursive: true});
       await copyFile(join(root, 'models/browser', name), join(root, 'dist', kind, 'models', name));
     }
-    for (const name of ['ort-wasm-simd-threaded.asyncify.wasm', 'ort-wasm-simd-threaded.asyncify.mjs']) {
-      await put(root, `dist/${kind}/runtime/${name}`, `Fictional runtime: ${name}`);
-    }
+    await put(root, `dist/${kind}/inference-runtime.json`, runtimeManifest);
   }
   await put(root, 'dist/web/index.html', '<!doctype html><title>Fictional editor</title>');
   await put(root, 'dist/extension/manifest.json', extension);
@@ -96,8 +90,8 @@ test('packages root-level manifests, local inference assets, instructions, and l
     const {stdout: listing} = await run('unzip', ['-Z1', join(output, name)]);
     const names = new Set(listing.trim().split('\n'));
     for (const required of ['INSTALL.md', 'LICENSE', 'NOTICE', 'MODEL_CARD.md', 'models/model.onnx',
-      'models/model_quantized.onnx', 'runtime/ort-wasm-simd-threaded.asyncify.wasm',
-      'licenses/onnxruntime/LICENSE', 'licenses/onnxruntime/ThirdPartyNotices.txt', 'licenses/flatbuffers/LICENSE',
+      'models/model_quantized.onnx', 'inference-runtime.json',
+      'licenses/jax-js/LICENSE', 'licenses/onnx/LICENSE', 'licenses/protobuf/LICENSE', 'licenses/protobuf/BSD-3-Clause.txt',
       'licenses/spelling/README.md', 'licenses/spelling/SymSpell-LICENSE', 'licenses/spelling/SCOWL-Copyright']) assert(names.has(required), required);
     assert(!listing.includes('private') && !listing.includes('secret') && !listing.includes('pilot'));
     const {stdout: instructions} = await run('unzip', ['-p', join(output, name), 'INSTALL.md']);
@@ -180,9 +174,9 @@ test('rejects extra model files', async t => {
   await assert.rejects(packageBuiltRelease(root), /Unreviewed model asset/u);
 });
 
-test('rejects missing runtime files', async t => {
+test('rejects a missing bundled runtime manifest', async t => {
   const {root} = await fixture(t);
-  await rm(join(root, 'dist/extension/runtime/ort-wasm-simd-threaded.asyncify.wasm'));
+  await rm(join(root, 'dist/extension/inference-runtime.json'));
   await assert.rejects(packageBuiltRelease(root), /Incomplete chrome build/u);
 });
 
@@ -194,6 +188,15 @@ test('rejects a test-only extension permission manifest', async t => {
 
 test('requires matching runtime notices before packaging', async t => {
   const {root} = await fixture(t);
-  await put(root, 'node_modules/onnxruntime-web/package.json', {version: '1.31.0'});
+  await put(root, 'node_modules/@jax-js/jax/package.json', {version: '0.1.26'});
   await assert.rejects(packageBuiltRelease(root), /upstream notices/u);
+});
+
+test('rejects stale runtime metadata and leftover ONNX Runtime files', async t => {
+  const {root} = await fixture(t);
+  await put(root, 'dist/extension/inference-runtime.json', {...runtimeManifest, engine: 'onnxruntime'});
+  await assert.rejects(packageBuiltRelease(root), /runtime manifest differs/u);
+  await put(root, 'dist/extension/inference-runtime.json', runtimeManifest);
+  await put(root, 'dist/extension/runtime/obsolete.wasm', 'must not ship');
+  await assert.rejects(packageBuiltRelease(root), /Obsolete external runtime/u);
 });

@@ -12,10 +12,9 @@ export default defineConfig({
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
         const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
-        const match = /^\/(models|runtime)\/([a-zA-Z0-9_.-]+)$/u.exec(pathname);
+        const match = /^\/models\/([a-zA-Z0-9_.-]+)$/u.exec(pathname);
         if (!match) return next();
-        const directory = match[1] === 'models' ? '../../models/browser/' : '../../node_modules/onnxruntime-web/dist/';
-        const filename = join(fileURLToPath(new URL(directory, import.meta.url)), match[2]);
+        const filename = join(fileURLToPath(new URL('../../models/browser/', import.meta.url)), match[1]);
         try {
           const info = await stat(filename);
           if (!info.isFile()) return next();

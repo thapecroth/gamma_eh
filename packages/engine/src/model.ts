@@ -1,4 +1,4 @@
-import * as ort from 'onnxruntime-web/webgpu';
+import { JaxSession } from './jax-runtime';
 import { preserveCase } from './edits';
 import { validArticleEdit, validVerbEdit } from './guards';
 import { protectedSpans } from './rules';
@@ -7,7 +7,7 @@ import type { EngineOptions, Suggestion } from './types';
 
 interface ModelManifest { confidenceThreshold: number; maxSequenceLength: number }
 interface LoadedModel {
-  session: ort.InferenceSession;
+  session: JaxSession;
   tokenizer: WordPieceTokenizer;
   labels: string[];
   manifest: ModelManifest;
@@ -32,37 +32,23 @@ async function load(options: EngineOptions): Promise<LoadedModel> {
   const labels: unknown = await labelsResponse.json();
   if (!manifest || typeof manifest !== 'object' ||
       !('confidenceThreshold' in manifest) || typeof manifest.confidenceThreshold !== 'number' ||
-      !('maxSequenceLength' in manifest) || typeof manifest.maxSequenceLength !== 'number') {
+      !Number.isFinite(manifest.confidenceThreshold) || manifest.confidenceThreshold < 0 || manifest.confidenceThreshold > 1 ||
+      !('maxSequenceLength' in manifest) || typeof manifest.maxSequenceLength !== 'number' ||
+      !Number.isInteger(manifest.maxSequenceLength) || manifest.maxSequenceLength < 3 || manifest.maxSequenceLength > 512) {
     throw new Error('Invalid model manifest');
   }
   if (!Array.isArray(labels) || labels[0] !== 'KEEP' || !labels.every(label => typeof label === 'string')) {
     throw new Error('Invalid model edit vocabulary');
   }
-  ort.env.wasm.numThreads = 1; // No cross-origin isolation requirement for extension workers.
-  ort.env.wasm.proxy = false;
-  ort.env.wasm.wasmPaths = options.wasmBaseUrl ?? '/runtime/';
   const tokenizer = new WordPieceTokenizer(await vocabResponse.text());
-  let session: ort.InferenceSession;
-  let backend: 'wasm' | 'webgpu' = 'wasm';
-  const hasGPU = typeof navigator !== 'undefined' && 'gpu' in navigator;
-  if (options.preferWebGPU !== false && hasGPU) {
-    try {
-      const model = new Uint8Array(await (await fetchAsset(base, 'model.onnx')).arrayBuffer());
-      session = await ort.InferenceSession.create(model, {executionProviders: ['webgpu'], graphOptimizationLevel: 'all'});
-      backend = 'webgpu';
-    } catch {
-      const model = new Uint8Array(await (await fetchAsset(base, 'model_quantized.onnx')).arrayBuffer());
-      session = await ort.InferenceSession.create(model, {executionProviders: ['wasm']});
-    }
-  } else {
-    const model = new Uint8Array(await (await fetchAsset(base, 'model_quantized.onnx')).arrayBuffer());
-    session = await ort.InferenceSession.create(model, {executionProviders: ['wasm']});
-  }
+  const model = new Uint8Array(await (await fetchAsset(base, 'model.onnx')).arrayBuffer());
+  const session = await JaxSession.create(model, options.preferWebGPU !== false);
+  const backend = session.backend;
   return {session, tokenizer, labels, manifest: manifest as ModelManifest, backend};
 }
 
 function getModel(options: EngineOptions): Promise<LoadedModel> {
-  const key = JSON.stringify([options.modelBaseUrl, options.wasmBaseUrl, options.preferWebGPU]);
+  const key = JSON.stringify([options.modelBaseUrl, options.preferWebGPU]);
   let pending = sessions.get(key);
   if (!pending) {
     pending = load(options).catch(error => { sessions.delete(key); throw error; });
@@ -84,65 +70,53 @@ export async function analyzeModel(text: string, options: EngineOptions, ruleSug
     // deletes a duplicate. Do not infer conflicting edits from that context.
     if (protectedRanges.some(range => first < range.end && range.start < last) ||
         ruleSuggestions.some(edit => !edit.replacement && first < edit.end && edit.start < last)) continue;
-    const shape = [1, chunk.ids.length];
-    const feed = {
-      input_ids: new ort.Tensor('int64', BigInt64Array.from(chunk.ids, BigInt), shape),
-      attention_mask: new ort.Tensor('int64', BigInt64Array.from(chunk.ids, () => 1n), shape),
-      token_type_ids: new ort.Tensor('int64', BigInt64Array.from(chunk.ids, () => 0n), shape),
-    };
-    let outputs: Record<string, ort.Tensor> | undefined;
-    try {
-      outputs = await session.run(feed);
-      const logits = outputs.logits;
-      if (!logits || logits.dims[2] !== labels.length || !(logits.data instanceof Float32Array)) {
-        throw new Error('Unexpected model output shape');
-      }
-      for (const [index, {word, position}] of chunk.positions.entries()) {
-        if (!/^[A-Za-z]+(?:['’][A-Za-z]+)*$/u.test(word.text)) continue;
-        if (protectedRanges.some(range => word.start < range.end && range.start < word.end)) continue;
-        const row = logits.data.subarray(position * labels.length, (position + 1) * labels.length);
-        let best = 0;
-        for (let i = 1; i < row.length; i++) if (row[i] > row[best]) best = i;
-        if (!best) continue;
-        const peak = row[best];
-        const confidence = 1 / row.reduce((sum, value) => sum + Math.exp(value - peak), 0);
-        if (confidence < threshold) continue;
-        const tag = labels[best];
-        let {start, end} = word;
-        let replacement: string;
-        if (tag === 'DELETE') {
-          // Training deletion labels come only from adjacent-token duplication.
-          // An out-of-domain DELETE must not erase an arbitrary valid word.
-          const lower = word.text.toLowerCase();
-          if (['had', 'that'].includes(lower) ||
-              (chunk.positions[index - 1]?.word.text.toLowerCase() !== lower &&
-               chunk.positions[index + 1]?.word.text.toLowerCase() !== lower)) continue;
-          // Remove adjacent horizontal whitespace, never a paragraph boundary.
-          if (/[ \t]/u.test(text[end] ?? '')) { while (/[ \t]/u.test(text[end] ?? '')) end++; }
-          else { while (start > 0 && /[ \t]/u.test(text[start - 1])) start--; }
-          replacement = '';
-        } else if (tag.startsWith('REPLACE:')) {
-          const proposed = tag.slice(8);
-          if (!validVerbEdit(text, word, proposed)) continue;
-          if (['a', 'an'].includes(proposed) && !validArticleEdit(proposed, chunk.positions[index + 1]?.word.text ?? '')) continue;
-          replacement = preserveCase(word.text, tag.slice(8));
-          if (replacement === word.text) continue;
-        } else if (tag.startsWith('APPEND:')) {
-          const proposed = tag.slice(7);
-          if (['a', 'an'].includes(proposed) && !validArticleEdit(proposed, chunk.positions[index + 1]?.word.text ?? '')) continue;
-          start = end;
-          replacement = ' ' + tag.slice(7);
-        } else continue;
-        suggestions.push({id: `model-${start}-${end}-${tag}`, start, end,
-          original: text.slice(start, end), replacement,
-          message: tag === 'DELETE' ? 'The local model suggests removing this word.' :
-            tag.startsWith('APPEND:') ? 'The local model suggests a missing word here.' :
-              'The local model suggests this word change.',
-          category: 'grammar', confidence, source: 'model'});
-      }
-    } finally {
-      for (const tensor of Object.values(feed)) tensor.dispose();
-      if (outputs) for (const tensor of Object.values(outputs)) tensor.dispose();
+    const logits = await session.run(chunk.ids);
+    if (logits.dims.length !== 3 || logits.dims[0] !== 1 || logits.dims[1] !== chunk.ids.length ||
+        logits.dims[2] !== labels.length || logits.data.length !== chunk.ids.length * labels.length) {
+      throw new Error('Unexpected model output shape');
+    }
+    for (const [index, {word, position}] of chunk.positions.entries()) {
+      if (!/^[A-Za-z]+(?:['’][A-Za-z]+)*$/u.test(word.text)) continue;
+      if (protectedRanges.some(range => word.start < range.end && range.start < word.end)) continue;
+      const row = logits.data.subarray(position * labels.length, (position + 1) * labels.length);
+      let best = 0;
+      for (let i = 1; i < row.length; i++) if (row[i] > row[best]) best = i;
+      if (!best) continue;
+      const peak = row[best];
+      const confidence = 1 / row.reduce((sum, value) => sum + Math.exp(value - peak), 0);
+      if (confidence < threshold) continue;
+      const tag = labels[best];
+      let {start, end} = word;
+      let replacement: string;
+      if (tag === 'DELETE') {
+        // Training deletion labels come only from adjacent-token duplication.
+        // An out-of-domain DELETE must not erase an arbitrary valid word.
+        const lower = word.text.toLowerCase();
+        if (['had', 'that'].includes(lower) ||
+            (chunk.positions[index - 1]?.word.text.toLowerCase() !== lower &&
+             chunk.positions[index + 1]?.word.text.toLowerCase() !== lower)) continue;
+        // Remove adjacent horizontal whitespace, never a paragraph boundary.
+        if (/[ \t]/u.test(text[end] ?? '')) { while (/[ \t]/u.test(text[end] ?? '')) end++; }
+        else { while (start > 0 && /[ \t]/u.test(text[start - 1])) start--; }
+        replacement = '';
+      } else if (tag.startsWith('REPLACE:')) {
+        const proposed = tag.slice(8);
+        if (!validVerbEdit(text, word, proposed)) continue;
+        if (['a', 'an'].includes(proposed) && !validArticleEdit(proposed, chunk.positions[index + 1]?.word.text ?? '')) continue;
+        replacement = preserveCase(word.text, tag.slice(8));
+        if (replacement === word.text) continue;
+      } else if (tag.startsWith('APPEND:')) {
+        const proposed = tag.slice(7);
+        if (['a', 'an'].includes(proposed) && !validArticleEdit(proposed, chunk.positions[index + 1]?.word.text ?? '')) continue;
+        start = end;
+        replacement = ' ' + tag.slice(7);
+      } else continue;
+      suggestions.push({id: `model-${start}-${end}-${tag}`, start, end,
+        original: text.slice(start, end), replacement,
+        message: tag === 'DELETE' ? 'The local model suggests removing this word.' :
+          tag.startsWith('APPEND:') ? 'The local model suggests a missing word here.' :
+            'The local model suggests this word change.',
+        category: 'grammar', confidence, source: 'model'});
     }
   }
   return {suggestions, backend};
