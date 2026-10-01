@@ -5,7 +5,7 @@
 - Original reproducible English dataset with clean/corrupted pairs and provenance.
 - Fine-tuned tiny edit transformer with development calibration and held-out metrics.
 - Checked FP32/INT8 ONNX exports and bundled browser assets.
-- Shared local correction engine, worker-based web editor, and opt-in MV3 extension.
+- Shared local correction engine, worker-based web editor, and automatically enabled MV3 extension with per-site pauses and opt-in Local AI.
 - Rules remain useful if model loading fails; UI identifies the actual backend.
 
 ## Quality work before a general release

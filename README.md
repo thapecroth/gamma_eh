@@ -43,7 +43,7 @@ Nothing changes until you accept a suggestion.
 | **WebGPU + WASM** | WebGPU where available; FP32 CPU inference as a fallback. |
 | **A genuinely tiny model** | 4.38M parameters; 17.55 MB of FP32 weights, executed locally with JAX JS. |
 | **You stay in control** | Accept or dismiss edits; source offsets and stale-text checks protect your draft. |
-| **Permission per site** | Enable the extension only where you want it. Sensitive fields are excluded. |
+| **Ready on every website** | Suggestions run automatically. Pause individual sites or all sites; sensitive fields are excluded. |
 
 <details>
 <summary>See the editor — an actual local preview</summary>
@@ -103,7 +103,7 @@ No Node.js or build step is needed for the extension package.
 1. Extract the ZIP into a folder you will keep on your computer.
 2. Open `chrome://extensions` in Chrome 116 or newer and enable **Developer mode**.
 3. Choose **Load unpacked** and select the extracted folder containing `manifest.json`.
-4. Open a regular website, click the Gamma EH toolbar button, and choose **Enable on this site**.
+4. Open or reload a regular website. Writing suggestions are enabled automatically.
 5. Write in a textarea or plain-text contenteditable. Enable **Local AI** in the popup if desired.
 
 This is a developer-mode installation, not a Chrome Web Store listing or a
@@ -118,6 +118,8 @@ The model and browser runtime are included in that folder.
 The extension currently supports plain fields in the top frame. Google Docs,
 rich document editors, shadow roots, and nested frames are not supported.
 Page text is not uploaded or stored in extension settings.
+Use the toolbar popup to **Pause on this site** or turn off **Writing suggestions**
+everywhere. Chrome's site-access setting must allow the extension on all sites.
 
 ## Inside the model
 

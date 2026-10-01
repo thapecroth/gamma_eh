@@ -8,7 +8,7 @@ advertising, or developer-operated service that receives your writing.
 
 ## Information processed on your device
 
-When you enable Gamma EH on a site and focus a supported textarea or plain-text
+When you focus a supported textarea or plain-text
 editor, the extension reads that field's text, including existing text, to find
 possible corrections. This may include a draft message or personal information
 you choose to write. Text and suggestions pass between extension components
@@ -18,16 +18,17 @@ or use them to train a model.
 
 The extension reads the current tab's address to display the site in its popup
 and manage access. It does not create a browsing-history record or monitor
-unrelated page content. Checking runs in the top frame on sites you enable.
+unrelated page content. Checking starts automatically in the top frame on
+ordinary HTTP/HTTPS sites with browser-granted access, unless you pause it.
 Password inputs, payment/authentication input fields, fields marked private or
 sensitive, and unsupported rich editors are excluded. Gamma EH cannot recognize
 every kind of sensitive information in an ordinary text field.
 
 ## Information retained locally
 
-Gamma EH saves two preferences in Chrome's local extension storage: whether
-writing suggestions are enabled and whether experimental Local AI is enabled.
-Chrome manages site-access grants and registered site scripts. These choices
+Gamma EH saves preferences in local extension storage: whether writing
+suggestions and experimental Local AI are enabled, plus the list of paused
+sites. Chrome manages host-access grants. These choices
 persist until you change them or remove the extension. Drafts and suggestions
 are temporary in-memory data; closing the page ends that page's checking.
 Processing components may retain active or queued text while work completes.
@@ -52,8 +53,8 @@ Limited Use requirements.
 
 ## Your controls and contact
 
-Use the popup to pause writing suggestions, switch Local AI off, or remove
-permission for the current site. Use Chrome's extension settings to manage
+Use the popup to pause writing suggestions globally or on the current site,
+or switch Local AI off. Use Chrome's extension settings to manage
 site access or uninstall Gamma EH. Uninstalling removes its local extension
 settings. You can review each suggested correction before accepting it.
 

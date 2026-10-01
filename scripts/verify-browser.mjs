@@ -65,20 +65,19 @@ async function acceptFirst(page) {
   await element.session.detach();
 }
 
-async function enableSite(page, background, extensionId) {
-  const popup = await context.newPage();
+async function setSitePaused(page, background, extensionId, paused) {
+  const popupPromise = context.waitForEvent('page');
+  await background.evaluate(async ({url, popupUrl}) => {
+    const [tab] = await chrome.tabs.query({url});
+    await chrome.tabs.update(tab.id, {active: true});
+    await chrome.windows.update(tab.windowId, {focused: true});
+    await chrome.tabs.create({url: popupUrl, active: false});
+  }, {url: page.url(), popupUrl: `chrome-extension://${extensionId}/popup.html`});
+  const popup = await popupPromise;
   try {
-    // Keep the fixture active while opening the real popup document in a
-    // background tab. Site access is pre-granted only in the test manifest.
-    await background.evaluate(async (url) => {
-      const [tab] = await chrome.tabs.query({url});
-      await chrome.tabs.update(tab.id, {active: true});
-    }, page.url());
-    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popup.locator('#enable-site:not([disabled])').waitFor();
-    await popup.locator('#enable-site').click();
-    await popup.waitForFunction(() => document.querySelector('#status')?.textContent?.startsWith('Ready.'));
-    await popup.locator('#enable-site[disabled]').waitFor();
+    await popup.locator('#site-name').filter({hasText: new URL(page.url()).hostname}).waitFor();
+    await popup.locator(paused ? '#disable-site' : '#enable-site').click();
+    await popup.getByRole('status').filter({hasText: paused ? 'Suggestions are paused on this site.' : 'Suggestions are enabled on this site.'}).waitFor();
   } finally { await popup.close(); }
 }
 
@@ -132,15 +131,12 @@ try {
   const insecureOrigin = `http://gamma-http.test:${address.port}`;
   const allowedOrigins = [origin, insecureOrigin];
 
-  // Test-only copy gets fixture permissions to exercise the real extension
-  // pipeline without automating Chrome's native permission dialog. The shipping
-  // manifest is checked below and is never altered.
+  // Load an unchanged copy of the shipping extension, including its real permissions.
   const extensionDir = join(temporary, 'extension');
   await cp(extensionOutput, extensionDir, {recursive: true});
   const shippingManifest = JSON.parse(await readFile(join(extensionDir, 'manifest.json'), 'utf8'));
-  assert.equal(shippingManifest.host_permissions, undefined);
-  assert.equal(shippingManifest.content_scripts, undefined);
-  await writeFile(join(extensionDir, 'manifest.json'), JSON.stringify({...shippingManifest, host_permissions: ['http://127.0.0.1/*', 'http://gamma-http.test/*']}));
+  assert.deepEqual(shippingManifest.host_permissions, ['http://*/*', 'https://*/*']);
+  assert.deepEqual(shippingManifest.content_scripts, [{matches: shippingManifest.host_permissions, js: ['content.js'], run_at: 'document_idle', all_frames: false}]);
   context = await chromium.launchPersistentContext(join(temporary, 'profile'), {
     channel: 'chromium', executablePath: await findChromium(), headless: true,
     args: [`--disable-extensions-except=${extensionDir}`, `--load-extension=${extensionDir}`,
@@ -377,14 +373,15 @@ try {
   let background = context.serviceWorkers().find(worker => worker.url().includes('background.mjs'));
   if (!background) background = await context.waitForEvent('serviceworker', {predicate: worker => worker.url().includes('background.mjs')});
   const extensionId = new URL(background.url()).hostname;
-  await background.evaluate(() => chrome.storage.local.set({enabled: true, useAI: true}));
+  assert.deepEqual(await background.evaluate(() => chrome.scripting.getRegisteredContentScripts()), [], 'Default activation must not need dynamic registration');
   const fixture = await context.newPage();
   fixture.on('pageerror', error => failures.push(error.message));
   await fixture.goto(origin + '/fixture.html');
   await fixture.locator('#draft').focus();
-  assert.equal(await fixture.locator('[data-gamma-ignore]').count(), 0, 'Permission alone must not activate suggestions');
-  await enableSite(fixture, background, extensionId);
-  evidence.extension.popupActivation = true;
+  await waitPanel(fixture, /2 suggestions.*Local rules/u);
+  evidence.extension.defaultSiteActivation = true;
+  evidence.extension.localAIOptIn = true;
+  await background.evaluate(() => chrome.storage.local.set({useAI: true}));
   await fixture.waitForFunction(() => Boolean(document.querySelector('[data-gamma-ignore]')), {timeout: 30_000});
   // CDP lets this test inspect the closed shadow panel without changing the
   // shipping extension to expose page text or private suggestion state.
@@ -398,10 +395,9 @@ try {
   const insecureFixture = await context.newPage();
   insecureFixture.on('pageerror', error => failures.push(error.message));
   await insecureFixture.goto(insecureOrigin + '/fixture.html');
-  assert.equal(await insecureFixture.evaluate(() => isSecureContext), false, 'HTTP regression fixture must not be a secure context');
+  assert.equal(await insecureFixture.evaluate(() => isSecureContext), false);
   assert.equal(await insecureFixture.evaluate(() => typeof crypto.randomUUID), 'undefined');
   await insecureFixture.locator('#draft').focus();
-  await enableSite(insecureFixture, background, extensionId);
   await waitPanel(insecureFixture, /2 suggestions.*Local AI/u);
   await acceptFirst(insecureFixture);
   await waitPanel(insecureFixture, /1 suggestion/u);
@@ -411,8 +407,7 @@ try {
   await insecureFixture.locator('#draft').focus();
   await waitPanel(insecureFixture, /2 suggestions.*Local AI/u);
   evidence.extension.insecureHttpActivation = true;
-  evidence.extension.registeredScriptAfterReload = true;
-  await insecureFixture.close();
+  evidence.extension.automaticActivationAfterReload = true;
   await fixture.locator('#draft').fill('my cat is hungry.');
   await waitPanel(fixture, /No suggestions from this checker.*Local AI/u);
   assert.equal(await fixture.locator('#draft').inputValue(), 'my cat is hungry.');
@@ -465,21 +460,31 @@ try {
   await fixture.locator('#draft').focus();
   await waitPanel(fixture, /1 suggestion/u);
   evidence.extension.pauseResume = true;
-  await background.evaluate(async () => {
-    const tabs = await chrome.tabs.query({url: 'http://127.0.0.1/*'});
-    for (const tab of tabs) await chrome.tabs.sendMessage(tab.id, {target: 'content', action: 'site-disabled'}).catch(() => undefined);
-  });
+  const sameSiteFixture = await context.newPage();
+  await sameSiteFixture.goto(origin + '/fixture.html?sibling');
+  await sameSiteFixture.locator('#draft').focus();
+  await waitPanel(sameSiteFixture, /2 suggestions/u);
+  await setSitePaused(fixture, background, extensionId, true);
   await fixture.waitForFunction(() => !document.querySelector('[data-gamma-ignore]'));
-  await background.evaluate(async () => {
-    const tabs = await chrome.tabs.query({url: 'http://127.0.0.1/*'});
-    for (const tab of tabs) await chrome.tabs.sendMessage(tab.id, {target: 'content', action: 'site-enabled'}).catch(() => undefined);
-  });
-  await waitPanel(fixture, /1 suggestion/u);
+  await sameSiteFixture.waitForFunction(() => !document.querySelector('[data-gamma-ignore]'));
+  await waitPanel(insecureFixture, /2 suggestions/u);
+  evidence.extension.sitePauseAcrossTabs = true;
+  evidence.extension.otherSitesUnaffected = true;
+  await fixture.reload();
+  await fixture.locator('#draft').focus();
+  await fixture.waitForTimeout(1_100);
+  assert.equal(await fixture.locator('[data-gamma-ignore]').count(), 0, 'A site pause must survive navigation');
+  evidence.extension.sitePauseAfterReload = true;
+  await setSitePaused(fixture, background, extensionId, false);
+  await waitPanel(fixture, /2 suggestions/u);
+  await waitPanel(sameSiteFixture, /2 suggestions/u);
   evidence.extension.siteReenable = true;
+  await sameSiteFixture.close();
+  await insecureFixture.close();
   const offscreen = await background.evaluate(() => chrome.runtime.getContexts({contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT]}));
   assert.equal(offscreen.length, 1);
   evidence.extension.offscreenContext = true;
-  evidence.extension.nativePermissionDialog = 'Not automated; test-only copy grants local fixtures. Real popup activation is exercised; shipping manifest remains optional-site-only.';
+  evidence.extension.nativePermissionDialog = 'Not automated; the unchanged shipping manifest is used. Automatic site activation and real popup pause/resume are exercised.';
   evidence.extension.extensionId = extensionId;
   assert.deepEqual(evidence.network, [], 'Browser checks must not send external requests');
   assert.deepEqual(failures, [], 'Browser must have no uncaught page exceptions');
