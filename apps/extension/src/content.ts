@@ -56,7 +56,7 @@ function start() {
     body.append(status);
     for (const suggestion of suggestions.slice(0, 6)) {
       const card = document.createElement('article'); card.className = 'card';
-      const category = document.createElement('div'); category.className = 'category'; category.textContent = `${suggestion.category} · ${suggestion.source === 'model' ? 'local model' : 'rule'}`;
+      const category = document.createElement('div'); category.className = 'category'; category.textContent = `${suggestion.category} · ${suggestion.source === 'model' ? 'local model' : suggestion.source}`;
       const correction = document.createElement('p'); correction.className = 'correction';
       const original = document.createElement('span'); original.className = 'old'; original.textContent = suggestion.original || '(insert)';
       const arrow = document.createElement('span'); arrow.className = 'arrow'; arrow.textContent = '→'; arrow.setAttribute('aria-hidden', 'true');

@@ -42,7 +42,7 @@ async function shadowElement(page, selector) {
 async function waitPanel(page, pattern, timeout = 90_000) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
-    const element = await shadowElement(page, '.body');
+    const element = await shadowElement(page, '[role="status"]') ?? await shadowElement(page, '.body');
     if (element) {
       const {result} = await element.session.send('Runtime.callFunctionOn', {objectId: element.objectId,
         functionDeclaration: 'function() { return this.textContent; }', returnByValue: true});
@@ -55,7 +55,16 @@ async function waitPanel(page, pattern, timeout = 90_000) {
 }
 
 async function acceptFirst(page) {
-  const element = await shadowElement(page, 'button.accept');
+  let element = await shadowElement(page, 'button.accept');
+  if (!element) {
+    // Inline suggestions open their card from the badge; the earlier panel
+    // already exposes its Accept button. Exercise the same user action.
+    const badge = await shadowElement(page, 'button.badge');
+    assert(badge, 'Expected an extension suggestion badge');
+    await badge.session.send('Runtime.callFunctionOn', {objectId: badge.objectId, functionDeclaration: 'function() { this.click(); }'});
+    await badge.session.detach();
+    element = await shadowElement(page, 'button.accept');
+  }
   assert(element, 'Expected an extension Accept button');
   await element.session.send('Runtime.callFunctionOn', {objectId: element.objectId, functionDeclaration: 'function() { this.click(); }'});
   await element.session.detach();
@@ -142,6 +151,23 @@ try {
   await page.getByLabel('Your writing', {exact: true}).fill('A clean sentence.');
   await page.getByText('No suggestions from this checker.').waitFor();
   evidence.web.rulesToggle = true;
+  await page.getByLabel('Your writing', {exact: true}).fill('halo');
+  await page.getByText('Did you mean “hello” as a greeting? “Halo” is also a valid word.').waitFor();
+  await page.getByRole('button', {name: 'Accept', exact: true}).click();
+  assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), 'hello');
+  await page.getByLabel('Your writing', {exact: true}).fill('A halo surrounds the moon.');
+  await page.getByText('No suggestions from this checker.').waitFor();
+  await page.getByLabel('Your writing', {exact: true}).fill('Speling matters in a sentnce.');
+  await page.waitForFunction(() => document.querySelectorAll('.suggestion-card').length === 2 && document.querySelector('.accept-all-button')?.disabled === false);
+  await page.getByRole('button', {name: 'Accept all suggestions'}).click();
+  assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), 'Spelling matters in a sentence.');
+  evidence.web.dictionarySpellingWithoutAI = true;
+  const protectedSpelling = '``speling ` sentnce\nwrold`` speling\u2011like speling\u203Fvalue speling\u200CValue';
+  await page.getByLabel('Your writing', {exact: true}).fill(protectedSpelling);
+  await page.getByText('No suggestions from this checker.').waitFor();
+  assert.equal(await page.locator('.suggestion-card').count(), 0);
+  assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), protectedSpelling);
+  evidence.web.protectedDictionaryTokens = true;
   await page.getByLabel('Your writing', {exact: true}).fill('A little clarity goes a long way.\n\nI recieved your message, and we has a lot of ideas. My freind is writting about the project.\n\nWrite freely. You choose what to change.');
   await page.waitForFunction(() => document.querySelector('.accept-all-button')?.disabled === false);
   await page.getByLabel('Your writing', {exact: true}).blur();
@@ -219,6 +245,25 @@ try {
   await waitPanel(fixture, /No suggestions from this checker.*Local AI/u);
   assert.equal(await fixture.locator('#draft').inputValue(), 'my cat is hungry.');
   evidence.extension.cleanSentencePreserved = true;
+  await background.evaluate(() => chrome.storage.local.set({useAI: false}));
+  await fixture.locator('#draft').fill('halo');
+  await waitPanel(fixture, /Did you mean “hello” as a greeting/u);
+  await acceptFirst(fixture);
+  assert.equal(await fixture.locator('#draft').inputValue(), 'hello');
+  await fixture.locator('#draft').fill('A halo surrounds the moon.');
+  await waitPanel(fixture, /No suggestions from this checker/u);
+  await fixture.locator('#draft').fill('😀. Speling in a sentnce.');
+  await waitPanel(fixture, /2 suggestions.*Local rules/u);
+  await acceptFirst(fixture);
+  await waitPanel(fixture, /1 suggestion/u);
+  await acceptFirst(fixture);
+  assert.equal(await fixture.locator('#draft').inputValue(), '😀. Spelling in a sentence.');
+  evidence.extension.dictionarySpellingWithoutAI = true;
+  await fixture.locator('#draft').fill(protectedSpelling);
+  await waitPanel(fixture, /No suggestions from this checker/u);
+  assert.equal(await fixture.locator('#draft').inputValue(), protectedSpelling);
+  evidence.extension.protectedDictionaryTokens = true;
+  await background.evaluate(() => chrome.storage.local.set({useAI: true}));
   for (const id of ['private', 'payment', 'optout']) {
     await fixture.locator('#' + id).focus();
     await fixture.waitForFunction(() => !document.querySelector('[data-gamma-ignore]'));
