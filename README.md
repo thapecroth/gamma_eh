@@ -35,8 +35,8 @@ Nothing changes until you accept a suggestion.
 | | What you get |
 | --- | --- |
 | **Local by design** | Bundled model and runtime. No account, API key, or inference server. |
-| **WebGPU + WASM** | WebGPU where available; quantized CPU inference as a fallback. |
-| **A genuinely tiny model** | 4.38M parameters; about 4.46 MB of INT8 weights. Runtime assets add to download size. |
+| **WebGPU + WASM** | WebGPU where available; FP32 CPU inference as a fallback. |
+| **A genuinely tiny model** | 4.38M parameters; 17.55 MB of FP32 weights, executed locally with JAX JS. |
 | **You stay in control** | Accept or dismiss edits; source offsets and stale-text checks protect your draft. |
 | **Permission per site** | Enable the extension only where you want it. Sensitive fields are excluded. |
 
@@ -52,7 +52,7 @@ transformer; the interface reports the active WebGPU or WASM backend.
 
 ## Yes, we ran the model on WebGPU
 
-Our trained ONNX model executed through the **WebGPU execution provider** in
+Our trained ONNX model executes through **JAX JS WebGPU** in
 both the web editor's worker and the Chrome extension's offscreen inference path.
 That is verified execution, not just a `navigator.gpu` availability check.
 
@@ -122,7 +122,7 @@ Page text is not uploaded or stored in extension settings.
 | Parameters | 4,377,793 |
 | Edits | 65 token-edit labels, confidence-gated suggestions |
 | Context | Up to 64 WordPiece tokens per inference |
-| Browser exports | FP32 ONNX for WebGPU; INT8 ONNX for WASM fallback |
+| Browser exports | FP32 ONNX for JAX JS WebGPU and WASM; INT8 retained for evaluation |
 | Training data | Original, deterministic CC0 synthetic templates |
 
 The shared engine combines model suggestions with rules and checks UTF-16
@@ -130,7 +130,7 @@ offsets before applying an edit. Workers keep inference off the UI thread.
 
 [Architecture](docs/research-and-architecture.md) ·
 [Training and provenance](docs/dataset-and-training.md) ·
-[Model card and evaluation limits](models/MODEL_CARD.md)
+[Model card and evaluation limits](models/MODEL_CARD.md) · [JAX JS runtime](docs/jax-js-runtime.md)
 
 ## Development
 

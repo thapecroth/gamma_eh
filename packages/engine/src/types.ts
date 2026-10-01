@@ -22,7 +22,6 @@ export interface AnalysisResult {
 
 export interface EngineOptions {
   modelBaseUrl?: string;
-  wasmBaseUrl?: string;
   preferWebGPU?: boolean;
   confidenceThreshold?: number;
 }

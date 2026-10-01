@@ -14,7 +14,7 @@ async function drain() {
       try {
         const started = performance.now();
         const result: AnalysisResult = useAI
-          ? await analyzeText(text, { modelBaseUrl: '/models/', wasmBaseUrl: '/runtime/' })
+          ? await analyzeText(text, { modelBaseUrl: '/models/' })
           : { text, suggestions: analyzeRules(text), backend: 'rules', elapsedMs: performance.now() - started };
         self.postMessage({ requestId, result });
       } catch (error) {

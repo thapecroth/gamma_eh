@@ -38,8 +38,10 @@ There are no reported BEA/CoNLL/JFLEG/ERRANT benchmark scores.
 
 ## Browser engine validation and limitations
 
-The trained quantized model executed in headless Chromium with the real web
-editor and MV3 offscreen/worker path. WebGPU also executed with Chrome's explicit
+The browser apps now execute the FP32 graph through JAX JS on WASM and WebGPU;
+the INT8 export remains for evaluation. See [runtime validation](../docs/jax-js-runtime.md).
+The original ONNX Runtime validation executed the quantized model in headless
+Chromium with the real web editor and MV3 offscreen/worker path. WebGPU also executed with Chrome's explicit
 headless WebGPU flag, using its SwiftShader software adapter. Physical-GPU
 browser execution and hardware latency remain unverified. A small original natural-text smoke set
 matched 14/15 expected outputs after conservative runtime guards. The model
