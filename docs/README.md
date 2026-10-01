@@ -1,5 +1,6 @@
 # Project documentation
 
+- [Web playground](playground.md): standalone browser demo, example drafts, local AI, privacy, hosting, and extension-free verification.
 - [Windows WebGPU initialization](windows-webgpu.md): adapter options, runtime warnings, and rebuilding an unpacked extension.
 - [Chrome Web Store](chrome-web-store.md): unlisted submission material and automated approved updates.
 - [Extension privacy policy](privacy.md): local text processing, settings, site access, and controls.

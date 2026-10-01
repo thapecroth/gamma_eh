@@ -46,6 +46,10 @@ jobs:
         timeout-minutes: 2
         run: npm run check:environment
       - run: npm run build
+      - name: Verify playground on CPU without an extension
+        run: GAMMA_TEST_WEBGPU=0 npm run test:playground
+      - name: Verify playground on WebGPU without an extension
+        run: npm run test:playground
       - name: Verify local model, web editor, and Chrome extension
         run: npm run test:browser
       - name: Verify extension popup and editing flows
@@ -67,6 +71,9 @@ jobs:
             data/generated/harder-v1/challenge.json
             artifacts/editor-desktop.png
             artifacts/editor-mobile.png
+            artifacts/playground-smoke*.json
+            artifacts/playground-desktop.png
+            artifacts/playground-mobile.png
             artifacts/agents/extension-*/browser.json
             artifacts/agents/extension-*/*.png
             artifacts/agents/extension-*/trace.zip
