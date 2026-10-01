@@ -20,7 +20,7 @@ const cache = new Map<string, string | null>();
 const technicalWords = new Set('github gitlab webgpu webgl wasm typescript javascript nodejs npm pnpm vite vitest esbuild eslint prisma vercel kubectl chatgpt'.split(' '));
 
 export function spellingWords(text: string): RegExpStringIterator<RegExpExecArray> {
-  return text.matchAll(/[\p{L}\p{M}\p{N}_]+(?:['’-][\p{L}\p{M}\p{N}_]+)*/gu);
+  return text.matchAll(/[\p{L}\p{M}\p{N}\p{Pc}\u200C\u200D]+(?:['’\u2010\u2011-][\p{L}\p{M}\p{N}\p{Pc}\u200C\u200D]+)*/gu);
 }
 
 function getDictionary(): Dictionary {

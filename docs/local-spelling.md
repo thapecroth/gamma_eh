@@ -25,8 +25,8 @@ only one edit; longer tokens allow two. Tokens over 32 characters are skipped.
 Rank by edit distance, then prefer a single missing doubled letter, then word
 frequency with deterministic lexical ties. The doubled-letter preference keeps
 `helo` closer to `hello` than to frequent alternatives such as `help`. Abstain
-when the best and second-best candidates at the same distance have similar
-frequency: require a 2x margin for one edit and 4x for two. These are conservative
+when the best and second-best candidates with the same distance and doubled-letter
+preference have similar frequency: require a 2x margin for one edit and 4x for two. These are conservative
 heuristics, not calibrated probabilities or measured real-world accuracy.
 Results, including misses, are cached by lowercase word in a bounded 2,048-entry
 FIFO cache per worker. No text or cache is persisted.
@@ -43,12 +43,15 @@ both are valid and its confidence is tentative. “A halo around the moon” and
 source offsets remain UTF-16 and stale edits are rejected.
 
 Consume whole Unicode tokens before choosing plain ASCII words. Skip mixed-case
-identifiers, numbers, contractions, hyphenated compounds, acronyms, capitalized
-names inside sentences, URLs, emails, paths, code and hashtags. A small accepted
+identifiers (including Unicode connector punctuation and joiners), numbers,
+contractions, hyphenated compounds (including Unicode and nonbreaking hyphens),
+acronyms, capitalized names inside sentences, URLs, emails, paths, code and hashtags. A small accepted
 list protects current technical names absent from the older corpus. This is
 English-only and cannot recognize every name or specialist word. The nearest
 dictionary word is not always the intended word. Multiword splits/joins and
 general real-word error correction remain outside this fallback.
+Backtick runs protect multiline code and embedded shorter backticks. An
+unfinished delimiter protects the remaining draft until it is closed.
 
 ## Provenance and validation
 

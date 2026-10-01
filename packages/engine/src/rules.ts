@@ -36,7 +36,7 @@ export function canonicalSpelling(word: string): string {
 // Protect URLs, email addresses, inline/fenced code from deterministic edits.
 export function protectedSpans(text: string): Array<{start: number; end: number}> {
   const patterns = [
-    /```[\s\S]*?(?:```|$)|`[^`\n]*(?:`|$)|(?:https?:\/\/|www\.)\S+|\b[^\s@]+@[^\s@]+\.[^\s@]+/gu,
+    /(`+)[\s\S]*?(?:(?<!`)\1(?!`)|$)|(?:https?:\/\/|www\.)\S+|\b[^\s@]+@[^\s@]+\.[^\s@]+/gu,
     /(?:\.\.?[/\\]|[/\\])[\p{L}\p{N}_./\\-]+|\b[\p{L}\p{N}_-]+(?:[./\\][\p{L}\p{N}_-]+)+|[#@][\p{L}\p{N}_]+/gu,
   ];
   return patterns.flatMap(pattern => [...text.matchAll(pattern)]

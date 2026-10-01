@@ -57,6 +57,24 @@ describe('local dictionary spelling', () => {
     expect(analyzeRules('recieve')[0].source).toBe('rule');
   });
 
+  it('protects multiline code, embedded backticks and unfinished delimiters', () => {
+    for (const text of ['`speling\nsentnce', '``speling\n`sentnce', '```\nspeling\nsentnce']) {
+      expect(analyzeRules(text), text).toEqual([]);
+    }
+    for (const code of ['`speling\nsentnce`', '``speling ` sentnce\nwrold``', '```\nspeling\nsentnce\n```', '````\nspeling ``` sentnce\n````']) {
+      const text = '😀 ' + code + ' speling matters.';
+      const edits = analyzeRules(text);
+      expect(edits, code).toHaveLength(1);
+      expect(edits[0]).toMatchObject({original: 'speling', replacement: 'spelling', start: text.lastIndexOf('speling')});
+    }
+  });
+
+  it('keeps Unicode compounds and identifiers whole while checking words separated by an em dash', () => {
+    expect(analyzeRules('speling\u2010like speling\u2011like speling\u203Fvalue speling\u200CValue speling\u200DValue')).toEqual([]);
+    expect(analyzeRules('teh\u2011like teh\u203Fvalue teh\u200CValue')).toEqual([]);
+    expect(applySuggestions('speling—writing', analyzeRules('speling—writing'))).toBe('spelling—writing');
+  });
+
   it('bounds token length and skips unsupported scripts', () => {
     for (const word of ['', 'ab', 'a'.repeat(10000), 'speling42', 'speling_value', 'café']) {
       expect(suggestSpelling(word)).toBeUndefined();
@@ -83,9 +101,17 @@ describe('bounded spelling edit distance', () => {
     return rows[a.length][b.length];
   }
   it('matches the reference on insertions, deletions, substitutions, repeats and transpositions', () => {
-    const words = ['', 'a', 'b', 'ab', 'ba', 'abc', 'cab', 'aab', 'abab', 'baba', 'hello', 'helo', 'hlllo', 'world', 'wrold'];
-    for (const a of words) for (const b of words) for (const limit of [0, 1, 2]) {
-      expect(spellingDistance(a, b, limit), `${a}, ${b}, ${limit}`).toBe(Math.min(reference(a, b), limit + 1));
+    const words = ['', 'hello', 'helo', 'hlllo', 'world', 'wrold'];
+    let level = [''];
+    for (let length = 1; length <= 4; length++) {
+      level = level.flatMap(prefix => ['a', 'b', 'c'].map(letter => prefix + letter));
+      words.push(...level);
+    }
+    for (const a of words) for (const b of words) {
+      const distance = reference(a, b);
+      for (const limit of [0, 1, 2]) {
+        expect(spellingDistance(a, b, limit), `${a}, ${b}, ${limit}`).toBe(Math.min(distance, limit + 1));
+      }
     }
   });
 });

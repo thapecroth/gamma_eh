@@ -153,6 +153,12 @@ try {
   await page.getByRole('button', {name: 'Accept all suggestions'}).click();
   assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), 'Spelling matters in a sentence.');
   evidence.web.dictionarySpellingWithoutAI = true;
+  const protectedSpelling = '``speling ` sentnce\nwrold`` speling\u2011like speling\u203Fvalue speling\u200CValue';
+  await page.getByLabel('Your writing', {exact: true}).fill(protectedSpelling);
+  await page.getByText('No suggestions from this checker.').waitFor();
+  assert.equal(await page.locator('.suggestion-card').count(), 0);
+  assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), protectedSpelling);
+  evidence.web.protectedDictionaryTokens = true;
   await page.getByLabel('Your writing', {exact: true}).fill('A little clarity goes a long way.\n\nI recieved your message, and we has a lot of ideas. My freind is writting about the project.\n\nWrite freely. You choose what to change.');
   await page.waitForFunction(() => document.querySelector('.accept-all-button')?.disabled === false);
   await page.getByLabel('Your writing', {exact: true}).blur();
@@ -233,6 +239,10 @@ try {
   await acceptFirst(fixture);
   assert.equal(await fixture.locator('#draft').inputValue(), '😀. Spelling in a sentence.');
   evidence.extension.dictionarySpellingWithoutAI = true;
+  await fixture.locator('#draft').fill(protectedSpelling);
+  await waitPanel(fixture, /No suggestions from this checker/u);
+  assert.equal(await fixture.locator('#draft').inputValue(), protectedSpelling);
+  evidence.extension.protectedDictionaryTokens = true;
   await background.evaluate(() => chrome.storage.local.set({useAI: true}));
   for (const id of ['private', 'payment', 'optout']) {
     await fixture.locator('#' + id).focus();
