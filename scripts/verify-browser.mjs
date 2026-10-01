@@ -43,7 +43,7 @@ async function shadowElement(page, selector) {
 async function waitPanel(page, pattern, timeout = 90_000) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
-    const element = await shadowElement(page, '.body');
+    const element = await shadowElement(page, '[role="status"]') ?? await shadowElement(page, '.body');
     if (element) {
       const {result} = await element.session.send('Runtime.callFunctionOn', {objectId: element.objectId,
         functionDeclaration: 'function() { return this.textContent; }', returnByValue: true});
@@ -56,7 +56,16 @@ async function waitPanel(page, pattern, timeout = 90_000) {
 }
 
 async function acceptFirst(page) {
-  const element = await shadowElement(page, 'button.accept');
+  let element = await shadowElement(page, 'button.accept');
+  if (!element) {
+    // Inline suggestions open their card from the badge; the earlier panel
+    // already exposes its Accept button. Exercise the same user action.
+    const badge = await shadowElement(page, 'button.badge');
+    assert(badge, 'Expected an extension suggestion badge');
+    await badge.session.send('Runtime.callFunctionOn', {objectId: badge.objectId, functionDeclaration: 'function() { this.click(); }'});
+    await badge.session.detach();
+    element = await shadowElement(page, 'button.accept');
+  }
   assert(element, 'Expected an extension Accept button');
   await element.session.send('Runtime.callFunctionOn', {objectId: element.objectId, functionDeclaration: 'function() { this.click(); }'});
   await element.session.detach();
@@ -338,6 +347,10 @@ try {
   await acceptFirst(fixture);
   assert.equal(await fixture.locator('#draft').inputValue(), 'She has a friend.');
   evidence.extension.textareaCorrection = true;
+  await fixture.locator('#draft').fill('my cat is hungry.');
+  await waitPanel(fixture, /No suggestions from this checker.*Local AI/u);
+  assert.equal(await fixture.locator('#draft').inputValue(), 'my cat is hungry.');
+  evidence.extension.cleanSentencePreserved = true;
   await background.evaluate(() => chrome.storage.local.set({useAI: false}));
   await fixture.locator('#draft').fill('halo');
   await waitPanel(fixture, /Did you mean “hello” as a greeting/u);

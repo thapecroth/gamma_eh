@@ -59,7 +59,7 @@ with ONNX Runtime Web 1.30.0 WASM before the migration. It pins the model SHA-25
 and token IDs at sequence lengths 8, 10, and 64. Unit checks require maximum
 absolute logit error below 0.0001 on WASM. Browser checks compare repeated WASM
 and WebGPU runs against that reference with a 0.0005 tolerance and exact argmax
-agreement, and require all 15 grammar regression corrections on each backend.
+agreement, and require all 26 grammar regression corrections on each backend.
 The regression witness includes a model-origin correction beyond the rules.
 
 Browser checks also inject missing GPU adapters, GPU allocation failures, and
