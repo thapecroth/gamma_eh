@@ -15,7 +15,7 @@ function Arrow() {
 
 function SuggestionCard({ suggestion, onAccept, onDismiss }: { suggestion: Suggestion; onAccept: () => void; onDismiss: () => void }) {
   return <article className="suggestion-card">
-    <div className="suggestion-label"><span className={`category-dot ${suggestion.category}`} />{suggestion.category}<span className="suggestion-origin">{suggestion.source === 'model' ? 'LOCAL MODEL' : 'RULE'}</span></div>
+    <div className="suggestion-label"><span className={`category-dot ${suggestion.category}`} />{suggestion.category}<span className="suggestion-origin">{suggestion.source === 'model' ? 'LOCAL MODEL' : suggestion.source.toUpperCase()}</span></div>
     <p className="correction"><span className="original">{suggestion.original || '(insert)'}</span><Arrow /><span className="replacement">{suggestion.replacement || '(remove)'}</span></p>
     <p className="suggestion-message">{suggestion.message}</p>
     <div className="suggestion-actions"><button className="accept-button" onClick={onAccept}>Accept <span aria-hidden="true">↵</span></button><button className="dismiss-button" onClick={onDismiss} aria-label={`Dismiss: ${suggestion.message}`}>Dismiss</button></div>
