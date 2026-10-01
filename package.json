@@ -19,6 +19,8 @@
     "test": "vp test run --dir tests",
     "test:release": "node --test --test-isolation=none tests/release.node.mjs",
     "test:browser": "node scripts/verify-browser.mjs",
+    "data:synthetic": "python3 training/synthetic_challenge.py",
+    "evaluate:synthetic": "npm run data:synthetic && node scripts/evaluate-synthetic.mjs",
     "test:agents": "python3 scripts/agent-supervisor.py node --test --test-isolation=none tests/agent-harness.node.mjs",
     "test:extension": "python3 scripts/agent-supervisor.py node scripts/extension-driver.mjs",
     "agent:e2e": "python3 scripts/agent-supervisor.py node scripts/agent-harness.mjs e2e",

@@ -1,21 +1,25 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { access, cp, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, cp, mkdtemp, mkdir, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { chromium } from '@playwright/test';
+import { createServer as createViteServer } from 'vite';
 import { buildPaths } from './paths.mjs';
 import { runtimeManifest } from './inference-runtime.mjs';
 import { browserArguments, findChromium } from './browser-environment.mjs';
 import { extensionElement } from './extension-shadow.mjs';
+import { webGPUAdapterEsbuildPlugin } from './webgpu-adapter-options.mjs';
+import { verifyWindowsWebGPU } from './verify-windows-webgpu.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const temporary = await mkdtemp(join(tmpdir(), 'gamma-browser-check-'));
 const {artifactDir, webOutput, extensionOutput} = buildPaths(root);
+const firefoxOutput = join(dirname(extensionOutput), 'firefox');
 await mkdir(artifactDir, {recursive: true});
 const failures = [];
 const evidence = {web: {}, model: {}, extension: {}, network: []};
@@ -61,19 +65,37 @@ async function acceptFirst(page) {
   await element.session.detach();
 }
 
+async function enableSite(page, background, extensionId) {
+  const popup = await context.newPage();
+  try {
+    // Keep the fixture active while opening the real popup document in a
+    // background tab. Site access is pre-granted only in the test manifest.
+    await background.evaluate(async (url) => {
+      const [tab] = await chrome.tabs.query({url});
+      await chrome.tabs.update(tab.id, {active: true});
+    }, page.url());
+    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+    await popup.locator('#enable-site:not([disabled])').waitFor();
+    await popup.locator('#enable-site').click();
+    await popup.waitForFunction(() => document.querySelector('#status')?.textContent?.startsWith('Ready.'));
+    await popup.locator('#enable-site[disabled]').waitFor();
+  } finally { await popup.close(); }
+}
+
 try {
   await build({entryPoints: [join(root, 'packages/engine/src/index.ts')], outfile: join(temporary, 'test-engine.mjs'),
-    bundle: true, format: 'esm', platform: 'browser', target: 'chrome116'});
+    plugins: [webGPUAdapterEsbuildPlugin()], bundle: true, format: 'esm', platform: 'browser', target: 'chrome116'});
   await build({entryPoints: [join(root, 'tests/browser-model-probe.ts')], outfile: join(temporary, 'test-model-probe.mjs'),
-    bundle: true, format: 'esm', platform: 'browser', target: 'chrome116'});
+    plugins: [webGPUAdapterEsbuildPlugin()], bundle: true, format: 'esm', platform: 'browser', target: 'chrome116'});
+  await cp(join(root, 'tests/browser-windows-worker.mjs'), join(temporary, 'test-windows-worker.mjs'));
   const webDir = webOutput;
-  for (const directory of [webOutput, extensionOutput]) {
+  for (const directory of [webOutput, extensionOutput, firefoxOutput]) {
     assert.deepEqual(JSON.parse(await readFile(join(directory, 'inference-runtime.json'), 'utf8')), runtimeManifest);
   }
   evidence.model.runtime = runtimeManifest;
   const modelManifest = JSON.parse(await readFile(join(webDir, 'models/manifest.json'), 'utf8'));
   for (const filename of ['model.onnx', 'model_quantized.onnx']) {
-    for (const directory of [webDir, extensionOutput]) {
+    for (const directory of [webDir, extensionOutput, firefoxOutput]) {
       const bytes = await readFile(join(directory, 'models', filename));
       assert.equal(createHash('sha256').update(bytes).digest('hex'), modelManifest.files[filename].sha256,
         'Built apps must contain the exact exported weights');
@@ -88,9 +110,13 @@ try {
       response.end('<!doctype html><html lang="en"><title>Extension fixture</title><body><label>Draft<textarea id="draft">She have a freind.</textarea></label><label>Private<textarea id="private" data-private>She have a freind.</textarea></label><label>Payment<textarea id="payment" autocomplete="cc-number">She have a freind.</textarea></label><label>Disabled<textarea id="optout" spellcheck="false">She have a freind.</textarea></label><div id="plain" contenteditable="true" aria-label="Plain editor">She have a book.</div><div id="rich" contenteditable="true" aria-label="Rich editor"><strong>She have a book.</strong></div></body></html>');
       return;
     }
-    const testModule = ['/test-engine.mjs', '/test-model-probe.mjs'].includes(pathname);
-    const filename = testModule ? join(temporary, pathname.slice(1)) : resolve(webDir, '.' + (pathname === '/' ? '/index.html' : pathname));
-    if (!testModule && !filename.startsWith(webDir + sep)) { response.writeHead(403).end(); return; }
+    const testModule = ['/test-engine.mjs', '/test-model-probe.mjs', '/test-windows-worker.mjs'].includes(pathname);
+    const application = [{prefix: '/extension', directory: extensionOutput}, {prefix: '/firefox', directory: firefoxOutput}]
+      .find(({prefix}) => pathname.startsWith(prefix + '/'));
+    const directory = application?.directory ?? webDir;
+    const relative = application ? pathname.slice(application.prefix.length) : pathname === '/' ? '/index.html' : pathname;
+    const filename = testModule ? join(temporary, pathname.slice(1)) : resolve(directory, '.' + relative);
+    if (!testModule && !filename.startsWith(directory + sep)) { response.writeHead(403).end(); return; }
     try {
       await access(filename);
       response.setHeader('Content-Type', types[extname(filename)] ?? 'application/octet-stream');
@@ -103,8 +129,10 @@ try {
   });
   const address = server.address();
   const origin = `http://127.0.0.1:${address.port}`;
+  const insecureOrigin = `http://gamma-http.test:${address.port}`;
+  const allowedOrigins = [origin, insecureOrigin];
 
-  // Test-only copy gets localhost permission to exercise the real extension
+  // Test-only copy gets fixture permissions to exercise the real extension
   // pipeline without automating Chrome's native permission dialog. The shipping
   // manifest is checked below and is never altered.
   const extensionDir = join(temporary, 'extension');
@@ -112,15 +140,16 @@ try {
   const shippingManifest = JSON.parse(await readFile(join(extensionDir, 'manifest.json'), 'utf8'));
   assert.equal(shippingManifest.host_permissions, undefined);
   assert.equal(shippingManifest.content_scripts, undefined);
-  await writeFile(join(extensionDir, 'manifest.json'), JSON.stringify({...shippingManifest, host_permissions: ['http://127.0.0.1/*']}));
+  await writeFile(join(extensionDir, 'manifest.json'), JSON.stringify({...shippingManifest, host_permissions: ['http://127.0.0.1/*', 'http://gamma-http.test/*']}));
   context = await chromium.launchPersistentContext(join(temporary, 'profile'), {
     channel: 'chromium', executablePath: await findChromium(), headless: true,
-    args: [`--disable-extensions-except=${extensionDir}`, `--load-extension=${extensionDir}`, ...browserArguments()],
+    args: [`--disable-extensions-except=${extensionDir}`, `--load-extension=${extensionDir}`,
+      '--host-resolver-rules=MAP gamma-http.test 127.0.0.1', '--proxy-bypass-list=gamma-http.test', ...browserArguments()],
     viewport: {width: 1440, height: 1050},
   });
   context.on('request', request => {
     const url = request.url();
-    if (!url.startsWith(origin) && !url.startsWith('chrome-extension://') && !url.startsWith('data:')) evidence.network.push(url);
+    if (!allowedOrigins.some(origin => url.startsWith(origin)) && !url.startsWith('chrome-extension://') && !url.startsWith('data:')) evidence.network.push(url);
   });
   const page = await context.newPage();
   page.on('pageerror', error => failures.push(error.message));
@@ -254,6 +283,38 @@ try {
     assert.equal(row.argmaxMatches, row.positions);
   }
   evidence.model.gpuFallback = [];
+  const webWorkers = (await readdir(join(webDir, 'assets'))).filter(filename => /^inference-worker-.*\.js$/u.test(filename));
+  assert.equal(webWorkers.length, 1, 'Expected the built web inference worker');
+  evidence.model.windowsAdapters = await verifyWindowsWebGPU(context, origin, process.env.GAMMA_TEST_WEBGPU === '1', [
+    {name: 'engine'},
+    {name: 'web-worker', url: '/assets/' + webWorkers[0]},
+    {name: 'extension-worker', url: '/extension/inference-worker.mjs'},
+    {name: 'firefox-worker', url: '/firefox/inference-worker.mjs'},
+  ]);
+  // Exercise the actual dev worker as well: dependency optimization is a
+  // separate path from both production bundlers and can hide adapter requests.
+  const development = await createViteServer({configFile: join(root, 'apps/web/vite.config.ts'),
+    cacheDir: join(temporary, 'vite-cache'),
+    server: {port: 0, fs: {allow: [root, await realpath(join(root, 'node_modules'))]}},
+    plugins: [{name: 'windows-worker-test-fixtures', configureServer(server) {
+      server.middlewares.use(async (request, response, next) => {
+        const path = new URL(request.url ?? '/', 'http://localhost').pathname;
+        if (!['/test-engine.mjs', '/test-windows-worker.mjs'].includes(path)) return next();
+        try {
+          response.setHeader('Content-Type', 'text/javascript');
+          response.end(await readFile(join(temporary, path.slice(1)), 'utf8'));
+        } catch (error) { next(error); }
+      });
+    }}],
+  });
+  try {
+    await development.listen();
+    const devOrigin = `http://127.0.0.1:${development.httpServer.address().port}`;
+    allowedOrigins.push(devOrigin);
+    evidence.model.windowsAdapters.push(...await verifyWindowsWebGPU(context, devOrigin, process.env.GAMMA_TEST_WEBGPU === '1', [
+      {name: 'dev-worker', url: '/src/inference-worker.ts?worker_file&type=module'},
+    ]));
+  } finally { await development.close(); }
   for (const mode of ['unavailable', ...(process.env.GAMMA_TEST_WEBGPU === '1' ? ['allocation', 'kernel'] : [])]) {
     const fallback = await context.newPage();
     fallback.on('pageerror', error => failures.push(error.message));
@@ -316,17 +377,14 @@ try {
   let background = context.serviceWorkers().find(worker => worker.url().includes('background.mjs'));
   if (!background) background = await context.waitForEvent('serviceworker', {predicate: worker => worker.url().includes('background.mjs')});
   const extensionId = new URL(background.url()).hostname;
-  await background.evaluate(async () => {
-    let hash = 2166136261;
-    const pattern = 'http://127.0.0.1/*';
-    for (const char of pattern) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
-    await chrome.storage.local.set({enabled: true, useAI: true});
-    await chrome.scripting.registerContentScripts([{id: `gamma-site-${(hash >>> 0).toString(16)}`, matches: [pattern], js: ['content.js'], allFrames: false, runAt: 'document_idle'}]);
-  });
+  await background.evaluate(() => chrome.storage.local.set({enabled: true, useAI: true}));
   const fixture = await context.newPage();
   fixture.on('pageerror', error => failures.push(error.message));
   await fixture.goto(origin + '/fixture.html');
   await fixture.locator('#draft').focus();
+  assert.equal(await fixture.locator('[data-gamma-ignore]').count(), 0, 'Permission alone must not activate suggestions');
+  await enableSite(fixture, background, extensionId);
+  evidence.extension.popupActivation = true;
   await fixture.waitForFunction(() => Boolean(document.querySelector('[data-gamma-ignore]')), {timeout: 30_000});
   // CDP lets this test inspect the closed shadow panel without changing the
   // shipping extension to expose page text or private suggestion state.
@@ -337,6 +395,24 @@ try {
   await acceptFirst(fixture);
   assert.equal(await fixture.locator('#draft').inputValue(), 'She has a friend.');
   evidence.extension.textareaCorrection = true;
+  const insecureFixture = await context.newPage();
+  insecureFixture.on('pageerror', error => failures.push(error.message));
+  await insecureFixture.goto(insecureOrigin + '/fixture.html');
+  assert.equal(await insecureFixture.evaluate(() => isSecureContext), false, 'HTTP regression fixture must not be a secure context');
+  assert.equal(await insecureFixture.evaluate(() => typeof crypto.randomUUID), 'undefined');
+  await insecureFixture.locator('#draft').focus();
+  await enableSite(insecureFixture, background, extensionId);
+  await waitPanel(insecureFixture, /2 suggestions.*Local AI/u);
+  await acceptFirst(insecureFixture);
+  await waitPanel(insecureFixture, /1 suggestion/u);
+  await acceptFirst(insecureFixture);
+  assert.equal(await insecureFixture.locator('#draft').inputValue(), 'She has a friend.');
+  await insecureFixture.reload();
+  await insecureFixture.locator('#draft').focus();
+  await waitPanel(insecureFixture, /2 suggestions.*Local AI/u);
+  evidence.extension.insecureHttpActivation = true;
+  evidence.extension.registeredScriptAfterReload = true;
+  await insecureFixture.close();
   await fixture.locator('#draft').fill('my cat is hungry.');
   await waitPanel(fixture, /No suggestions from this checker.*Local AI/u);
   assert.equal(await fixture.locator('#draft').inputValue(), 'my cat is hungry.');
@@ -403,7 +479,7 @@ try {
   const offscreen = await background.evaluate(() => chrome.runtime.getContexts({contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT]}));
   assert.equal(offscreen.length, 1);
   evidence.extension.offscreenContext = true;
-  evidence.extension.nativePermissionDialog = 'Not automated; test-only copy grants localhost. Shipping manifest remains optional-site-only.';
+  evidence.extension.nativePermissionDialog = 'Not automated; test-only copy grants local fixtures. Real popup activation is exercised; shipping manifest remains optional-site-only.';
   evidence.extension.extensionId = extensionId;
   assert.deepEqual(evidence.network, [], 'Browser checks must not send external requests');
   assert.deepEqual(failures, [], 'Browser must have no uncaught page exceptions');
