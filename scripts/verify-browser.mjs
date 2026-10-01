@@ -12,6 +12,8 @@ import { buildPaths } from './paths.mjs';
 import { runtimeManifest } from './inference-runtime.mjs';
 import { browserArguments, findChromium } from './browser-environment.mjs';
 import { extensionElement } from './extension-shadow.mjs';
+import { webGPUAdapterEsbuildPlugin } from './webgpu-adapter-options.mjs';
+import { verifyWindowsWebGPU } from './verify-windows-webgpu.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const temporary = await mkdtemp(join(tmpdir(), 'gamma-browser-check-'));
@@ -63,9 +65,9 @@ async function acceptFirst(page) {
 
 try {
   await build({entryPoints: [join(root, 'packages/engine/src/index.ts')], outfile: join(temporary, 'test-engine.mjs'),
-    bundle: true, format: 'esm', platform: 'browser', target: 'chrome116'});
+    plugins: [webGPUAdapterEsbuildPlugin()], bundle: true, format: 'esm', platform: 'browser', target: 'chrome116'});
   await build({entryPoints: [join(root, 'tests/browser-model-probe.ts')], outfile: join(temporary, 'test-model-probe.mjs'),
-    bundle: true, format: 'esm', platform: 'browser', target: 'chrome116'});
+    plugins: [webGPUAdapterEsbuildPlugin()], bundle: true, format: 'esm', platform: 'browser', target: 'chrome116'});
   const webDir = webOutput;
   for (const directory of [webOutput, extensionOutput]) {
     assert.deepEqual(JSON.parse(await readFile(join(directory, 'inference-runtime.json'), 'utf8')), runtimeManifest);
@@ -254,6 +256,7 @@ try {
     assert.equal(row.argmaxMatches, row.positions);
   }
   evidence.model.gpuFallback = [];
+  evidence.model.windowsAdapters = await verifyWindowsWebGPU(context, origin, process.env.GAMMA_TEST_WEBGPU === '1');
   for (const mode of ['unavailable', ...(process.env.GAMMA_TEST_WEBGPU === '1' ? ['allocation', 'kernel'] : [])]) {
     const fallback = await context.newPage();
     fallback.on('pageerror', error => failures.push(error.message));
