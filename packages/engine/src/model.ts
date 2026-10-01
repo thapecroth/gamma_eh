@@ -1,6 +1,6 @@
 import * as ort from 'onnxruntime-web/webgpu';
 import { preserveCase } from './edits';
-import { validArticleEdit } from './guards';
+import { validArticleEdit, validVerbEdit } from './guards';
 import { protectedSpans } from './rules';
 import { WordPieceTokenizer } from './tokenizer';
 import type { EngineOptions, Suggestion } from './types';
@@ -123,6 +123,7 @@ export async function analyzeModel(text: string, options: EngineOptions, ruleSug
           replacement = '';
         } else if (tag.startsWith('REPLACE:')) {
           const proposed = tag.slice(8);
+          if (!validVerbEdit(text, word, proposed)) continue;
           if (['a', 'an'].includes(proposed) && !validArticleEdit(proposed, chunk.positions[index + 1]?.word.text ?? '')) continue;
           replacement = preserveCase(word.text, tag.slice(8));
           if (replacement === word.text) continue;

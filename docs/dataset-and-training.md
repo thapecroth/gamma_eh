@@ -63,6 +63,39 @@ High scores on this corpus must not be advertised as general grammar accuracy.
 A separate human-written regression set exercises common corrections and clean
 counterexamples. It remains a small smoke test, not a general quality benchmark.
 
+## Conservative verb suggestions
+
+The original checkpoint confidently changes the valid sentence `my cat is
+hungry.` into `my cat are hungry.` Native CPU inference reproduced the raw
+`REPLACE:are` prediction at approximately 0.99944 for FP32 and 0.99913 for INT8.
+Related clean singular, plural, and past-tense examples also provoke wrong edits.
+The generator has only 13 fixed subject phrases and 12 adjectives; neither
+`cat` nor `hungry` is present. Development threshold selection uses that same
+template distribution, so a large softmax probability cannot establish that an
+edit is grammatical outside it. Raising the threshold to 0.99 would still accept
+the reported error.
+
+The runtime now validates neural verb replacements against a bounded,
+sentence-initial subject. Pronouns and an explicit set of simple singular and
+plural noun heads support agreement checks. The noun list handles number
+exceptions such as `children`, `people`, and `news`; it does not infer number
+from a final `s`. A verb must stay in its original family and tense, and a
+replacement must be the expected form for that subject. Unknown heads, modified
+or compound subjects, questions, and embedded or subjunctive clauses abstain.
+Ordinary present-tense verb changes additionally require an explicit habitual
+time cue; `read` is left alone because its base and past forms are ambiguous.
+The check uses original UTF-16 spans and the full source so a model window
+boundary cannot turn an embedded clause into a new sentence.
+
+This is a precision safeguard for the existing checkpoint, not retraining or a
+claim of improved general grammar accuracy. It deliberately misses unsupported
+corrections. Existing spelling, article, duplicate, and protected-content guards
+continue to apply. Model-safety tests force near-certain incorrect logits to
+verify abstention, while the browser smoke set exercises actual bundled weights
+with WASM and the preferred backend. With `GAMMA_TEST_WEBGPU=1`, every preferred
+smoke case must execute WebGPU. The extension fixture also verifies that the
+reported clean sentence stays unchanged with Local AI enabled.
+
 ## Larger data candidates
 
 [Google C4_200M](https://github.com/google-research-datasets/C4_200M-synthetic-dataset-for-grammatical-error-correction)

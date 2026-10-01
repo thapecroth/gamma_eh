@@ -42,7 +42,7 @@ async function shadowElement(page, selector) {
 async function waitPanel(page, pattern, timeout = 90_000) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
-    const element = await shadowElement(page, '.body');
+    const element = await shadowElement(page, '[role="status"]') ?? await shadowElement(page, '.body');
     if (element) {
       const {result} = await element.session.send('Runtime.callFunctionOn', {objectId: element.objectId,
         functionDeclaration: 'function() { return this.textContent; }', returnByValue: true});
@@ -55,7 +55,16 @@ async function waitPanel(page, pattern, timeout = 90_000) {
 }
 
 async function acceptFirst(page) {
-  const element = await shadowElement(page, 'button.accept');
+  let element = await shadowElement(page, 'button.accept');
+  if (!element) {
+    // Inline suggestions open their card from the badge; the earlier panel
+    // already exposes its Accept button. Exercise the same user action.
+    const badge = await shadowElement(page, 'button.badge');
+    assert(badge, 'Expected an extension suggestion badge');
+    await badge.session.send('Runtime.callFunctionOn', {objectId: badge.objectId, functionDeclaration: 'function() { this.click(); }'});
+    await badge.session.detach();
+    element = await shadowElement(page, 'button.accept');
+  }
   assert(element, 'Expected an extension Accept button');
   await element.session.send('Runtime.callFunctionOn', {objectId: element.objectId, functionDeclaration: 'function() { this.click(); }'});
   await element.session.detach();
@@ -172,22 +181,29 @@ try {
   Object.assign(evidence.model, await page.evaluate(async ({origin, cases}) => {
     const engine = await import(origin + '/test-engine.mjs');
     const rows = [];
+    const preferredRows = [];
     for (const item of cases) {
       const result = await engine.analyzeText(item.source, {modelBaseUrl: origin + '/models/', wasmBaseUrl: origin + '/runtime/', preferWebGPU: false});
       rows.push({...item, actual: engine.applySuggestions(item.source, result.suggestions), backend: result.backend,
         elapsedMs: result.elapsedMs, modelError: result.modelError,
         edits: result.suggestions.map(({original, replacement, source}) => ({original, replacement, source}))});
+      const preferred = await engine.analyzeText(item.source, {modelBaseUrl: origin + '/models/', wasmBaseUrl: origin + '/runtime/', preferWebGPU: true});
+      preferredRows.push({...item, actual: engine.applySuggestions(item.source, preferred.suggestions), backend: preferred.backend,
+        modelError: preferred.modelError});
     }
     const gpu = await engine.analyzeText('The students has a notebook.', {modelBaseUrl: origin + '/models/', wasmBaseUrl: origin + '/runtime/', preferWebGPU: true});
-    return {rows, preferredBackend: gpu.backend, preferredCorrection: engine.applySuggestions(gpu.text, gpu.suggestions),
+    return {rows, preferredRows, preferredBackend: gpu.backend, preferredCorrection: engine.applySuggestions(gpu.text, gpu.suggestions),
       hasWebGPU: 'gpu' in navigator, modelError: gpu.modelError};
   }, {origin, cases: regression.cases}));
   assert(evidence.model.rows.every(row => row.backend === 'wasm' && !row.modelError), 'All regression checks must execute actual WASM model');
+  assert(evidence.model.preferredRows.every(row => !row.modelError && row.actual === row.target),
+    'All regression checks must also match with the preferred model backend');
   evidence.model.exactMatches = evidence.model.rows.filter(row => row.actual === row.target).length;
   evidence.model.total = evidence.model.rows.length;
   assert.equal(evidence.model.preferredCorrection, 'The students have a notebook.');
   if (process.env.GAMMA_TEST_WEBGPU === '1') {
     assert.equal(evidence.model.preferredBackend, 'webgpu', 'Explicit GPU test must execute WebGPU');
+    assert(evidence.model.preferredRows.every(row => row.backend === 'webgpu'), 'Every preferred regression must execute WebGPU');
     evidence.model.adapterInfo = await page.evaluate(async () => {
       const adapter = await navigator.gpu.requestAdapter();
       if (!adapter) return null;
@@ -225,6 +241,10 @@ try {
   await acceptFirst(fixture);
   assert.equal(await fixture.locator('#draft').inputValue(), 'She has a friend.');
   evidence.extension.textareaCorrection = true;
+  await fixture.locator('#draft').fill('my cat is hungry.');
+  await waitPanel(fixture, /No suggestions from this checker.*Local AI/u);
+  assert.equal(await fixture.locator('#draft').inputValue(), 'my cat is hungry.');
+  evidence.extension.cleanSentencePreserved = true;
   await background.evaluate(() => chrome.storage.local.set({useAI: false}));
   await fixture.locator('#draft').fill('halo');
   await waitPanel(fixture, /Did you mean “hello” as a greeting/u);
