@@ -24,7 +24,7 @@ async function shadowElement(page, selector) {
   const session = await context.newCDPSession(page);
   const {root: documentNode} = await session.send('DOM.getDocument', {depth: -1, pierce: true});
   function findHost(node) {
-    if (node.attributes?.includes('data-gamma-ignore')) return node;
+    if (node.attributes?.includes('data-gamma-ignore') && node.shadowRoots?.some(shadow => shadow.shadowRootType === 'closed')) return node;
     for (const child of [...(node.children ?? []), ...(node.shadowRoots ?? [])]) {
       const found = findHost(child);
       if (found) return found;
@@ -42,7 +42,7 @@ async function shadowElement(page, selector) {
 async function waitPanel(page, pattern, timeout = 90_000) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
-    const element = await shadowElement(page, '.body');
+    const element = await shadowElement(page, '.checker-status');
     if (element) {
       const {result} = await element.session.send('Runtime.callFunctionOn', {objectId: element.objectId,
         functionDeclaration: 'function() { return this.textContent; }', returnByValue: true});
@@ -55,6 +55,10 @@ async function waitPanel(page, pattern, timeout = 90_000) {
 }
 
 async function acceptFirst(page) {
+  const badge = await shadowElement(page, '.badge');
+  assert(badge, 'Expected a suggestion count button');
+  await badge.session.send('Runtime.callFunctionOn', {objectId: badge.objectId, functionDeclaration: 'function() { this.click(); }'});
+  await badge.session.detach();
   const element = await shadowElement(page, 'button.accept');
   assert(element, 'Expected an extension Accept button');
   await element.session.send('Runtime.callFunctionOn', {objectId: element.objectId, functionDeclaration: 'function() { this.click(); }'});

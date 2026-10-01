@@ -7,6 +7,7 @@ import { chromium } from '@playwright/test';
 import { buildPaths } from './paths.mjs';
 import { browserArguments, findChromium } from './browser-environment.mjs';
 import { acquireLock, hash, jsonFile, runId, sourceStamp } from './agent-runtime.mjs';
+import { verifyInline } from './verify-inline.mjs';
 
 export const fields = ['draft', 'private', 'payment', 'optout', 'plain', 'rich'];
 const actions = ['popup', 'focus', 'fill', 'read', 'accept', 'dismiss', 'close', 'assertText', 'assertPanel', 'assertBackend', 'staleAccept'];
@@ -61,7 +62,9 @@ export function validatePlan(plan) {
   return plan;
 }
 
-const fixtureHtml = '<!doctype html><html lang="en"><title>Fictional Gamma EH fixture</title><body><h1>Agent extension fixture</h1><label>Draft<textarea id="draft">She have a freind.</textarea></label><label>Private<textarea id="private" data-private>She have a freind.</textarea></label><label>Payment<textarea id="payment" autocomplete="cc-number">She have a freind.</textarea></label><label>Opt out<textarea id="optout" spellcheck="false">She have a freind.</textarea></label><div id="plain" contenteditable="true" aria-label="Plain editor">She have a book.</div><div id="rich" contenteditable="true" aria-label="Rich editor"><strong>She have a book.</strong></div></body></html>';
+const fixtureHtml = `<!doctype html><html lang="en"><title>Fictional Gamma EH fixture</title>
+<style>body{font:16px/1.5 Arial,sans-serif;background:#0d1117;color:#e6edf3;padding:36px;max-width:850px;margin:auto}h1{font-size:22px}label{display:block;margin:24px 0 8px}textarea{display:block;box-sizing:border-box;width:100%;height:140px;padding:16px;border:1px solid #30363d;border-radius:8px;background:#0d1117;color:#e6edf3;font:16px/1.6 Arial,sans-serif;resize:both}textarea:focus{outline:2px solid #388bfd}#plain,#rich{border:1px solid #30363d;padding:16px;margin:30px 0;min-height:60px}</style>
+<body><h1>Add a comment</h1><label>Draft<textarea id="draft">She have a freind.</textarea></label><label>Private<textarea id="private" data-private>She have a freind.</textarea></label><label>Payment<textarea id="payment" autocomplete="cc-number">She have a freind.</textarea></label><label>Opt out<textarea id="optout" spellcheck="false">She have a freind.</textarea></label><div id="plain" contenteditable="true" aria-label="Plain editor">She have a book.</div><div id="rich" contenteditable="true" aria-label="Rich editor"><strong>She have a book.</strong></div></body></html>`;
 
 export const mandatoryScenarios = [
   {id: 'rules-and-popup', steps: [step('popup', 'useAI', false), step('focus', 'draft'), step('assertBackend', null, null, 'rules'), step('accept'), step('accept'), step('assertText', 'draft', null, 'She has a friend.'), step('popup', 'enabled', false), step('assertPanel', null, null, 'hidden'), step('popup', 'enabled', true), step('fill', 'draft', 'She have a book.'), step('assertBackend', null, null, 'rules')]},
@@ -78,7 +81,7 @@ async function shadowNode(context, page, selector) {
   const session = await context.newCDPSession(page);
   const {root} = await session.send('DOM.getDocument', {depth: -1, pierce: true});
   function host(node) {
-    if (node.attributes?.includes('data-gamma-ignore')) return node;
+    if (node.attributes?.includes('data-gamma-ignore') && node.shadowRoots?.some(shadow => shadow.shadowRootType === 'closed')) return node;
     for (const child of [...node.children ?? [], ...node.shadowRoots ?? []]) { const found = host(child); if (found) return found; }
   }
   const shadow = host(root)?.shadowRoots?.[0];
@@ -89,7 +92,7 @@ async function shadowNode(context, page, selector) {
 }
 
 async function panelText(context, page) {
-  const node = await shadowNode(context, page, '.body');
+  const node = await shadowNode(context, page, '.checker-status');
   if (!node) return null;
   try { return (await node.session.send('Runtime.callFunctionOn', {objectId: node.objectId, functionDeclaration: 'function() { return this.textContent; }', returnByValue: true})).result.value; }
   finally { await node.session.detach(); }
@@ -211,6 +214,12 @@ export async function runExtensionScenarios({root, directory, plan = null, id = 
     async function text(field) { return fields.indexOf(field) < 4 ? fixture.locator('#' + field).inputValue() : fixture.locator('#' + field).textContent(); }
     async function clickPanel(selector, mutate = null) {
       await waitForPanel(context, fixture, value => value !== null && !value.includes('Checking locally'), 'completed analysis');
+      // Suggestions are now opened intentionally, rather than always visible.
+      const badge = await shadowNode(context, fixture, '.badge');
+      assert(badge, 'Expected suggestion count button');
+      try { await badge.session.send('Runtime.callFunctionOn', {objectId: badge.objectId, functionDeclaration: 'function() { this.click(); }'}); }
+      finally { await badge.session.detach(); }
+      if (selector === 'button.close') selector = 'button.pause'; // Preserve the scenario action's pause-field meaning.
       const node = await shadowNode(context, fixture, selector);
       assert(node, `Expected panel ${selector}`);
       try {
@@ -246,6 +255,16 @@ export async function runExtensionScenarios({root, directory, plan = null, id = 
         result.passed = true;
       }
     }
+    await verifyInline({fixture, directory, evidence, setting, text,
+      wait: (predicate, description) => waitForPanel(context, fixture, predicate, description),
+      status: () => panelText(context, fixture),
+      inspect: async (selector, functionDeclaration) => {
+        const node = await shadowNode(context, fixture, selector);
+        if (!node) return null;
+        try { return (await node.session.send('Runtime.callFunctionOn', {objectId: node.objectId, functionDeclaration, returnByValue: true})).result.value; }
+        finally { await node.session.detach(); }
+      },
+    });
     assert.deepEqual(evidence.blockedRequests, [], 'Extension must make no requests outside bundled assets and fictional fixture');
     assert.deepEqual(evidence.networkViolations, [], 'Browser observed a request outside the allowed fixture');
     assert.deepEqual(evidence.errors, [], 'No uncaught browser errors');
