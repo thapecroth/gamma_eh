@@ -2,8 +2,9 @@
 
 Try the [web editor](https://thapecroth.github.io/gamma_eh/) without installing
 anything. Type or paste a draft, review suggestions, and accept or dismiss each
-change. The web editor starts with experimental Local AI enabled; switch it off
-to use only rules. Chrome's Local AI starts off and can be enabled in the popup.
+change. Experimental Local AI starts enabled in the web editor and extension;
+switch it off in the editor or popup to use only rules. Saved extension opt-outs
+are preserved. If AI cannot run, local spelling and rule suggestions remain available.
 Keep a copy of important writing before closing or reloading the tab. Web drafts
 are temporary and are not saved by Gamma EH.
 

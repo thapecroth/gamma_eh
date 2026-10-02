@@ -169,7 +169,7 @@ test('trusted snapshot verifier rejects a tag that replaces its own provenance c
   assert.throws(() => execFileSync(process.execPath, ['trusted.mjs'], {cwd: root, stdio: 'pipe'}));
 });
 
-test('version-only snapshot shares reviewed source identity; runtime changes invalidate it', async t => {
+test('version-only snapshot shares reviewed source identity; runtime or disclosed default changes invalidate it', async t => {
   const root = await mkdtemp(join(tmpdir(), 'gamma-ga-source-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const git = (...args) => execFileSync('git', args, {cwd: root, encoding: 'utf8', stdio: 'pipe'}).trim();
@@ -180,6 +180,7 @@ test('version-only snapshot shares reviewed source identity; runtime changes inv
   await put('apps/extension/manifest.json', {version: '0.1.1'});
   await put('models/browser/manifest.json', {files: {}});
   await put('packages/engine/index.js', 'Fictional shipping source');
+  await put('docs/local-ai-defaults.md', 'Local AI starts enabled.');
   git('add', '.'); git('commit', '-qm', 'fixture source');
   const source = sourceIdentity(root, 'HEAD');
   for (const name of ['package.json', 'package-lock.json', 'apps/extension/manifest.json']) {
@@ -202,6 +203,11 @@ test('version-only snapshot shares reviewed source identity; runtime changes inv
   await put('docs/ga-readiness.json', f.record);
   assert.equal((await verifyStableRelease(root, {tag: 'v0.1.2', assetDirectory: join(root, 'assets'), now})).source_sha256, source.sha256);
   await put('packages/engine/index.js', 'Changed shipping source'); git('add', 'packages'); git('commit', '-qm', 'changed runtime'); git('tag', '-f', 'v0.1.2');
+  assert.notEqual(sourceIdentity(root, 'HEAD').sha256, source.sha256);
+  await assert.rejects(verifyStableRelease(root, {tag: 'v0.1.2', assetDirectory: join(root, 'assets'), now}), /reviewed source differs/u);
+  await put('packages/engine/index.js', 'Fictional shipping source');
+  await put('docs/local-ai-defaults.md', 'Changed disclosed defaults.');
+  git('add', 'packages', 'docs/local-ai-defaults.md'); git('commit', '-qm', 'changed disclosed defaults'); git('tag', '-f', 'v0.1.2');
   assert.notEqual(sourceIdentity(root, 'HEAD').sha256, source.sha256);
   await assert.rejects(verifyStableRelease(root, {tag: 'v0.1.2', assetDirectory: join(root, 'assets'), now}), /reviewed source differs/u);
 });

@@ -8,7 +8,7 @@ const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const sha256 = value => typeof value === 'string' && /^[a-f0-9]{64}$/u.test(value);
 const git = (root, ...args) => execFileSync('git', args, {cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}).trim();
 const sourcePaths = ['apps', 'packages', 'licenses', 'models', 'scripts', 'package.json', 'package-lock.json', 'LICENSE', 'NOTICE',
-  'README.md', 'docs/privacy.md', 'docs/chrome-web-store.md', 'docs/support.md', 'docs/launch-scope.md', 'docs/playground.md'];
+  'README.md', 'docs/privacy.md', 'docs/chrome-web-store.md', 'docs/support.md', 'docs/launch-scope.md', 'docs/playground.md', 'docs/local-ai-defaults.md'];
 const normalizedVersions = new Set(['package.json', 'package-lock.json', 'apps/extension/manifest.json']);
 export const readinessChecks = {
   quality: ['natural-development', 'natural-test', 'independent-reference', 'frozen-test', 'licensed-populations', 'meaning-preservation'],

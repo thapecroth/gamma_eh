@@ -23,8 +23,15 @@ describe('extension boundary', () => {
 
   it('defaults malformed stored settings without enabling typed-text persistence', () => {
     expect(getSettings({ enabled: false, useAI: false })).toEqual({ enabled: false, useAI: false, disabledSites: [] });
-    expect(getSettings({ enabled: 'no', useAI: undefined, disabledSites: 'all' })).toEqual({ enabled: true, useAI: false, disabledSites: [] });
+    expect(getSettings({ enabled: 'no', useAI: undefined, disabledSites: 'all' })).toEqual({ enabled: true, useAI: true, disabledSites: [] });
     expect(getSettings({ disabledSites: [null, 42, 'https://example.org/*'] }).disabledSites).toEqual(['https://example.org/*']);
+  });
+
+  it('enables local AI for unset preferences and preserves explicit opt-outs', () => {
+    expect(getSettings({})).toEqual({ enabled: true, useAI: true, disabledSites: [] });
+    expect(getSettings({ useAI: false }).useAI).toBe(false);
+    expect(getSettings({ useAI: true }).useAI).toBe(true);
+    expect(getSettings({ useAI: 'false' }).useAI).toBe(true);
   });
 
   it('enables new websites by default while respecting global and site pauses', () => {

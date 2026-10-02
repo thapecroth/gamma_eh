@@ -32,7 +32,8 @@ prereleases from the latest stable release shortcut.
 2. Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**,
    and select the folder containing `manifest.json`.
 3. Open or reload a regular site. Checking starts automatically on supported fields.
-4. Local AI is off by default; enable it in the popup to try the model.
+4. Local AI is on by default. WebGPU falls back to local CPU inference, then
+   spelling and rules if the model cannot run. A saved AI opt-out is respected.
 
 Keep the extracted directory. Chrome loads unpacked assets from it. For updates,
 replace its contents with the newer extracted package, click **Reload** on the

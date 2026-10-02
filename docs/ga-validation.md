@@ -8,12 +8,43 @@ evidence, not GA approval, a store installation, a production deployment or a
 physical-device qualification. The authoritative [readiness record](ga-readiness.json)
 remains pending, with quality blocked.
 
-## Integration with current public main
+## Integration with default-enabled extension
 
-The GA changes were integrated onto public main
+Public main advanced to `71536e9578ddd038bb7716be690d9061c2b50e47`
+while the first contribution's CI was running. The integration preserves
+default-enabled Local AI in both apps, saved extension opt-outs, real CPU
+fallback and local spelling/rules fallback without WebAssembly. Help, privacy,
+GA scope and the bundled model card now describe those defaults. Source
+attribution includes the new default/compatibility disclosure; changing that
+document invalidates reviewed stable evidence. The agent screenshot selector
+also follows the renamed `ai-toggle` scenario.
+
+Fresh `npm run check` passed: 227 app tests, 29 release/readiness tests,
+11 harness tests, lint, strict typecheck and all builds. The 12 native editing
+checks passed. Rebuilt ZIP checksums verified; the extracted CPU/WebGPU
+playground, real browser/model/extension harness and all 12 extension scenarios
+passed. Fresh extension activation required no stored AI preference; the harness
+verified a model-only correction with UTF-16 offsets and a saved opt-out after
+reload. The incompatible-runtime test retained local rule/spelling corrections.
+Seven automated accessibility states passed with zero violations. WebGPU used
+software SwiftShader; physical-device and manual qualification remain pending.
+
+| Latest rebuilt archive | SHA-256 |
+| --- | --- |
+| Chrome | `787756e155ac9c323115d70c014c2c226010ff1a8eb2f3a390f3628250ed14ae` |
+| Firefox | `1f354435bbe49bc11177540c69904abbdd9c43c00b51ecf48584ae6ad20cefb5` |
+| Web | `8e2eec26c64c1a5f27d806036abe0e81b4161e71066293af6055c9ebd8b1809c` |
+
+The earlier snapshots below remain historical. This integration changes neither
+the engine's correction policies nor model weights and adds no quality,
+physical-device or optimization approval claim.
+
+## First integration with public main
+
+The GA changes were first integrated onto public main
 `67d5475c6d53e635b3957a9ed4c090083c0e6907`. The newer underlined writing editor,
 default-enabled web Local AI and trusted inference-analysis workflow are
-preserved. Chrome Local AI remains off initially. Privacy, support, release
+preserved. At that snapshot, Chrome Local AI started off. Privacy, support, release
 notes and web ZIP installation instructions now describe those defaults.
 
 Fresh integration checks passed: 226 app tests, 29 release/readiness tests,

@@ -124,7 +124,8 @@ the implementation; offline processing is not exempt from disclosure.
 
 No login or subscription is required. Install in Chrome 116 or later. On an
 ordinary HTTPS page containing a textarea or plain-text editor, reload the tab
-and focus the field. Checking starts automatically. Keep **Local AI** off initially.
+and focus the field. Checking and **Local AI** start automatically. Also verify
+the Local AI off/on control and that a saved opt-out survives reloading.
 
 Enter `She have a freind.` and focus the field. Open the suggestion badge or
 hover an underlined word. Accept both suggestions; the result is
@@ -134,8 +135,8 @@ the extension should recheck instead of applying stale offsets.
 
 Test **Writing suggestions** off/on, **Remove site permission**, and enabling
 the site again. Password/payment inputs and fields with `spellcheck="false"`
-or `data-private` should have no checking UI. Optional Local AI runs a bundled
-experimental model via WebGPU when available, with a local CPU fallback.
+or `data-private` should have no checking UI. Default-enabled Local AI runs a bundled
+experimental model via WebGPU when available, with local CPU and rule fallbacks.
 
 ## Automating later releases
 

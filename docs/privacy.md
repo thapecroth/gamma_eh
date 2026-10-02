@@ -41,6 +41,10 @@ and remain temporarily in memory during checking and review. Gamma EH does
 not save drafts or suggestions to persistent storage, send them to a server,
 or use them to train a model.
 
+Experimental Local AI starts enabled unless you have saved an opt-out. You can
+switch it off in the popup. Its bundled model runs locally, with local CPU or
+rule fallback when a runtime is unavailable.
+
 The extension reads the current tab's address to display the site in its popup
 and manage access. It does not create a browsing-history record or monitor
 unrelated page content. Checking starts automatically in the top frame on

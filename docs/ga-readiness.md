@@ -46,7 +46,9 @@ commands, measurements, tested package hashes and coverage limits.
 The proposed first GA scope is the Chrome extension and HTTPS web editor on
 Windows, macOS, and Linux. Rules and spelling are the proposed GA core; Local AI
 stays explicitly experimental and user-controllable. It starts enabled in the
-web editor; Chrome users enable it in the extension popup. Firefox ZIPs remain experimental.
+web editor and extension, with local CPU or rule fallback; saved extension
+opt-outs are preserved. Switch it off in the editor or popup. Firefox ZIPs
+remain experimental.
 The web editor supports drafts up to 20,000 UTF-16 code units. The extension
 supports ordinary textareas and plain-text contenteditable editors up to
 6,000 UTF-16 code units. Rich document editors, iframes, shadow roots, and

@@ -69,7 +69,7 @@ export async function runAgentE2E({root, directory, build = true, focus = '', to
     // Review even failed browser runs, but no agent can waive machine failures.
     report.phase = 'luna-review';
     console.log('Luna-max: reviewing browser evidence and screenshots');
-    const images = evidence.screenshots.filter(name => name === 'failure.png' || name.includes('ai-opt-in') || name.includes('utf16') || name.startsWith('luna-')).slice(-4).map(name => join(directory, 'browser', name));
+    const images = evidence.screenshots.filter(name => name === 'failure.png' || name.includes('ai-toggle') || name.includes('utf16') || name.startsWith('luna-')).slice(-4).map(name => join(directory, 'browser', name));
     const review = await invokeCodex({root, directory, name: 'luna-review', model: 'gpt-6-luna', schema: reviewSchema, images,
       prompt: `Review this REAL browser execution and attached screenshots. Do not run tools or alter anything. Output runId exactly ${id}, evidenceHash exactly ${hash(evidence)}. Verdict pass requires evidence.passed=true and every required and planned scenario passing. Do not treat experimental synthetic model performance as real-world accuracy. Separate actual bugs from known limits; a bug requires verdict fail. Permission boundary is documented; native Chrome installation and site-access controls are not automated. Missing screenshots/actions/errors require scrutiny. Report concrete actionable defects with observed steps in description. Evidence:\n${JSON.stringify(evidence)}`,
     });
