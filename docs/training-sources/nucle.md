@@ -1,4 +1,4 @@
-# nucle training source
+# NUCLE training source
 
 [nucle upstream](https://www.comp.nus.edu.sg/~nlp/corpora.html) supplies `human-annotated` supervision.
 The adapter imports only the original training population and keeps benchmark
@@ -24,10 +24,9 @@ python training/corpus_import.py nucle \
   --heldout data/imported/public-benchmark/cweb
 ```
 
-This is a dry run. Add `--execute` to import; owner-provided sources also require
-`--input`. GitHub Typo requires `--license-cache` produced by the bounded
-`training/audit_github_licenses.py` commit-level check. Read the
-[shared workflow](../training-corpora.md) before increasing scan/sample bounds.
+This is a dry run. Add `--execute` to import and choose a fresh output directory.
+Supply the owner-authorized archive/aligned TSV with `--input`.
+Read the [shared workflow](../training-corpora.md) before changing the bounds.
 
 ## Run status
 
