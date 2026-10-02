@@ -84,6 +84,13 @@ the identical plan and unchanged model manifest; interrupted arms are retained
 and require a fresh run directory. This does not promise continuation from an
 interrupted optimizer state.
 
+If the execution device becomes unavailable, retain that receipt and use a fresh
+output directory with `--device cpu --only-arm SOURCE` (repeat `--only-arm` for
+other unfinished arms and `combined`). The new plan still pins all combined
+inputs. Already completed arms need not be retrained. Aggregate publication
+verifies each completed model under its original plan and records each arm's
+actual device; CPU/CUDA results are not a controlled corpus ranking.
+
 Fresh pretrained encoder initialization avoids silently reusing classifier
 weights under a changed edit-label vocabulary. The current trainer loads the
 bounded training population into memory. Million-scale training requires
