@@ -199,6 +199,21 @@ KEEP weights separately so their effect is not attributed to dataset quality.
 The default KEEP weight remains `0.3`; `--keep-weight` records a finite positive
 alternative in the training schedule.
 
+`training/experiments.py` supports `--development-only --keep-weight 1.0
+--shared-label-inventory --common-token-budget 64` for that matched study.
+Use repeated `--arm template-tiny64 --arm mixed-tiny64` to begin with the two
+data arms, and repeated `--exclude` paths for additional local JSONL regressions.
+The shared label inventory comes only from the prepared training vocabularies,
+before downsampling; heldout tags cannot introduce classes. A class can have
+zero positive examples in one arm. Plans hash training code, exclusions,
+datasets and evaluation populations; execution refuses changed inputs/code.
+Tagged synthetic diagnostics were filtered before the shared union and can
+retain different supported populations; complete natural development scores
+are the primary comparison. Scored tagged splits are hash-checked, while
+development-only execution does not load the deferred tagged test split.
+Use a fresh plan for a KEEP-weight or schedule comparison and retain the same
+frozen data, seed and selected arms.
+
 `--development-only` defers all test inference, scoring and parity, including
 PyTorch and both ONNX exports. Test inputs/references are read locally for
 exclusion checks and population hashes only. Reports explicitly mark test

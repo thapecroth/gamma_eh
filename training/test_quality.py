@@ -306,13 +306,14 @@ def test_cross_role_evaluation_strings_are_excluded_from_either_training_field(t
     assert len(selected) == 1
 
 
-def test_controlled_experiments_cap_equal_raw_counts_and_keep_eval_hashes(tmp_path):
+@pytest.mark.parametrize("new_controls", [False, True])
+def test_controlled_experiments_cap_equal_raw_counts_and_keep_eval_hashes(tmp_path, monkeypatch, new_controls):
     template, evaluation = tmp_path / "template", tmp_path / "evaluation"
     template.mkdir(); evaluation.mkdir()
     train = [{"source": f"He have a book for task {index}.", "target": f"He has a book for task {index}."} for index in range(8)]
     write_rows(template / "train.jsonl", train)
     for split in ["dev", "test"]:
-        write_rows(template / f"{split}.jsonl", [{"source": f"We have a {split} book.", "target": f"We have a {split} book."}])
+        write_rows(template / f"{split}.jsonl", [{"source": f"She eat a {split} sandwich.", "target": f"She ate a {split} sandwich."}])
         write_rows(evaluation / f"{split}.jsonl", [{"source": f"She has a {split} pen.", "references": [f"She has a {split} pen."]}])
     weak = tmp_path / "weak.jsonl"
     write_rows(weak, [{"source": f"They has a pen for task {index}.", "target": f"They have a pen for task {index}.",
@@ -320,13 +321,64 @@ def test_controlled_experiments_cap_equal_raw_counts_and_keep_eval_hashes(tmp_pa
     args = Namespace(output=tmp_path / "run", rows=8, weak=[weak], max_scanned=20, epochs=2,
                      batch_size=2, evaluation_dir=evaluation, template=template, seed=42,
                      max_labels=100, learning_rate=.0005, local_files_only=True, device="cpu")
+    if new_controls:
+        excluded = tmp_path / "regression.jsonl"
+        write_rows(excluded, [{"source": "I read the local checklist.", "target": train[0]["source"],
+                               "references": ["I checked the local checklist."]}])
+        args.exclude = [excluded]
+        args.development_only = True
+        args.keep_weight = 1.0
+        args.shared_label_inventory = True
+        args.arm = ["template-tiny64", "mixed-tiny64"]
     plan = build(args)
     assert plan["effective_raw_rows_per_arm"] == 4
-    assert len(plan["arms"]) == 4
+    assert len(plan["arms"]) == (2 if new_controls else 4)
     assert {value["raw_train_rows"] for value in plan["dataset_manifests"].values()} == {4}
     for arm in plan["arms"]:
         assert arm["command"][arm["command"].index("--evaluation-dir") + 1] == str(evaluation.resolve())
+        if new_controls:
+            assert "--development-only" in arm["command"]
+            assert arm["command"][arm["command"].index("--keep-weight") + 1] == "1.0"
+    if new_controls:
+        from pairs import hash_file
+        inventories = [json.loads((args.output / "datasets" / name / "labels.json").read_text()) for name in ("template", "mixed")]
+        assert inventories[0] == inventories[1]
+        assert plan["shared_label_inventory"]["count"] == len(inventories[0])
+        heldout_tags = set(edit_tags("She eat a sandwich.", "She ate a sandwich.", 2)[1]) - {"KEEP"}
+        assert not heldout_tags.intersection(inventories[0])
+        for name in ("template", "mixed"):
+            raw = [json.loads(line) for line in (args.output / "datasets" / f"{name}-raw.jsonl").read_text().splitlines()]
+            assert not any(row["source"] == train[0]["source"] for row in raw)
+            manifest = json.loads((args.output / "datasets" / name / "manifest.json").read_text())
+            assert manifest["labels_sha256"] == hash_file(args.output / "datasets" / name / "labels.json")
+    from experiments import run
+    started = []
+    monkeypatch.setattr("experiments.subprocess.run", lambda command, **kwargs: started.append(command))
+    if new_controls:
+        # Deferred tagged test inputs cannot affect development-only runs.
+        (args.output / "datasets/template/test.jsonl").write_text("unused changed tagged test\n")
+        run(plan)
+        assert len(started) == 2
+        started.clear()
+    changed_split = "dev" if new_controls else "test"
+    (args.output / "datasets/template" / f"{changed_split}.jsonl").write_text("changed scored diagnostic\n")
+    with pytest.raises(ValueError, match="Tagged diagnostic population changed"):
+        run(plan)
+    assert not started
     with pytest.raises(ValueError, match="already exists"): build(args)
+
+
+def test_experiment_runner_rejects_code_drift_before_starting_training(tmp_path, monkeypatch):
+    from experiments import run
+    from pairs import hash_file
+    source = tmp_path / "train.py"
+    source.write_text("original frozen training code\n")
+    plan = {"arms": [{"command": ["never-start-this"]}],
+            "code_files": [{"path": str(source), "sha256": hash_file(source)}]}
+    source.write_text("changed training code\n")
+    monkeypatch.setattr("experiments.subprocess.run", lambda *args, **kwargs: pytest.fail("Training started after code drift"))
+    with pytest.raises(ValueError, match="Training code changed"):
+        run(plan)
 
 
 def test_common_budget_equalizes_supported_rows_without_trimming_evaluation(tmp_path):
