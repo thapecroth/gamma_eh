@@ -1,0 +1,2116 @@
+{
+  "schema": 1,
+  "measured_at_utc": "2026-10-02T04:42:31.355280+00:00",
+  "scope": "Frozen shipped policy; full natural test populations; one browser correction pass; no training or threshold selection.",
+  "data_use": "Noncommercial research evaluation. Separately licensed CC-BY-NC-SA-4.0 inputs, gold and predictions remain local; only aggregates are published.",
+  "scorer_versions": {
+    "errant": "3.0.2",
+    "spacy": "3.8.7",
+    "en-core-web-sm": "3.8.0",
+    "rapidfuzz": "3.14.5",
+    "numpy": "2.2.6",
+    "scipy": "1.15.3"
+  },
+  "scoring_script_sha256": "7976ebc4023ae287b4c00558af7592aaf363305933c133563e71d44dc0eb878a",
+  "datasets": {
+    "jfleg": {
+      "sentences": 747,
+      "references_per_sentence": 4,
+      "source_url": "https://github.com/keisks/jfleg",
+      "revision": "ee06ff806a208aba815ac45313f4e750a48330a5",
+      "license": "CC-BY-NC-SA-4.0",
+      "attribution": "Napoles, Sakaguchi, and Tetreault (2017), JFLEG: A Fluency Corpus and Benchmark for Grammatical Error Correction.",
+      "dataset_manifest_sha256": "f77fb55201c1fc818d77e78be6e957f692a44d286f6229cbc87831bd643cce64",
+      "population_sha256": "22504390dc7921e1a4e85d77847b89953965ce385d22b428efec764e2abe6760",
+      "browser_report_sha256": "eb1950f1a198ea7f4f97d4651f955b121527f306c89c239cffec22a3e0e44cdd",
+      "engine_bundle_sha256": "a75c6c5b9610796b13125b3d5b72f45e202ef7bd9005b0ee416eb88776c6ff05",
+      "code": {
+        "baseCommit": "6883aaa87a0fa7d1151a829875ff1d95d1872f86",
+        "engineSourcesSha256": "ce3bc479af4fff637d272a156e54bd4355a69362385bcb40524d62efe5c7def6",
+        "runnerSha256": "eca9069b8550d1726eed6e356f73f3b8974f75896a2a22ffdaabd6f1396fb79b",
+        "packageLockSha256": "86a3e4e064e53274a774c9fc258e14ebdcb4d67cd208100f7d80ef76b2662d6f"
+      },
+      "model": {
+        "manifestSha256": "8f2880d15e8289d26aecaaae22d35d94f6f808ef9fb5933239c53da83124c7bf",
+        "weights": {
+          "model.onnx": {
+            "bytes": 17552569,
+            "sha256": "cb3280db7b33a7273ae75e87c8c5d432c63f9bdac89101d93dda72c776b38266"
+          },
+          "model_quantized.onnx": {
+            "bytes": 4463879,
+            "sha256": "f0b3fa8fb4fdff669937aa16390081f25fe30c4261104e5a8ffb0e57e9345cd5"
+          }
+        },
+        "runtime": {
+          "schema": 1,
+          "engine": "jax-js",
+          "weights": "model.onnx",
+          "dtype": "float32",
+          "versions": {
+            "@jax-js/jax": "0.1.25",
+            "@jax-js/onnx": "0.1.2",
+            "onnx-buf": "1.20.0-1",
+            "@bufbuild/protobuf": "2.16.0"
+          }
+        },
+        "executedWeights": "model.onnx",
+        "policy": {
+          "baseModel": "google/bert_uncased_L-2_H-128_A-2",
+          "baseRevision": "30b0a37ccaaa32f332884b96992754e246e48c5f",
+          "editSchema": 1,
+          "maxSequenceLength": 64,
+          "confidenceThreshold": 0.85,
+          "confidenceThresholds": {},
+          "disableModelEdits": false,
+          "maxPasses": 1,
+          "publicationAllowed": true
+        },
+        "hashesVerified": true
+      },
+      "browser": {
+        "version": "149.0.7827.55",
+        "launchMs": 306.7210190000005,
+        "initialization": {
+          "backend": "wasm",
+          "modelRuns": 1,
+          "failed": false,
+          "elapsedMs": 396.40000009536743,
+          "totalMs": 399.0112630000003
+        }
+      },
+      "network": {
+        "blockedRequests": 0
+      },
+      "execution": {
+        "rules": {
+          "sentences": 747,
+          "failures": 0,
+          "exactMatches": 224,
+          "exactMatchRate": 0.2998661311914324,
+          "modelRuns": 0,
+          "backends": {
+            "rules": 747
+          },
+          "latencyMs": {
+            "samples": 747,
+            "p50": 0,
+            "p95": 0.39999961853027344
+          },
+          "latencyScope": "Warm browser engine analysis, including all measured successes and failures; startup reported separately."
+        },
+        "model": {
+          "sentences": 747,
+          "failures": 0,
+          "exactMatches": 183,
+          "exactMatchRate": 0.24497991967871485,
+          "modelRuns": 736,
+          "backends": {
+            "wasm": 747
+          },
+          "latencyMs": {
+            "samples": 747,
+            "p50": 1.6999998092651367,
+            "p95": 3.3999996185302734
+          },
+          "latencyScope": "Warm browser engine analysis, including all measured successes and failures; startup reported separately."
+        },
+        "combined": {
+          "sentences": 747,
+          "failures": 0,
+          "exactMatches": 224,
+          "exactMatchRate": 0.2998661311914324,
+          "modelRuns": 732,
+          "backends": {
+            "wasm": 747
+          },
+          "latencyMs": {
+            "samples": 747,
+            "p50": 1.6000003814697266,
+            "p95": 3.0999999046325684
+          },
+          "latencyScope": "Warm browser engine analysis, including all measured successes and failures; startup reported separately."
+        }
+      },
+      "scores": {
+        "unchanged": {
+          "gleu": 0.40474,
+          "random_reference_std": 0.007721,
+          "random_reference_interval_95": "(0.390,0.420)",
+          "reference_accepted_sources": 182,
+          "reference_accepted_sources_changed": 0,
+          "reference_accepted_change_rate": 0.0,
+          "all_sources_changed": 0
+        },
+        "rules": {
+          "gleu": 0.465138,
+          "random_reference_std": 0.008501,
+          "random_reference_interval_95": "(0.448,0.482)",
+          "reference_accepted_sources": 182,
+          "reference_accepted_sources_changed": 2,
+          "reference_accepted_change_rate": 0.01098901098901099,
+          "all_sources_changed": 253
+        },
+        "model": {
+          "gleu": 0.40621,
+          "random_reference_std": 0.007738,
+          "random_reference_interval_95": "(0.391,0.421)",
+          "reference_accepted_sources": 182,
+          "reference_accepted_sources_changed": 0,
+          "reference_accepted_change_rate": 0.0,
+          "all_sources_changed": 8
+        },
+        "combined": {
+          "gleu": 0.465138,
+          "random_reference_std": 0.008501,
+          "random_reference_interval_95": "(0.448,0.482)",
+          "reference_accepted_sources": 182,
+          "reference_accepted_sources_changed": 2,
+          "reference_accepted_change_rate": 0.01098901098901099,
+          "all_sources_changed": 253
+        }
+      },
+      "metric": "Official upstream corpus GLEU, 4-grams, 500 seeded reference selections; interval reflects reference sampling, not population uncertainty."
+    },
+    "cweb": {
+      "sentences": 6845,
+      "references_per_sentence": 2,
+      "source_url": "https://github.com/SimonHFL/CWEB",
+      "revision": "08d1da0ff2b78885b1f060b4fa11460a98eb9218",
+      "license": "CC-BY-NC-SA-4.0",
+      "attribution": "Flachs et al. (2020), Grammatical Error Correction in Low Error Density Domains: A New Benchmark and Analyses.",
+      "dataset_manifest_sha256": "129d3dd55d0e0d9672f5dfac03230b00b0111169a741ef2b68f617317f855bc7",
+      "population_sha256": "d6c0d2129e814431deebcec951c0cf69b67ff3e16e09ba0f35248ff09b5d074c",
+      "browser_report_sha256": "9c63e74fc5b7fcbf7624d3e4726f1f417479ebe277fa9c06a1ad042d1075d716",
+      "engine_bundle_sha256": "a75c6c5b9610796b13125b3d5b72f45e202ef7bd9005b0ee416eb88776c6ff05",
+      "code": {
+        "baseCommit": "6883aaa87a0fa7d1151a829875ff1d95d1872f86",
+        "engineSourcesSha256": "ce3bc479af4fff637d272a156e54bd4355a69362385bcb40524d62efe5c7def6",
+        "runnerSha256": "eca9069b8550d1726eed6e356f73f3b8974f75896a2a22ffdaabd6f1396fb79b",
+        "packageLockSha256": "86a3e4e064e53274a774c9fc258e14ebdcb4d67cd208100f7d80ef76b2662d6f"
+      },
+      "model": {
+        "manifestSha256": "8f2880d15e8289d26aecaaae22d35d94f6f808ef9fb5933239c53da83124c7bf",
+        "weights": {
+          "model.onnx": {
+            "bytes": 17552569,
+            "sha256": "cb3280db7b33a7273ae75e87c8c5d432c63f9bdac89101d93dda72c776b38266"
+          },
+          "model_quantized.onnx": {
+            "bytes": 4463879,
+            "sha256": "f0b3fa8fb4fdff669937aa16390081f25fe30c4261104e5a8ffb0e57e9345cd5"
+          }
+        },
+        "runtime": {
+          "schema": 1,
+          "engine": "jax-js",
+          "weights": "model.onnx",
+          "dtype": "float32",
+          "versions": {
+            "@jax-js/jax": "0.1.25",
+            "@jax-js/onnx": "0.1.2",
+            "onnx-buf": "1.20.0-1",
+            "@bufbuild/protobuf": "2.16.0"
+          }
+        },
+        "executedWeights": "model.onnx",
+        "policy": {
+          "baseModel": "google/bert_uncased_L-2_H-128_A-2",
+          "baseRevision": "30b0a37ccaaa32f332884b96992754e246e48c5f",
+          "editSchema": 1,
+          "maxSequenceLength": 64,
+          "confidenceThreshold": 0.85,
+          "confidenceThresholds": {},
+          "disableModelEdits": false,
+          "maxPasses": 1,
+          "publicationAllowed": true
+        },
+        "hashesVerified": true
+      },
+      "browser": {
+        "version": "149.0.7827.55",
+        "launchMs": 387.69760999999926,
+        "initialization": {
+          "backend": "wasm",
+          "modelRuns": 1,
+          "failed": false,
+          "elapsedMs": 201.90000009536743,
+          "totalMs": 204.08613200000036
+        }
+      },
+      "network": {
+        "blockedRequests": 0
+      },
+      "execution": {
+        "rules": {
+          "sentences": 6845,
+          "failures": 0,
+          "exactMatches": 5584,
+          "exactMatchRate": 0.8157779401022645,
+          "modelRuns": 0,
+          "backends": {
+            "rules": 6845
+          },
+          "latencyMs": {
+            "samples": 6845,
+            "p50": 0,
+            "p95": 0.10000038146972656
+          },
+          "latencyScope": "Warm browser engine analysis, including all measured successes and failures; startup reported separately."
+        },
+        "model": {
+          "sentences": 6845,
+          "failures": 0,
+          "exactMatches": 5882,
+          "exactMatchRate": 0.8593133674214756,
+          "modelRuns": 6958,
+          "backends": {
+            "wasm": 6845
+          },
+          "latencyMs": {
+            "samples": 6845,
+            "p50": 1.6999998092651367,
+            "p95": 3.4000000953674316
+          },
+          "latencyScope": "Warm browser engine analysis, including all measured successes and failures; startup reported separately."
+        },
+        "combined": {
+          "sentences": 6845,
+          "failures": 0,
+          "exactMatches": 5584,
+          "exactMatchRate": 0.8157779401022645,
+          "modelRuns": 6948,
+          "backends": {
+            "wasm": 6845
+          },
+          "latencyMs": {
+            "samples": 6845,
+            "p50": 1.799999713897705,
+            "p95": 3.5999999046325684
+          },
+          "latencyScope": "Warm browser engine analysis, including all measured successes and failures; startup reported separately."
+        }
+      },
+      "scores": {
+        "unchanged": {
+          "precision": 1.0,
+          "recall": 0.0,
+          "f0_5": 0.0,
+          "true_positive_edits": 0,
+          "false_positive_edits": 0,
+          "missed_edits": 1294,
+          "reference_accepted_sources": 5881,
+          "reference_accepted_sources_changed": 0,
+          "reference_accepted_change_rate": 0.0,
+          "all_sources_changed": 0
+        },
+        "rules": {
+          "precision": 0.05580357142857143,
+          "recall": 0.019305019305019305,
+          "f0_5": 0.04049238743116294,
+          "true_positive_edits": 25,
+          "false_positive_edits": 423,
+          "missed_edits": 1270,
+          "reference_accepted_sources": 5881,
+          "reference_accepted_sources_changed": 315,
+          "reference_accepted_change_rate": 0.05356231933344669,
+          "all_sources_changed": 406
+        },
+        "model": {
+          "precision": 1.0,
+          "recall": 0.0015455950540958269,
+          "f0_5": 0.007680491551459293,
+          "true_positive_edits": 2,
+          "false_positive_edits": 0,
+          "missed_edits": 1292,
+          "reference_accepted_sources": 5881,
+          "reference_accepted_sources_changed": 0,
+          "reference_accepted_change_rate": 0.0,
+          "all_sources_changed": 2
+        },
+        "combined": {
+          "precision": 0.05580357142857143,
+          "recall": 0.019305019305019305,
+          "f0_5": 0.04049238743116294,
+          "true_positive_edits": 25,
+          "false_positive_edits": 423,
+          "missed_edits": 1270,
+          "reference_accepted_sources": 5881,
+          "reference_accepted_sources_changed": 315,
+          "reference_accepted_change_rate": 0.05356231933344669,
+          "all_sources_changed": 406
+        }
+      },
+      "metric": "Standard ERRANT 3.0.2 span correction against original multiannotator M2; default corpus reference selection, tokenized inputs."
+    }
+  },
+  "jfleg_custom_edit_diagnostics": {
+    "scope": "Complete-population actual browser predictions; custom best-sentence-reference ERRANT scoring is not official JFLEG GLEU.",
+    "conditions": [
+      {
+        "mode": "rules",
+        "max_passes": 1,
+        "edit_precision": 0.71900826446281,
+        "edit_recall": 0.16904145077720206,
+        "edit_f0_5": 0.43558077436582116,
+        "true_positive_edits": 261,
+        "false_positive_edits": 102,
+        "missed_edits": 1283,
+        "predicted_edits": 363,
+        "reference_edits": 1544,
+        "sentences": 747,
+        "sentence_exact_match": 0.2998661311914324,
+        "clean_sentences": 182,
+        "clean_sentences_changed": 2,
+        "clean_sentence_false_positive_rate": 0.01098901098901099,
+        "inference_failures": 0,
+        "scorer": "errant",
+        "scoring_note": "Actual ERRANT token-span edits; best reference selected by sentence F0.5.",
+        "reference_policy": "Highest sentence edit F0.5, then TP, then fewer FP/FN; all references retained.",
+        "scorer_versions": {
+          "errant": "3.0.2",
+          "spacy": "3.8.7",
+          "en-core-web-sm": "3.8.0",
+          "rapidfuzz": "3.14.5"
+        },
+        "by_error_type": {
+          "M:ADJ": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 4,
+            "predicted_edits": 0,
+            "reference_edits": 4
+          },
+          "M:ADV": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 5,
+            "predicted_edits": 0,
+            "reference_edits": 5
+          },
+          "M:CONJ": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 9,
+            "predicted_edits": 0,
+            "reference_edits": 9
+          },
+          "M:DET": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 81,
+            "predicted_edits": 0,
+            "reference_edits": 81
+          },
+          "M:NOUN": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 3,
+            "predicted_edits": 0,
+            "reference_edits": 3
+          },
+          "M:NOUN:POSS": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 2,
+            "predicted_edits": 0,
+            "reference_edits": 2
+          },
+          "M:OTHER": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 25,
+            "predicted_edits": 0,
+            "reference_edits": 25
+          },
+          "M:PART": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 3,
+            "predicted_edits": 0,
+            "reference_edits": 3
+          },
+          "M:PREP": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 28,
+            "predicted_edits": 0,
+            "reference_edits": 28
+          },
+          "M:PRON": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 8,
+            "predicted_edits": 0,
+            "reference_edits": 8
+          },
+          "M:PUNCT": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 83,
+            "predicted_edits": 0,
+            "reference_edits": 83
+          },
+          "M:VERB": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 16,
+            "predicted_edits": 0,
+            "reference_edits": 16
+          },
+          "M:VERB:FORM": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 4,
+            "predicted_edits": 0,
+            "reference_edits": 4
+          },
+          "M:VERB:TENSE": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 14,
+            "predicted_edits": 0,
+            "reference_edits": 14
+          },
+          "R:ADJ": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 4,
+            "predicted_edits": 0,
+            "reference_edits": 4
+          },
+          "R:ADJ:FORM": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 3,
+            "predicted_edits": 0,
+            "reference_edits": 3
+          },
+          "R:ADV": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 5,
+            "predicted_edits": 0,
+            "reference_edits": 5
+          },
+          "R:CONTR": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 9,
+            "predicted_edits": 0,
+            "reference_edits": 9
+          },
+          "R:DET": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 32,
+            "predicted_edits": 0,
+            "reference_edits": 32
+          },
+          "R:MORPH": {
+            "edit_precision": 0.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 1,
+            "missed_edits": 42,
+            "predicted_edits": 1,
+            "reference_edits": 42
+          },
+          "R:NOUN": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 24,
+            "predicted_edits": 0,
+            "reference_edits": 24
+          },
+          "R:NOUN:INFL": {
+            "edit_precision": 0.8333333333333334,
+            "edit_recall": 0.8333333333333334,
+            "edit_f0_5": 0.8333333333333334,
+            "true_positive_edits": 5,
+            "false_positive_edits": 1,
+            "missed_edits": 1,
+            "predicted_edits": 6,
+            "reference_edits": 6
+          },
+          "R:NOUN:NUM": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 94,
+            "predicted_edits": 0,
+            "reference_edits": 94
+          },
+          "R:NOUN:POSS": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 3,
+            "predicted_edits": 0,
+            "reference_edits": 3
+          },
+          "R:ORTH": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 145,
+            "predicted_edits": 0,
+            "reference_edits": 145
+          },
+          "R:OTHER": {
+            "edit_precision": 0.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 5,
+            "missed_edits": 118,
+            "predicted_edits": 5,
+            "reference_edits": 118
+          },
+          "R:PART": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 4,
+            "predicted_edits": 0,
+            "reference_edits": 4
+          },
+          "R:PREP": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 32,
+            "predicted_edits": 0,
+            "reference_edits": 32
+          },
+          "R:PRON": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 10,
+            "predicted_edits": 0,
+            "reference_edits": 10
+          },
+          "R:PUNCT": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 15,
+            "predicted_edits": 0,
+            "reference_edits": 15
+          },
+          "R:SPELL": {
+            "edit_precision": 0.7477744807121661,
+            "edit_recall": 0.6478149100257069,
+            "edit_f0_5": 0.7253886010362693,
+            "true_positive_edits": 252,
+            "false_positive_edits": 85,
+            "missed_edits": 137,
+            "predicted_edits": 337,
+            "reference_edits": 389
+          },
+          "R:VERB": {
+            "edit_precision": 0.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 1,
+            "missed_edits": 38,
+            "predicted_edits": 1,
+            "reference_edits": 38
+          },
+          "R:VERB:FORM": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 37,
+            "predicted_edits": 0,
+            "reference_edits": 37
+          },
+          "R:VERB:INFL": {
+            "edit_precision": 0.25,
+            "edit_recall": 0.6666666666666666,
+            "edit_f0_5": 0.2857142857142857,
+            "true_positive_edits": 2,
+            "false_positive_edits": 6,
+            "missed_edits": 1,
+            "predicted_edits": 8,
+            "reference_edits": 3
+          },
+          "R:VERB:SVA": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 34,
+            "predicted_edits": 0,
+            "reference_edits": 34
+          },
+          "R:VERB:TENSE": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 25,
+            "predicted_edits": 0,
+            "reference_edits": 25
+          },
+          "R:WO": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 11,
+            "predicted_edits": 0,
+            "reference_edits": 11
+          },
+          "U:ADJ": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 4,
+            "predicted_edits": 0,
+            "reference_edits": 4
+          },
+          "U:ADV": {
+            "edit_precision": 0.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 2,
+            "missed_edits": 13,
+            "predicted_edits": 2,
+            "reference_edits": 13
+          },
+          "U:CONJ": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.14285714285714285,
+            "edit_f0_5": 0.4545454545454545,
+            "true_positive_edits": 1,
+            "false_positive_edits": 0,
+            "missed_edits": 6,
+            "predicted_edits": 1,
+            "reference_edits": 7
+          },
+          "U:CONTR": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 1,
+            "predicted_edits": 0,
+            "reference_edits": 1
+          },
+          "U:DET": {
+            "edit_precision": 0.5,
+            "edit_recall": 0.022727272727272728,
+            "edit_f0_5": 0.09615384615384616,
+            "true_positive_edits": 1,
+            "false_positive_edits": 1,
+            "missed_edits": 43,
+            "predicted_edits": 2,
+            "reference_edits": 44
+          },
+          "U:NOUN": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 6,
+            "predicted_edits": 0,
+            "reference_edits": 6
+          },
+          "U:NOUN:POSS": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 1,
+            "predicted_edits": 0,
+            "reference_edits": 1
+          },
+          "U:OTHER": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 24,
+            "predicted_edits": 0,
+            "reference_edits": 24
+          },
+          "U:PART": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 3,
+            "predicted_edits": 0,
+            "reference_edits": 3
+          },
+          "U:PREP": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 15,
+            "predicted_edits": 0,
+            "reference_edits": 15
+          },
+          "U:PRON": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 7,
+            "predicted_edits": 0,
+            "reference_edits": 7
+          },
+          "U:PUNCT": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 21,
+            "predicted_edits": 0,
+            "reference_edits": 21
+          },
+          "U:VERB": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 14,
+            "predicted_edits": 0,
+            "reference_edits": 14
+          },
+          "U:VERB:FORM": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 7,
+            "predicted_edits": 0,
+            "reference_edits": 7
+          },
+          "U:VERB:TENSE": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 8,
+            "predicted_edits": 0,
+            "reference_edits": 8
+          },
+          "UNK": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 1,
+            "predicted_edits": 0,
+            "reference_edits": 1
+          }
+        },
+        "by_category": {
+          "mixed": {
+            "edit_precision": 0.71900826446281,
+            "edit_recall": 0.16904145077720206,
+            "edit_f0_5": 0.43558077436582116,
+            "true_positive_edits": 261,
+            "false_positive_edits": 102,
+            "missed_edits": 1283,
+            "predicted_edits": 363,
+            "reference_edits": 1544,
+            "sentences": 747
+          }
+        },
+        "browser": {
+          "sentences": 747,
+          "failures": 0,
+          "exactMatches": 224,
+          "exactMatchRate": 0.2998661311914324,
+          "modelRuns": 0,
+          "backends": {
+            "rules": 747
+          },
+          "latencyMs": {
+            "samples": 747,
+            "p50": 0,
+            "p95": 0.39999961853027344
+          },
+          "latencyScope": "Warm browser engine analysis, including all measured successes and failures; startup reported separately."
+        }
+      },
+      {
+        "mode": "model",
+        "max_passes": 1,
+        "edit_precision": 0.875,
+        "edit_recall": 0.004720161834120027,
+        "edit_f0_5": 0.0231023102310231,
+        "true_positive_edits": 7,
+        "false_positive_edits": 1,
+        "missed_edits": 1476,
+        "predicted_edits": 8,
+        "reference_edits": 1483,
+        "sentences": 747,
+        "sentence_exact_match": 0.24497991967871485,
+        "clean_sentences": 182,
+        "clean_sentences_changed": 0,
+        "clean_sentence_false_positive_rate": 0.0,
+        "inference_failures": 0,
+        "scorer": "errant",
+        "scoring_note": "Actual ERRANT token-span edits; best reference selected by sentence F0.5.",
+        "reference_policy": "Highest sentence edit F0.5, then TP, then fewer FP/FN; all references retained.",
+        "scorer_versions": {
+          "errant": "3.0.2",
+          "spacy": "3.8.7",
+          "en-core-web-sm": "3.8.0",
+          "rapidfuzz": "3.14.5"
+        },
+        "by_error_type": {
+          "M:ADJ": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 4,
+            "predicted_edits": 0,
+            "reference_edits": 4
+          },
+          "M:ADV": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 6,
+            "predicted_edits": 0,
+            "reference_edits": 6
+          },
+          "M:CONJ": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 8,
+            "predicted_edits": 0,
+            "reference_edits": 8
+          },
+          "M:DET": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 73,
+            "predicted_edits": 0,
+            "reference_edits": 73
+          },
+          "M:NOUN": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 2,
+            "predicted_edits": 0,
+            "reference_edits": 2
+          },
+          "M:NOUN:POSS": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 1,
+            "predicted_edits": 0,
+            "reference_edits": 1
+          },
+          "M:OTHER": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 20,
+            "predicted_edits": 0,
+            "reference_edits": 20
+          },
+          "M:PART": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 3,
+            "predicted_edits": 0,
+            "reference_edits": 3
+          },
+          "M:PREP": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 28,
+            "predicted_edits": 0,
+            "reference_edits": 28
+          },
+          "M:PRON": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 8,
+            "predicted_edits": 0,
+            "reference_edits": 8
+          },
+          "M:PUNCT": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 77,
+            "predicted_edits": 0,
+            "reference_edits": 77
+          },
+          "M:VERB": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 16,
+            "predicted_edits": 0,
+            "reference_edits": 16
+          },
+          "M:VERB:FORM": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 4,
+            "predicted_edits": 0,
+            "reference_edits": 4
+          },
+          "M:VERB:TENSE": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 14,
+            "predicted_edits": 0,
+            "reference_edits": 14
+          },
+          "R:ADJ": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 5,
+            "predicted_edits": 0,
+            "reference_edits": 5
+          },
+          "R:ADJ:FORM": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 2,
+            "predicted_edits": 0,
+            "reference_edits": 2
+          },
+          "R:ADV": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 3,
+            "predicted_edits": 0,
+            "reference_edits": 3
+          },
+          "R:CONTR": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 9,
+            "predicted_edits": 0,
+            "reference_edits": 9
+          },
+          "R:DET": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 28,
+            "predicted_edits": 0,
+            "reference_edits": 28
+          },
+          "R:MORPH": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 42,
+            "predicted_edits": 0,
+            "reference_edits": 42
+          },
+          "R:NOUN": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 24,
+            "predicted_edits": 0,
+            "reference_edits": 24
+          },
+          "R:NOUN:INFL": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 5,
+            "predicted_edits": 0,
+            "reference_edits": 5
+          },
+          "R:NOUN:NUM": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 92,
+            "predicted_edits": 0,
+            "reference_edits": 92
+          },
+          "R:NOUN:POSS": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 3,
+            "predicted_edits": 0,
+            "reference_edits": 3
+          },
+          "R:ORTH": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 149,
+            "predicted_edits": 0,
+            "reference_edits": 149
+          },
+          "R:OTHER": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 111,
+            "predicted_edits": 0,
+            "reference_edits": 111
+          },
+          "R:PART": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 4,
+            "predicted_edits": 0,
+            "reference_edits": 4
+          },
+          "R:PREP": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 31,
+            "predicted_edits": 0,
+            "reference_edits": 31
+          },
+          "R:PRON": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 10,
+            "predicted_edits": 0,
+            "reference_edits": 10
+          },
+          "R:PUNCT": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 14,
+            "predicted_edits": 0,
+            "reference_edits": 14
+          },
+          "R:SPELL": {
+            "edit_precision": 0.875,
+            "edit_recall": 0.01891891891891892,
+            "edit_f0_5": 0.08706467661691543,
+            "true_positive_edits": 7,
+            "false_positive_edits": 1,
+            "missed_edits": 363,
+            "predicted_edits": 8,
+            "reference_edits": 370
+          },
+          "R:VERB": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 37,
+            "predicted_edits": 0,
+            "reference_edits": 37
+          },
+          "R:VERB:FORM": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 34,
+            "predicted_edits": 0,
+            "reference_edits": 34
+          },
+          "R:VERB:INFL": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 3,
+            "predicted_edits": 0,
+            "reference_edits": 3
+          },
+          "R:VERB:SVA": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 33,
+            "predicted_edits": 0,
+            "reference_edits": 33
+          },
+          "R:VERB:TENSE": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 25,
+            "predicted_edits": 0,
+            "reference_edits": 25
+          },
+          "R:WO": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 8,
+            "predicted_edits": 0,
+            "reference_edits": 8
+          },
+          "U:ADJ": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 4,
+            "predicted_edits": 0,
+            "reference_edits": 4
+          },
+          "U:ADV": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 13,
+            "predicted_edits": 0,
+            "reference_edits": 13
+          },
+          "U:CONJ": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 7,
+            "predicted_edits": 0,
+            "reference_edits": 7
+          },
+          "U:CONTR": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 1,
+            "predicted_edits": 0,
+            "reference_edits": 1
+          },
+          "U:DET": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 41,
+            "predicted_edits": 0,
+            "reference_edits": 41
+          },
+          "U:NOUN": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 10,
+            "predicted_edits": 0,
+            "reference_edits": 10
+          },
+          "U:NOUN:POSS": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 1,
+            "predicted_edits": 0,
+            "reference_edits": 1
+          },
+          "U:OTHER": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 29,
+            "predicted_edits": 0,
+            "reference_edits": 29
+          },
+          "U:PART": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 3,
+            "predicted_edits": 0,
+            "reference_edits": 3
+          },
+          "U:PREP": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 14,
+            "predicted_edits": 0,
+            "reference_edits": 14
+          },
+          "U:PRON": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 6,
+            "predicted_edits": 0,
+            "reference_edits": 6
+          },
+          "U:PUNCT": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 21,
+            "predicted_edits": 0,
+            "reference_edits": 21
+          },
+          "U:VERB": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 13,
+            "predicted_edits": 0,
+            "reference_edits": 13
+          },
+          "U:VERB:FORM": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 6,
+            "predicted_edits": 0,
+            "reference_edits": 6
+          },
+          "U:VERB:TENSE": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 7,
+            "predicted_edits": 0,
+            "reference_edits": 7
+          },
+          "UNK": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 1,
+            "predicted_edits": 0,
+            "reference_edits": 1
+          }
+        },
+        "by_category": {
+          "mixed": {
+            "edit_precision": 0.875,
+            "edit_recall": 0.004720161834120027,
+            "edit_f0_5": 0.0231023102310231,
+            "true_positive_edits": 7,
+            "false_positive_edits": 1,
+            "missed_edits": 1476,
+            "predicted_edits": 8,
+            "reference_edits": 1483,
+            "sentences": 747
+          }
+        },
+        "browser": {
+          "sentences": 747,
+          "failures": 0,
+          "exactMatches": 183,
+          "exactMatchRate": 0.24497991967871485,
+          "modelRuns": 736,
+          "backends": {
+            "wasm": 747
+          },
+          "latencyMs": {
+            "samples": 747,
+            "p50": 1.6999998092651367,
+            "p95": 3.3999996185302734
+          },
+          "latencyScope": "Warm browser engine analysis, including all measured successes and failures; startup reported separately."
+        }
+      },
+      {
+        "mode": "combined",
+        "max_passes": 1,
+        "edit_precision": 0.71900826446281,
+        "edit_recall": 0.16904145077720206,
+        "edit_f0_5": 0.43558077436582116,
+        "true_positive_edits": 261,
+        "false_positive_edits": 102,
+        "missed_edits": 1283,
+        "predicted_edits": 363,
+        "reference_edits": 1544,
+        "sentences": 747,
+        "sentence_exact_match": 0.2998661311914324,
+        "clean_sentences": 182,
+        "clean_sentences_changed": 2,
+        "clean_sentence_false_positive_rate": 0.01098901098901099,
+        "inference_failures": 0,
+        "scorer": "errant",
+        "scoring_note": "Actual ERRANT token-span edits; best reference selected by sentence F0.5.",
+        "reference_policy": "Highest sentence edit F0.5, then TP, then fewer FP/FN; all references retained.",
+        "scorer_versions": {
+          "errant": "3.0.2",
+          "spacy": "3.8.7",
+          "en-core-web-sm": "3.8.0",
+          "rapidfuzz": "3.14.5"
+        },
+        "by_error_type": {
+          "M:ADJ": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 4,
+            "predicted_edits": 0,
+            "reference_edits": 4
+          },
+          "M:ADV": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 5,
+            "predicted_edits": 0,
+            "reference_edits": 5
+          },
+          "M:CONJ": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 9,
+            "predicted_edits": 0,
+            "reference_edits": 9
+          },
+          "M:DET": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 81,
+            "predicted_edits": 0,
+            "reference_edits": 81
+          },
+          "M:NOUN": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 3,
+            "predicted_edits": 0,
+            "reference_edits": 3
+          },
+          "M:NOUN:POSS": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 2,
+            "predicted_edits": 0,
+            "reference_edits": 2
+          },
+          "M:OTHER": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 25,
+            "predicted_edits": 0,
+            "reference_edits": 25
+          },
+          "M:PART": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 3,
+            "predicted_edits": 0,
+            "reference_edits": 3
+          },
+          "M:PREP": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 28,
+            "predicted_edits": 0,
+            "reference_edits": 28
+          },
+          "M:PRON": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 8,
+            "predicted_edits": 0,
+            "reference_edits": 8
+          },
+          "M:PUNCT": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 83,
+            "predicted_edits": 0,
+            "reference_edits": 83
+          },
+          "M:VERB": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 16,
+            "predicted_edits": 0,
+            "reference_edits": 16
+          },
+          "M:VERB:FORM": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 4,
+            "predicted_edits": 0,
+            "reference_edits": 4
+          },
+          "M:VERB:TENSE": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 14,
+            "predicted_edits": 0,
+            "reference_edits": 14
+          },
+          "R:ADJ": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 4,
+            "predicted_edits": 0,
+            "reference_edits": 4
+          },
+          "R:ADJ:FORM": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 3,
+            "predicted_edits": 0,
+            "reference_edits": 3
+          },
+          "R:ADV": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 5,
+            "predicted_edits": 0,
+            "reference_edits": 5
+          },
+          "R:CONTR": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 9,
+            "predicted_edits": 0,
+            "reference_edits": 9
+          },
+          "R:DET": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 32,
+            "predicted_edits": 0,
+            "reference_edits": 32
+          },
+          "R:MORPH": {
+            "edit_precision": 0.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 1,
+            "missed_edits": 42,
+            "predicted_edits": 1,
+            "reference_edits": 42
+          },
+          "R:NOUN": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 24,
+            "predicted_edits": 0,
+            "reference_edits": 24
+          },
+          "R:NOUN:INFL": {
+            "edit_precision": 0.8333333333333334,
+            "edit_recall": 0.8333333333333334,
+            "edit_f0_5": 0.8333333333333334,
+            "true_positive_edits": 5,
+            "false_positive_edits": 1,
+            "missed_edits": 1,
+            "predicted_edits": 6,
+            "reference_edits": 6
+          },
+          "R:NOUN:NUM": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 94,
+            "predicted_edits": 0,
+            "reference_edits": 94
+          },
+          "R:NOUN:POSS": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 3,
+            "predicted_edits": 0,
+            "reference_edits": 3
+          },
+          "R:ORTH": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 145,
+            "predicted_edits": 0,
+            "reference_edits": 145
+          },
+          "R:OTHER": {
+            "edit_precision": 0.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 5,
+            "missed_edits": 118,
+            "predicted_edits": 5,
+            "reference_edits": 118
+          },
+          "R:PART": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 4,
+            "predicted_edits": 0,
+            "reference_edits": 4
+          },
+          "R:PREP": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 32,
+            "predicted_edits": 0,
+            "reference_edits": 32
+          },
+          "R:PRON": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 10,
+            "predicted_edits": 0,
+            "reference_edits": 10
+          },
+          "R:PUNCT": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 15,
+            "predicted_edits": 0,
+            "reference_edits": 15
+          },
+          "R:SPELL": {
+            "edit_precision": 0.7477744807121661,
+            "edit_recall": 0.6478149100257069,
+            "edit_f0_5": 0.7253886010362693,
+            "true_positive_edits": 252,
+            "false_positive_edits": 85,
+            "missed_edits": 137,
+            "predicted_edits": 337,
+            "reference_edits": 389
+          },
+          "R:VERB": {
+            "edit_precision": 0.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 1,
+            "missed_edits": 38,
+            "predicted_edits": 1,
+            "reference_edits": 38
+          },
+          "R:VERB:FORM": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 37,
+            "predicted_edits": 0,
+            "reference_edits": 37
+          },
+          "R:VERB:INFL": {
+            "edit_precision": 0.25,
+            "edit_recall": 0.6666666666666666,
+            "edit_f0_5": 0.2857142857142857,
+            "true_positive_edits": 2,
+            "false_positive_edits": 6,
+            "missed_edits": 1,
+            "predicted_edits": 8,
+            "reference_edits": 3
+          },
+          "R:VERB:SVA": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 34,
+            "predicted_edits": 0,
+            "reference_edits": 34
+          },
+          "R:VERB:TENSE": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 25,
+            "predicted_edits": 0,
+            "reference_edits": 25
+          },
+          "R:WO": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 11,
+            "predicted_edits": 0,
+            "reference_edits": 11
+          },
+          "U:ADJ": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 4,
+            "predicted_edits": 0,
+            "reference_edits": 4
+          },
+          "U:ADV": {
+            "edit_precision": 0.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 2,
+            "missed_edits": 13,
+            "predicted_edits": 2,
+            "reference_edits": 13
+          },
+          "U:CONJ": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.14285714285714285,
+            "edit_f0_5": 0.4545454545454545,
+            "true_positive_edits": 1,
+            "false_positive_edits": 0,
+            "missed_edits": 6,
+            "predicted_edits": 1,
+            "reference_edits": 7
+          },
+          "U:CONTR": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 1,
+            "predicted_edits": 0,
+            "reference_edits": 1
+          },
+          "U:DET": {
+            "edit_precision": 0.5,
+            "edit_recall": 0.022727272727272728,
+            "edit_f0_5": 0.09615384615384616,
+            "true_positive_edits": 1,
+            "false_positive_edits": 1,
+            "missed_edits": 43,
+            "predicted_edits": 2,
+            "reference_edits": 44
+          },
+          "U:NOUN": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 6,
+            "predicted_edits": 0,
+            "reference_edits": 6
+          },
+          "U:NOUN:POSS": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 1,
+            "predicted_edits": 0,
+            "reference_edits": 1
+          },
+          "U:OTHER": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 24,
+            "predicted_edits": 0,
+            "reference_edits": 24
+          },
+          "U:PART": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 3,
+            "predicted_edits": 0,
+            "reference_edits": 3
+          },
+          "U:PREP": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 15,
+            "predicted_edits": 0,
+            "reference_edits": 15
+          },
+          "U:PRON": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 7,
+            "predicted_edits": 0,
+            "reference_edits": 7
+          },
+          "U:PUNCT": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 21,
+            "predicted_edits": 0,
+            "reference_edits": 21
+          },
+          "U:VERB": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 14,
+            "predicted_edits": 0,
+            "reference_edits": 14
+          },
+          "U:VERB:FORM": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 7,
+            "predicted_edits": 0,
+            "reference_edits": 7
+          },
+          "U:VERB:TENSE": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 8,
+            "predicted_edits": 0,
+            "reference_edits": 8
+          },
+          "UNK": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 1,
+            "predicted_edits": 0,
+            "reference_edits": 1
+          }
+        },
+        "by_category": {
+          "mixed": {
+            "edit_precision": 0.71900826446281,
+            "edit_recall": 0.16904145077720206,
+            "edit_f0_5": 0.43558077436582116,
+            "true_positive_edits": 261,
+            "false_positive_edits": 102,
+            "missed_edits": 1283,
+            "predicted_edits": 363,
+            "reference_edits": 1544,
+            "sentences": 747
+          }
+        },
+        "browser": {
+          "sentences": 747,
+          "failures": 0,
+          "exactMatches": 224,
+          "exactMatchRate": 0.2998661311914324,
+          "modelRuns": 732,
+          "backends": {
+            "wasm": 747
+          },
+          "latencyMs": {
+            "samples": 747,
+            "p50": 1.6000003814697266,
+            "p95": 3.0999999046325684
+          },
+          "latencyScope": "Warm browser engine analysis, including all measured successes and failures; startup reported separately."
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "source_receipt": "public-benchmark-results.json",
+  "source_sha256": "6f3e69b29d4e477192be6d9c593f4c799ca833ff1188eb1a6f2b888bb7eb00b3",
+  "renderer_sha256": "961da816a37b1b869ef0b9f2eec07055785a1624c790398e23b986165f17849c",
+  "versions": {
+    "matplotlib": "3.10.7",
+    "numpy": "2.2.6"
+  },
+  "files": {
+    "benchmark-overview.png": {
+      "bytes": 273321,
+      "sha256": "7c92ca8abacf5355c1d50884e76ef199a53526e5a4eea5a7e496b88eb6e16945"
+    },
+    "benchmark-overview.svg": {
+      "bytes": 20460,
+      "sha256": "a00451425ad653622902a7c9a8473709f402f359dc18e61ca09bf66bb7b7e13e"
+    }
+  }
+}

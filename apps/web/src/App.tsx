@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { applySuggestion, applySuggestions, type AnalysisResult, type Suggestion } from '@gamma/engine';
+import { WritingEditor } from './WritingEditor';
 
 const EXAMPLES = [
   {
@@ -53,7 +54,7 @@ function SuggestionCard({ suggestion, onAccept, onDismiss }: { suggestion: Sugge
 export default function App() {
   const [exampleId, setExampleId] = useState<string>(EXAMPLES[0].id);
   const [text, setText] = useState<string>(EXAMPLES[0].text);
-  const [useAI, setUseAI] = useState(false);
+  const [useAI, setUseAI] = useState(true);
   const [revision, setRevision] = useState(0);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [status, setStatus] = useState<'checking' | 'ready' | 'error'>('checking');
@@ -176,7 +177,7 @@ export default function App() {
               <button className="copy-button" disabled={!text} onClick={() => void copyDraft()}>Copy text <span aria-hidden="true">↗</span></button>
             </div>
             <label className="sr-only" htmlFor="writing-editor">Your writing</label>
-            <textarea id="writing-editor" ref={editorRef} className="writing-editor" spellCheck={false} maxLength={20_000} value={text} onChange={(event) => updateDraft(event.target.value)} placeholder="A blank page, a fresh start. Type or paste your own writing…" aria-describedby="privacy-note example-description" />
+            <WritingEditor text={text} suggestions={suggestions} editorRef={editorRef} onChange={updateDraft} />
             <div className="editor-footer"><span>{words} {words === 1 ? 'word' : 'words'}<span className="footer-divider">·</span>{text.length.toLocaleString()} / 20,000 characters</span><span className="saved-indicator"><span /> In this tab only</span></div>
           </div>
           <aside className="review-pane" aria-label="Writing suggestions">
@@ -203,7 +204,7 @@ export default function App() {
         <div className="how-heading"><span className="eyebrow">A LITTLE HELP, WITHOUT THE SETUP</span><h2 id="how-title">Open a tab. Find your flow.</h2></div>
         <div className="principles">
           <div><span className="step-number">01</span><h3>Bring your words</h3><p>Start with an example or paste your own draft. No extension, sign-up, or API key.</p></div>
-          <div><span className="step-number">02</span><h3>Check on your device</h3><p>Spelling and rules work instantly. Turn on Local AI to try the bundled experimental model.</p></div>
+          <div><span className="step-number">02</span><h3>Check on your device</h3><p>Local AI, spelling, and rules check your draft here. You can switch the experimental model off anytime.</p></div>
           <div><span className="step-number">03</span><h3>Keep your voice</h3><p>Accept a change, dismiss it, or undo your last correction. Copy your text when you’re ready.</p></div>
         </div>
       </section>

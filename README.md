@@ -36,6 +36,32 @@ Nothing changes until you accept a suggestion.
 > and local-inference pipeline; it is not yet a general Grammarly replacement.
 > Rules are on by default. **Local AI is opt-in.** Read the [model card](models/MODEL_CARD.md).
 
+## Public benchmark
+
+The current engine was evaluated on **7,592 natural test sentences** in the
+actual browser, with the shipped policy and no population filtering:
+
+![Gamma EH benchmark: neural scores are close to unchanged input; rules and combined score equally; CWEB has 25 matched versus 423 unmatched edits, and 315 of 5,881 reference-accepted sources changed.](docs/assets/benchmark-overview.png)
+
+<details>
+<summary>Exact scores</summary>
+
+| Test benchmark | Unchanged text | Neural model | Rules | Combined |
+| --- | ---: | ---: | ---: | ---: |
+| JFLEG official corpus GLEU | 40.47 | 40.62 | 46.51 | 46.51 |
+| CWEB standard ERRANT F0.5 | 0.00 | 0.77 | 4.05 | 4.05 |
+
+</details>
+
+Scores use a 0–100 scale and different metrics; they are not grammar accuracy.
+The neural model proposed only eight JFLEG edits and two CWEB edits. Combined
+outputs equaled rules on both populations. CWEB exposed substantial
+overcorrection: the combined engine changed 315/5,881 reference-accepted sources.
+**The model remains experimental; these results do not establish general reliability.**
+Read the [methods and results](docs/public-benchmark.md),
+[aggregate evidence](docs/public-benchmark-results.json), and
+[dataset research and release terms](docs/gec-datasets.md).
+
 ## Why Gamma EH?
 
 | | What you get |

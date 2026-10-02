@@ -9,3 +9,4 @@ and a locally executed tiny transformer correction engine.
 - Generate datasets deterministically; split by clean sentence before corruption; keep licenses and provenance.
 - Run heavy jobs sequentially. `npm run check` covers the app. Python training lives in `training/`.
 - Use Conventional Commits. Document infrastructure in `docs/` and link from `docs/README.md`.
+- For inference optimization, follow [the trusted analysis workflow](docs/inference-analysis.md): execute a pinned harness against separate candidate/incumbent/immutable-anchor trees, require a fresh accepted receipt, use JFLEG development for search and the holdout once for final confirmation. Never weaken the gate, change quality assets, or treat profiled wall waits as CPU time.

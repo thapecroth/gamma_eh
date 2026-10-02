@@ -1,14 +1,17 @@
 # Project documentation
 
 - [GitHub Pages](github-pages.md): public playground URL, checked deployment, repository-path assets, live verification, and rollback.
-- [Web playground](playground.md): standalone browser demo, example drafts, local AI, privacy, hosting, and extension-free verification.
+- [Web playground](playground.md): standalone browser demo, red error underlines, default-enabled local AI, privacy, hosting, and extension-free verification.
 - [Windows WebGPU initialization](windows-webgpu.md): adapter options, runtime warnings, and rebuilding an unpacked extension.
 - [Chrome Web Store](chrome-web-store.md): unlisted submission material and automated approved updates.
 - [Extension privacy policy](privacy.md): local text processing, settings, site access, and controls.
 - [JAX JS inference](jax-js-runtime.md): bundled WebGPU/WASM runtime, FP32 parity, GPU fallback, and release metadata.
 - [Inference performance](inference-performance.md): measured bottlenecks, bounded sentence reuse, compiled shape reuse, and reproducible browser benchmarks.
+- [Trusted inference analysis](inference-analysis.md): paired measurements, real CPU flamegraphs and elapsed traces, frozen quality parity, and bounded optimization gates.
 - [Research and architecture](research-and-architecture.md): current WebGPU stack, model choices, correction flow, extension boundaries.
 - [Grammar correction literature review](gec-literature-review.md): evidence for compact edit models and span generation, browser tradeoffs, and a controlled experiment plan.
+- [Natural correction datasets](gec-datasets.md): human and synthetic sources, access, licensing, and public model training choices.
+- [Public natural benchmark](public-benchmark.md): official JFLEG GLEU, standard CWEB ERRANT, unchanged-text baselines, and reproducible current-model measurements.
 - [Local spelling](local-spelling.md): bundled dictionary, symmetric-delete lookup, ranking, provenance and safety boundaries.
 - [Dataset and training](dataset-and-training.md): provenance, deterministic generation, training, calibration, exports, evaluation limits.
 - [Harder synthetic challenge](synthetic-challenge.md): separate adversarial evaluation, original training augmentation, and current full-engine baseline.

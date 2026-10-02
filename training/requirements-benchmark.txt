@@ -1,0 +1,3 @@
+# Evaluation tools only. Never packaged with the application.
+-r requirements-scoring.txt
+scipy==1.15.3

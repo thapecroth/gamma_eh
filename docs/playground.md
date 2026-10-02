@@ -6,8 +6,9 @@ hosting workflow and live verification.
 
 The web app is the Gamma EH playground: a standalone writing demo that needs no
 Chrome extension, account, API key, or inference server. Visitors open the page
-and type or paste a draft. Rules and the bundled spelling dictionary run by
-default. Local AI is opt-in through its switch or the **Try local AI** example.
+and type or paste a draft. Local AI starts enabled alongside rules and the bundled
+spelling dictionary. Its switch turns the experimental model off or back on;
+**Try local AI** also enables it.
 
 ## Run locally
 
@@ -26,6 +27,9 @@ included model from this checkout; no extension build or installation is needed.
 - Choose an email, everyday writing, spelling, or local AI example.
 - Edit the draft and review live suggestions. Each card identifies a rule,
   dictionary, or model suggestion.
+- Red wavy underlines locate suggested corrections directly in your draft.
+  Accepting or dismissing a suggestion removes its mark. Typing clears old marks
+  immediately while the checker refreshes.
 - Accept or dismiss a change, or accept all current suggestions.
 - **Undo correction** restores the draft before the last accepted change or
   group of changes. Editing, clearing, loading an example, or resetting discards
@@ -49,7 +53,7 @@ analytics, or a remote model. Drafts and the one-step undo stay in memory and
 are discarded on reload or closing the tab. Copying explicitly writes the text
 to the visitor's clipboard. Fonts and interface assets need no external service.
 
-The initial page and optional model weights are downloaded from the same origin.
+The initial page and bundled model weights are downloaded from the same origin.
 After those assets load, fresh checks work even if the connection drops. This
 does not claim offline navigation or installation: there is no service worker
 or offline app cache.
@@ -57,6 +61,13 @@ or offline app cache.
 Every draft or mode change immediately invalidates pending results. The page
 also checks the source snapshot before applying corrections; the shared engine
 preserves JavaScript UTF-16 offsets, including text containing emoji.
+
+The editor keeps a native textarea for typing, selection, and clipboard behavior.
+A transparent, non-interactive mirror draws underlines from the current
+suggestions' UTF-16 ranges without changing draft text. Both layers share font,
+padding, and wrapping styles; scrolling and resizing synchronize the mirror to
+the textarea's content area, including its scrollbar width. Insertions with no
+source characters remain available in their suggestion cards.
 
 ## Build and host
 
@@ -90,7 +101,8 @@ Run the jobs sequentially. The first disables WebGPU to prove actual CPU model
 inference; the second requires actual WebGPU model inference. Both launch a
 fresh browser with extensions disabled and exercise examples, dismiss/reset,
 single/bulk acceptance, undo, UTF-16 offsets, clipboard success/failure, clear,
-keyboard AI controls, checks while offline, stale replies after mode changes,
+default-enabled AI, red underline positions and wrapping, textarea scrolling and
+resizing, keyboard AI controls, checks while offline, stale replies after mode changes,
 model-load failure and retry, draft reload, and narrow/mobile layouts. Every
 external HTTP request and upload fails the
 test. The test writes `artifacts/playground-smoke.json`, separate CPU/WebGPU
