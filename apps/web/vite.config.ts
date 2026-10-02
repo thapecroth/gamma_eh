@@ -5,15 +5,19 @@ import { join } from 'node:path';
 import { defineConfig } from 'vite-plus';
 import react from '@vitejs/plugin-react';
 import { webGPUAdapterVitePlugin } from '../../scripts/webgpu-adapter-options.mjs';
+import { webBase } from '../../scripts/web-base.mjs';
+
+const base = webBase();
 
 export default defineConfig({
+  base,
   root: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [react(), webGPUAdapterVitePlugin(), {
     name: 'local-inference-assets',
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
         const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
-        const match = /^\/models\/([a-zA-Z0-9_.-]+)$/u.exec(pathname);
+        const match = /^models\/([a-zA-Z0-9_.-]+)$/u.exec(pathname.startsWith(base) ? pathname.slice(base.length) : '');
         if (!match) return next();
         const filename = join(fileURLToPath(new URL('../../models/browser/', import.meta.url)), match[1]);
         try {

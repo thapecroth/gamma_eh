@@ -12,6 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/thapecroth/gamma_eh/releases">Downloads</a> ·
+  <a href="https://thapecroth.github.io/gamma_eh/">Try the playground</a> ·
   <a href="#quickstart">Quickstart</a> ·
   <a href="#chrome-extension">Chrome extension</a> ·
   <a href="docs/README.md">Docs</a> ·
@@ -74,6 +75,22 @@ at commit `6ef90a1`:
 > This verifies the WebGPU inference path, not hardware acceleration or latency.
 > The 15 cases are engine smoke tests, not model-only or real-world accuracy scores.
 > See [browser testing and remaining verification gates](docs/browser-testing.md).
+
+## Web playground
+
+**[Open the public playground](https://thapecroth.github.io/gamma_eh/)** — anyone
+can try it in a browser without installing anything.
+
+Try Gamma EH without installing the Chrome extension. The web playground includes
+example drafts, live spelling and grammar suggestions, optional local AI,
+accept/dismiss, undo, reset, clear, and copy. All checks run on your device;
+drafts stay in the tab and are discarded on reload.
+
+To develop locally, install dependencies, run `npm run dev`, and open the printed localhost
+URL. No extension build is required. Choose **Try local AI** to enable the
+experimental model, or use the Local AI switch. For static hosting and
+extension-free browser verification, see [the playground guide](docs/playground.md).
+Deployment and updates are documented in [the GitHub Pages guide](docs/github-pages.md).
 
 ## Quickstart
 

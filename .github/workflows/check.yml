@@ -46,6 +46,10 @@ jobs:
         timeout-minutes: 2
         run: npm run check:environment
       - run: npm run build
+      - name: Verify playground on CPU without an extension
+        run: GAMMA_TEST_WEBGPU=0 npm run test:playground
+      - name: Verify playground on WebGPU without an extension
+        run: npm run test:playground
       - name: Verify local model, web editor, and Chrome extension
         run: npm run test:browser
       - name: Verify extension popup and editing flows
@@ -54,6 +58,22 @@ jobs:
         run: npm run evaluate:synthetic
       - name: Verify Chrome Web Store screenshots with the real extension
         run: npm run webstore:screenshots
+      - name: Build the GitHub Pages variant
+        env:
+          GAMMA_BUILD_PROFILE: pages
+          GAMMA_WEB_BASE: /gamma_eh/
+        run: npm run build
+      - name: Verify Pages on CPU without an extension
+        env:
+          GAMMA_BUILD_PROFILE: pages
+          GAMMA_WEB_BASE: /gamma_eh/
+          GAMMA_TEST_WEBGPU: '0'
+        run: npm run test:playground
+      - name: Verify Pages on WebGPU without an extension
+        env:
+          GAMMA_BUILD_PROFILE: pages
+          GAMMA_WEB_BASE: /gamma_eh/
+        run: npm run test:playground
       - name: Preserve E2E evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -67,9 +87,56 @@ jobs:
             data/generated/harder-v1/challenge.json
             artifacts/editor-desktop.png
             artifacts/editor-mobile.png
+            artifacts/playground-smoke*.json
+            artifacts/playground-desktop.png
+            artifacts/playground-mobile.png
+            artifacts/pages/playground-smoke*.json
+            artifacts/pages/playground-desktop.png
+            artifacts/pages/playground-mobile.png
             artifacts/agents/extension-*/browser.json
             artifacts/agents/extension-*/*.png
             artifacts/agents/extension-*/trace.zip
             docs/assets/webstore/*.png
           if-no-files-found: warn
           retention-days: 7
+  pages-build:
+    # Publish only a main-branch push whose app, data, and browser gates passed.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: browser-e2e
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/configure-pages@v5
+        id: pages
+      - run: npm ci
+      - name: Build the public playground
+        env:
+          GAMMA_BUILD_PROFILE: pages
+          GAMMA_WEB_BASE: ${{ steps.pages.outputs.base_path }}/
+        run: npm run build
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist/pages/web
+  pages-deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: pages-build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
