@@ -11,10 +11,15 @@ from edit_ops import reconstruct
 from pairs import group_id, hash_file, normalized, validate_pair
 
 LICENSES = {"CC0-1.0", "CC-BY-4.0", "Apache-2.0", "MIT"}
+RESEARCH_LICENSES = {"CC-BY-NC-SA-4.0", "CC-BY-SA-3.0",
+                     "LicenseRef-Cambridge-WI", "LicenseRef-Cambridge-FCE",
+                     "LicenseRef-NUCLE", "LicenseRef-Lang8"}
+SOURCE_FIELDS = ("source_split", "supervision", "corpus_record_id", "source_path",
+                 "license_scope", "release_eligible", "source_provenance", "normalization")
 
 
 def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_labels=4096,
-            allow_unverified_teacher_terms=False, schema=1):
+            allow_unverified_teacher_terms=False, schema=1, allow_research=False):
     if teacher_license is not None and teacher_license not in LICENSES:
         raise ValueError("Unsupported teacher output license")
     if max_labels < 2: raise ValueError("max-labels must be at least2")
@@ -31,6 +36,7 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
     origins = Counter()
     license_counts = Counter()
     provenance = {}
+    publication_allowed = True
     try:
         for path in inputs:
             with path.open() as stream:
@@ -38,13 +44,18 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
                     counts["scanned"] += 1
                     try:
                         raw = json.loads(line)
+                        if raw.get("evaluation_only"):
+                            raise ValueError("evaluation_only")
                         row = validate_pair(raw)
                         license_id = raw.get("license")
                         if raw.get("origin") == "llm-teacher" and teacher_license: license_id = teacher_license
                         local_teacher = (allow_unverified_teacher_terms and allow_weak_train
                                          and raw.get("origin") == "llm-teacher"
                                          and license_id == "provider-terms-unverified")
-                        if license_id not in LICENSES and not local_teacher: raise ValueError("license_unverified")
+                        research = allow_research and license_id in RESEARCH_LICENSES
+                        if license_id not in LICENSES and not local_teacher and not research:
+                            raise ValueError("license_unverified")
+                        publication_allowed &= (license_id in LICENSES and raw.get("release_eligible", True))
                         reviewed = raw.get("review_status") == "human-reviewed" and not local_teacher
                         if not reviewed and not allow_weak_train: raise ValueError("unreviewed")
                         row.update({"license": license_id,
@@ -54,7 +65,10 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
                                     "source_url": raw.get("source_url"),
                                     "original_source_url": raw.get("original_source_url"),
                                     "prompt_sha256": raw.get("prompt_sha256")})
+                        row.update({key: raw[key] for key in SOURCE_FIELDS if key in raw})
                         source_metadata = {name: row.get(name) for name in ["origin", "license", "source_revision", "source_url", "original_source_url", "model", "prompt_sha256"]}
+                        source_metadata.update({key: row[key] for key in SOURCE_FIELDS
+                                                if key in row and key != "corpus_record_id"})
                         if row["origin"] == "martinsr/c4_200m":
                             source_metadata.update({"attribution": "Stahlberg and Kumar (2021), Google C4_200M; parquet conversion by martinsr",
                                                     "license_scope": "Corruption edits CC-BY-4.0; source-corpus notices also apply."})
@@ -97,7 +111,7 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
                     except (ValueError, KeyError, TypeError) as error:
                         counts["rejected"] += 1
                         reason = str(error) if isinstance(error, ValueError) else "schema"
-                        if reason not in {"license_unverified", "unreviewed", "schema", "category", "category_mismatch", "length", "control_character", "no_english_letters", "contact_or_secret_pattern", "clean_mismatch", "word_limit"}:
+                        if reason not in {"evaluation_only", "license_unverified", "unreviewed", "schema", "category", "category_mismatch", "length", "control_character", "no_english_letters", "contact_or_secret_pattern", "clean_mismatch", "word_limit"}:
                             reason = "schema"
                         counts["rejected:" + reason] += 1
             db.commit()
@@ -167,7 +181,8 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
                     "source_provenance": [provenance[key] for key in sorted(provenance)],
                     "counts": dict(counts), "origins_before_vocabulary_filter": dict(origins),
                     "licenses": dict(license_counts), "weak_labels_train_only": True,
-                    "publication_allowed": "provider-terms-unverified" not in license_counts,
+                    "publication_allowed": publication_allowed,
+                    "training_purpose": "local-research" if allow_research else "permissive-training",
                     "label_count": len(labels), "splits": coverage,
                     "coverage_by_category": categories,
                     "evaluation": {s: {"rows": population[s], "sha256": hash_file(evaluation_dir / f"{s}.jsonl")}
@@ -192,6 +207,8 @@ if __name__ == "__main__":
                         help="Local experiments only: retain unverified terms and block publication; requires --allow-weak-train")
     parser.add_argument("--max-labels", type=int, default=4096)
     parser.add_argument("--schema", type=int, choices=[1, 2], default=1)
+    parser.add_argument("--allow-research", action="store_true",
+                        help="Retain restricted corpus terms for local experiments; block weight publication")
     args = parser.parse_args()
     prepare(args.input, args.output, args.allow_weak_train, args.teacher_license, args.max_labels,
-            args.allow_unverified_teacher_terms, args.schema)
+            args.allow_unverified_teacher_terms, args.schema, args.allow_research)
