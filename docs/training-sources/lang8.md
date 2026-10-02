@@ -25,7 +25,7 @@ python training/corpus_import.py lang8 \
 ```
 
 This is a dry run. Add `--execute` to import and choose a fresh output directory.
-Supply the owner-authorized archive/aligned TSV with `--input`.
+Supply the owner-authorized BEA2019 standardized M2 archive with `--input`.
 Read the [shared workflow](../training-corpora.md) before changing the bounds.
 
 ## Run status
