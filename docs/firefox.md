@@ -8,9 +8,9 @@ It includes the model, JAX JS, and all executable code locally.
 
 1. Use Firefox 140 or newer. Open `about:debugging#/runtime/this-firefox`.
 2. Choose **Load Temporary Add-on**, then select `dist/firefox/manifest.json`.
-3. Open the popup, choose **Enable on this site**, allow access, and reload the tab.
+3. Open or reload an ordinary HTTP/HTTPS tab. Suggestions start automatically.
 4. Focus a textarea or supported plain-text contenteditable. Accept or dismiss
-   suggestions, or use the popup to pause checking globally or remove access for the current site.
+   suggestions, or use the popup to pause checking globally or on the current site.
 5. Local AI is experimental and off by default; enable it in the popup to try it.
 
 Temporary add-ons are removed when Firefox restarts. Permanent installation in
@@ -28,7 +28,7 @@ The Firefox build maps `chrome` API references to Firefox's promise-based
 `offscreen`, sets a stable Gecko ID, and declares no data collection.
 
 Worker requests have bounded timeouts and validate sender identity, top-level
-frame, host permission, and registered site access before inference. Text is never
+frame, host permission, and global/per-site pause settings before inference. Text is never
 sent to a server. Synthetic evaluation scores are not real-world accuracy.
 
 See [Mozilla background documentation](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background).

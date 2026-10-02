@@ -11,7 +11,10 @@ export async function analyzeText(text: string, options?: EngineOptions): Promis
   if (typeof text !== 'string') throw new TypeError('Text must be a string');
   if (text.length > 20_000) throw new Error('Check up to 20,000 characters at a time.');
   const started = performance.now();
-  const suggestions = analyzeRules(text);
+  const mode = options?.mode ?? 'combined';
+  if (!['combined', 'model', 'rules'].includes(mode)) throw new Error('Invalid analysis mode');
+  const suggestions = mode === 'model' ? [] : analyzeRules(text);
+  if (mode === 'rules') return {text, suggestions, backend: 'rules', elapsedMs: performance.now() - started, modelRuns: 0};
   if (!text.trim()) return {text, suggestions, backend: 'rules', elapsedMs: performance.now() - started};
   try {
     const model = await analyzeModel(text, options ?? {}, suggestions);
@@ -19,7 +22,7 @@ export async function analyzeText(text: string, options?: EngineOptions): Promis
       if (!suggestions.some(previous => overlaps(previous, edit))) suggestions.push(edit);
     }
     return {text, suggestions: suggestions.sort((a, b) => a.start - b.start), backend: model.backend,
-      elapsedMs: performance.now() - started};
+      elapsedMs: performance.now() - started, modelRuns: model.modelRuns};
   } catch (error) {
     return {text, suggestions, backend: 'rules', elapsedMs: performance.now() - started,
       modelError: error instanceof Error ? error.message : 'Local model could not start'};

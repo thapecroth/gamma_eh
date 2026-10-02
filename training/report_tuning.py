@@ -49,10 +49,10 @@ def score_receipt(path, population, model, expected_engine):
             "model": {key: value for key, value in report["model"].items() if key != "policy"}}
 
 
-def run(directory, data, evaluation, output):
+def run(directory, data, evaluation, output, include_integration=False):
     profiles = []
     executed = read(directory / "plan.json")
-    current_engine = engine_hash(Path(__file__).resolve().parent.parent / "packages/engine/src")
+    current_engine = engine_hash(directory / "study-engine")
     old_engine = engine_hash(directory / "baseline-source/packages/engine/src")
     diagnostic_engine = engine_hash(directory / "diagnostic-source/packages/engine/src")
     default_model = Path(__file__).resolve().parent.parent / "models/browser"
@@ -84,6 +84,13 @@ def run(directory, data, evaluation, output):
     final_challenge = read(directory.parent / "tuning-final/synthetic-challenge.json")
     if not final_challenge["infrastructure_passed"] or final_challenge["corpus_sha256"] != hash_file(cases_path) or final_challenge["engine_source_sha256"] != current_engine or final_challenge["model_sha256"] != hash_file(default_model / "model.onnx"):
         raise ValueError("Final challenge execution or identity mismatch")
+    integration = None
+    if include_integration:
+        integrated_engine = engine_hash(Path(__file__).resolve().parent.parent / "packages/engine/src")
+        parent_engine = engine_hash(directory / "main-source/packages/engine/src")
+        integration = {"parent_main_commit": "310f10a3a19d314d87d32503dce73a2540e0ae9e",
+            "test_before": score_receipt(directory / "integrated-before-test-score.json", evaluation / "test.jsonl", default_model, parent_engine),
+            "test_after": score_receipt(directory / "integrated-after-test-score.json", evaluation / "test.jsonl", default_model, integrated_engine)}
     no_edit = {"threshold": 1., "edit_precision": 1., "edit_f0_5": 0., "true_positive_edits": 0,
                "false_positive_edits": 0, "clean_sentence_false_positive_rate": 0.}
     for profile in executed["profiles"]:
@@ -134,6 +141,8 @@ def run(directory, data, evaluation, output):
             "Rules/dictionary false corrections remain in full-engine metrics.",
             "The challenge was inspected; clean training controls share some challenge structures.",
             "No new checkpoint qualifies; high precision with fewer than 25 edits is insufficient evidence."]}
+    if integration:
+        result["integration_check"] = integration
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, indent=2) + "\n")
     return result
@@ -145,6 +154,7 @@ if __name__ == "__main__":
     parser.add_argument("--data", type=Path, default=Path("data/generated/tuning-v1"))
     parser.add_argument("--evaluation", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=Path("docs/model-tuning-results.json"))
+    parser.add_argument("--include-integration", action="store_true")
     args = parser.parse_args()
-    result = run(args.directory, args.data, args.evaluation, args.output)
+    result = run(args.directory, args.data, args.evaluation, args.output, args.include_integration)
     print(json.dumps(result["promotion"], indent=2))

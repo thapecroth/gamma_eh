@@ -1,18 +1,26 @@
 import { JaxSession } from './jax-runtime';
-import { preserveCase } from './edits';
-import { validAppendEdit, validReplacementEdit } from './guards';
-import { protectedSpans } from './rules';
+import { applySuggestions, overlaps } from './edits';
+import { decodeProposal, tagCategory } from './edit-tags';
+import { EditHistory } from './edit-history';
+import { analyzeRules, protectedSpans } from './rules';
 import { spellingWords } from './spelling';
 import { WordPieceTokenizer } from './tokenizer';
 import type { EngineOptions, Suggestion } from './types';
 
-interface ModelManifest { confidenceThreshold: number; maxSequenceLength: number; disableModelEdits?: boolean }
+interface ModelManifest {
+  confidenceThreshold: number;
+  maxSequenceLength: number;
+  editSchema?: number;
+  maxPasses?: number;
+  disableModelEdits?: boolean;
+  confidenceThresholds?: Record<string, number>;
+}
 interface LoadedModel {
-  session: JaxSession;
+  session?: JaxSession;
   tokenizer: WordPieceTokenizer;
   labels: string[];
   manifest: ModelManifest;
-  backend: 'webgpu' | 'wasm';
+  backend: 'webgpu' | 'wasm' | 'rules';
 }
 
 const sessions = new Map<string, Promise<LoadedModel>>();
@@ -38,13 +46,23 @@ async function load(options: EngineOptions): Promise<LoadedModel> {
       !Number.isInteger(manifest.maxSequenceLength) || manifest.maxSequenceLength < 3 || manifest.maxSequenceLength > 512) {
     throw new Error('Invalid model manifest');
   }
-  if ('disableModelEdits' in manifest && typeof manifest.disableModelEdits !== 'boolean') throw new Error('Invalid model edit policy');
   if (!Array.isArray(labels) || labels[0] !== 'KEEP' || !labels.every(label => typeof label === 'string')) {
     throw new Error('Invalid model edit vocabulary');
   }
+  const policy = manifest as ModelManifest;
+  if (!Number.isFinite(policy.confidenceThreshold) || policy.confidenceThreshold < 0 || policy.confidenceThreshold > 1 ||
+      !Number.isInteger(policy.maxSequenceLength) || policy.maxSequenceLength < 3 || policy.maxSequenceLength > 512 ||
+      (policy.editSchema !== undefined && ![1, 2].includes(policy.editSchema)) ||
+      (policy.maxPasses !== undefined && (!Number.isInteger(policy.maxPasses) || policy.maxPasses < 1 || policy.maxPasses > 3)) ||
+      (policy.disableModelEdits !== undefined && typeof policy.disableModelEdits !== 'boolean') ||
+      (policy.confidenceThresholds !== undefined && (!policy.confidenceThresholds || typeof policy.confidenceThresholds !== 'object' ||
+        Array.isArray(policy.confidenceThresholds) || Object.values(policy.confidenceThresholds).some(value => !Number.isFinite(value) || value < policy.confidenceThreshold || value > 1)))) {
+    throw new Error('Invalid model correction policy');
+  }
   const tokenizer = new WordPieceTokenizer(await vocabResponse.text());
-  const model = new Uint8Array(await (await fetchAsset(base, 'model.onnx')).arrayBuffer());
-  const session = await JaxSession.create(model, options.preferWebGPU !== false);
+  if (policy.disableModelEdits) return {tokenizer, labels, manifest: policy, backend: 'rules'};
+  const bytes = new Uint8Array(await (await fetchAsset(base, 'model.onnx')).arrayBuffer());
+  const session = await JaxSession.create(bytes, options.preferWebGPU !== false);
   const backend = session.backend;
   return {session, tokenizer, labels, manifest: manifest as ModelManifest, backend};
 }
@@ -59,15 +77,18 @@ function getModel(options: EngineOptions): Promise<LoadedModel> {
   return pending;
 }
 
-export async function analyzeModel(text: string, options: EngineOptions, ruleSuggestions: Suggestion[] = []): Promise<{suggestions: Suggestion[]; backend: 'webgpu' | 'wasm'}> {
-  const {session, tokenizer, labels, manifest, backend} = await getModel(options);
-  if (manifest.disableModelEdits) return {suggestions: [], backend};
+async function analyzePass(text: string, options: EngineOptions, model: LoadedModel, ruleSuggestions: Suggestion[]): Promise<{suggestions: Suggestion[]; modelRuns: number}> {
+  const {session, tokenizer, labels, manifest} = model;
   const threshold = options.confidenceThreshold ?? manifest.confidenceThreshold;
   if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1) throw new Error('Confidence threshold must be between zero and one');
   const suggestions: Suggestion[] = [];
+  let modelRuns = 0;
+  if (manifest.disableModelEdits) return {suggestions, modelRuns};
+  if (!session) throw new Error('Model session unavailable');
   const protectedRanges = protectedSpans(text);
-  const wholeWords = new Set([...spellingWords(text)].filter(match => /^[A-Za-z]+(?:['’][A-Za-z]+)*$/u.test(match[0]))
-    .map(match => `${match.index}:${match.index + match[0].length}`));
+  const wholeWords = (manifest.editSchema ?? 1) === 1 ? new Set([...spellingWords(text)]
+    .filter(match => /^[A-Za-z]+(?:['’][A-Za-z]+)*$/u.test(match[0]))
+    .map(match => `${match.index}:${match.index + match[0].length}`)) : undefined;
   for (const chunk of tokenizer.chunks(text, manifest.maxSequenceLength)) {
     const first = chunk.positions[0]?.word.start ?? 0;
     const last = chunk.positions.at(-1)?.word.end ?? 0;
@@ -76,13 +97,14 @@ export async function analyzeModel(text: string, options: EngineOptions, ruleSug
     if (protectedRanges.some(range => first < range.end && range.start < last) ||
         ruleSuggestions.some(edit => !edit.replacement && first < edit.end && edit.start < last)) continue;
     const logits = await session.run(chunk.ids);
+    modelRuns++;
     if (logits.dims.length !== 3 || logits.dims[0] !== 1 || logits.dims[1] !== chunk.ids.length ||
         logits.dims[2] !== labels.length || logits.data.length !== chunk.ids.length * labels.length) {
       throw new Error('Unexpected model output shape');
     }
+    if (!logits.data.every(Number.isFinite)) throw new Error('Nonfinite model output');
+    const words = chunk.positions.map(({word}) => word);
     for (const [index, {word, position}] of chunk.positions.entries()) {
-      if (!/^[A-Za-z]+(?:['’][A-Za-z]+)*$/u.test(word.text)) continue;
-      if (!wholeWords.has(`${word.start}:${word.end}`)) continue;
       if (protectedRanges.some(range => word.start < range.end && range.start < word.end)) continue;
       const row = logits.data.subarray(position * labels.length, (position + 1) * labels.length);
       let best = 0;
@@ -90,42 +112,43 @@ export async function analyzeModel(text: string, options: EngineOptions, ruleSug
       if (!best) continue;
       const peak = row[best];
       const confidence = 1 / row.reduce((sum, value) => sum + Math.exp(value - peak), 0);
-      if (confidence < threshold) continue;
       const tag = labels[best];
-      const next = chunk.positions[index + 1]?.word;
-      const nextWord = next && wholeWords.has(`${next.start}:${next.end}`) ? next.text : '';
-      let {start, end} = word;
-      let replacement: string;
-      if (tag === 'DELETE') {
-        // Training deletion labels come only from adjacent-token duplication.
-        // An out-of-domain DELETE must not erase an arbitrary valid word.
-        const lower = word.text.toLowerCase();
-        const previous = chunk.positions[index - 1]?.word;
-        // Keep the first word even if both duplicates receive DELETE logits.
-        // Evidence must be a whole adjacent token, not an identifier fragment.
-        if (['had', 'that'].includes(lower) || !previous || previous.text.toLowerCase() !== lower ||
-            !wholeWords.has(`${previous.start}:${previous.end}`) || !/^[ \t]+$/u.test(text.slice(previous.end, start))) continue;
-        // Leading gaps keep multiple deletions disjoint and preserve paragraphs.
-        while (start > 0 && /[ \t]/u.test(text[start - 1])) start--;
-        replacement = '';
-      } else if (tag.startsWith('REPLACE:')) {
-        const proposed = tag.slice(8);
-        if (!validReplacementEdit(text, word, proposed, nextWord)) continue;
-        replacement = preserveCase(word.text, tag.slice(8));
-        if (replacement === word.text) continue;
-      } else if (tag.startsWith('APPEND:')) {
-        const proposed = tag.slice(7);
-        if (!validAppendEdit(text, word, proposed, nextWord ? next : undefined)) continue;
-        start = end;
-        replacement = ' ' + tag.slice(7);
-      } else continue;
+      const requiredConfidence = Math.max(threshold, manifest.confidenceThreshold,
+        manifest.confidenceThresholds?.[tagCategory(tag)] ?? threshold);
+      if (!Number.isFinite(confidence) || confidence < requiredConfidence) continue;
+      const edit = decodeProposal(text, words, index, tag, confidence, manifest.editSchema ?? 1, wholeWords);
+      if (!edit) continue;
+      const {start, end, replacement} = edit;
+      if (suggestions.some(previous => overlaps(previous, edit))) continue;
       suggestions.push({id: `model-${start}-${end}-${tag}`, start, end,
-        original: text.slice(start, end), replacement,
+        original: text.slice(start, end), replacement, ...(start === end ? {checkedText: text} : {}),
         message: tag === 'DELETE' ? 'The local model suggests removing this word.' :
           tag.startsWith('APPEND:') ? 'The local model suggests a missing word here.' :
             'The local model suggests this word change.',
-        category: 'grammar', confidence, source: 'model'});
+        category: tagCategory(tag) === 'punctuation' ? 'punctuation' : 'grammar', confidence, source: 'model'});
     }
   }
-  return {suggestions, backend};
+  return {suggestions, modelRuns};
+}
+
+export async function analyzeModel(text: string, options: EngineOptions, ruleSuggestions: Suggestion[] = []): Promise<{suggestions: Suggestion[]; backend: 'webgpu' | 'wasm' | 'rules'; modelRuns: number}> {
+  const model = await getModel(options);
+  const passes = options.maxPasses ?? model.manifest.maxPasses ?? 1;
+  if (!Number.isInteger(passes) || passes < 1 || passes > 3) throw new Error('Use between one and three correction passes');
+  if (passes === 1) return {...await analyzePass(text, options, model, ruleSuggestions), backend: model.backend};
+  const history = new EditHistory(text);
+  const seen = new Set([text]);
+  let modelRuns = 0;
+  for (let pass = 0; pass < passes; pass++) {
+    const rules = options.mode === 'model' ? [] : pass === 0 ? ruleSuggestions : analyzeRules(history.text);
+    const result = await analyzePass(history.text, options, model, rules);
+    modelRuns += result.modelRuns;
+    const edits = result.suggestions.filter(edit => !rules.some(rule => overlaps(rule, edit)));
+    if (!edits.length) break;
+    const next = applySuggestions(history.text, edits);
+    if (seen.has(next)) break;
+    seen.add(next);
+    history.apply(edits);
+  }
+  return {suggestions: history.suggestions(), backend: model.backend, modelRuns};
 }

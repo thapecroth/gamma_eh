@@ -20,6 +20,15 @@ audit, not a blind test. Its exact texts and reserved vocabulary remain excluded
 The new controls share some grammatical constructions with its families, so the
 old claim that every structure was reserved no longer applies to tuned students.
 
+The completed study's decoder source is preserved at commit `eeecf8e`. Main's
+quality pipeline landed at `310f10a3` while that study ran. Integration retains
+its schema-2 edits, per-category floors, disabled policies and multi-pass history.
+The new restrictions apply to the schema-1 classifier used by the bundled weights;
+rich edit calibration keeps its existing contract. Python's schema-1 evaluator
+mirrors the browser restrictions using the bundled dictionary and a shared 30-case
+fixture. An additional actual-browser test comparison checks the final integrated
+engine against `310f10a3`, independently of the completed-study receipts.
+
 ## Reproduction
 
 Use the dependencies in `training/requirements.txt` and a pinned cached base model.
@@ -40,6 +49,11 @@ the same pinned Apache-2.0 Google BERT-Tiny base, without teacher checkpoints.
 Jobs run sequentially. Checkpoints are selected by synthetic development F0.5
 at threshold 0.8, then the retained checkpoint receives a development threshold
 sweep. Synthetic test metrics do not select profiles.
+
+The completed study used `training/train.py` before the richer quality pipeline
+was merged. Its dedicated trainer now lives in `training/train_synthetic.py`;
+the main decoded/natural trainer remains intact. Historical plan/source hashes
+retain the executed filename. Future tuning plans freeze the dedicated trainer.
 
 The driver freezes input, trainer, calibration and runner hashes plus device and
 settings. Resume checks validate receipt settings and exported asset hashes.
@@ -70,6 +84,9 @@ calls at both grid ends for the first item in every batch verify equivalence.
 Its explicit diagnostic override can evaluate disabled candidates; this does not
 change model files or qualify an activation policy. Reports distinguish neural-only
 and full-engine predictions from rules alone.
+This diagnostic runner accepts only schema-1 models and fixes inference to one
+pass; use the richer quality workflow for schema-2 calibration. `--verify-all`
+checks both threshold endpoints against the public API for every sentence.
 
 New weights require development precision ≥95%, clean-sentence change rate ≤2%,
 and at least 25 predicted edits before promotion. No threshold satisfying these
@@ -77,12 +94,12 @@ requirements means an explicit disabled-edit policy, rather than falling back to
 the highest unsafe score. Passing synthetic token-label calibration alone never
 qualifies natural-text behavior. A zero-edit result cannot meet the support gate.
 
-## Decoder restrictions
+## Legacy decoder restrictions
 
 The comparison exposed high-confidence out-of-domain replacements such as
 unfamiliar nouns becoming `the`, and `be` becoming `because`. Confidence alone
 cannot establish a relationship between a source word and a finite output label.
-The decoder now permits same-family verb agreement only with its existing bounded
+The schema-1 decoder now permits same-family verb agreement only with its existing bounded
 subject evidence, and `a ↔ an` changes only for known sound classes. Other
 replacements require a known canonical typo or an unknown source near a known
 dictionary word (distance ≤1 for short words, ≤2 otherwise). Known words and
@@ -116,6 +133,8 @@ unchanged; the shipped improvement is the general decoder restriction.
 The separate test population was evaluated after fixing the decoder policy. Both
 conditions ran the actual browser graph and verified public-API equivalence for
 every sentence. Scores below use a 0–100 scale for precision/F0.5.
+Repeating the comparison after integrating main's quality pipeline reproduced
+these test results; the `integration_check` receipt binds both engine source hashes.
 
 | JFLEG test, 747 sentences | Before | After |
 | --- | ---: | ---: |

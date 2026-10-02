@@ -4,7 +4,7 @@ from collections import Counter
 import json
 from pathlib import Path
 
-from pairs import group_id, hash_file, normalized
+from pairs import evaluation_keys, group_id, hash_file, normalized
 
 
 def rows(path):
@@ -24,10 +24,13 @@ def assemble(base, weak, output, max_template_train_rows=0):
     splits = {split: list(rows(base / f"{split}.jsonl")) for split in ["train", "dev", "test"]}
     if any(not split for split in splits.values()):
         raise ValueError("All template splits must be nonempty")
-    heldout_groups = {group_id(row["target"]) for split in ["dev", "test"] for row in splits[split]}
-    heldout_sources = {normalized(row["source"]).casefold() for split in ["dev", "test"] for row in splits[split]}
-    if any(group_id(row["target"]) in heldout_groups or normalized(row["source"]).casefold() in heldout_sources
-           for row in splits["train"]):
+    evaluation_rows = {split: list(rows(base / "evaluation" / f"{split}.jsonl"))
+                       if (base / "evaluation" / f"{split}.jsonl").exists() else splits[split]
+                       for split in ["dev", "test"]}
+    heldout = evaluation_keys([row for split in ["dev", "test"] for row in splits[split] + evaluation_rows[split]])
+    def overlaps(row):
+        return any(normalized(row[field]).casefold() in heldout for field in ["source", "target"])
+    if any(overlaps(row) for row in splits["train"]):
         raise ValueError("Template train data overlaps held-out data")
     if max_template_train_rows: splits["train"] = splits["train"][:max_template_train_rows]
     sources = {normalized(row["source"]).casefold(): group_id(row["target"]) for row in splits["train"]}
@@ -35,7 +38,7 @@ def assemble(base, weak, output, max_template_train_rows=0):
     for row in rows(weak / "train.jsonl"):
         key = normalized(row["source"]).casefold()
         target = group_id(row["target"])
-        if target in heldout_groups or key in heldout_sources:
+        if overlaps(row):
             counts["heldout_overlap_dropped"] += 1
         elif key in sources:
             counts["duplicate_or_conflicting_source_dropped"] += 1
@@ -50,6 +53,23 @@ def assemble(base, weak, output, max_template_train_rows=0):
         counts[f"{split}_unsupported_examples_dropped"] = original - len(splits[split])
         if not splits[split]: raise ValueError("No evaluation rows supported by training vocabulary")
     output.mkdir(parents=True)
+    evaluation = output / "evaluation"
+    evaluation.mkdir()
+    eval_manifest = {}
+    # Evaluation populations are retained before train-vocabulary filtering.
+    for split in ["dev", "test"]:
+        destination = evaluation / f"{split}.jsonl"
+        source = base / "evaluation" / f"{split}.jsonl"
+        if source.exists():
+            destination.write_bytes(source.read_bytes())
+        else:
+            with destination.open("w") as stream:
+                for row in rows(base / f"{split}.jsonl"):
+                    value = {"source": row["source"], "references": [row["target"]],
+                             "origin": row.get("origin", "original-template-v1"),
+                             "license": "CC0-1.0", "review_status": "synthetic-template"}
+                    stream.write(json.dumps(value, ensure_ascii=False) + "\n")
+        eval_manifest[split] = {"rows": sum(1 for _ in rows(destination)), "sha256": hash_file(destination)}
     labels = ["KEEP"] + sorted(train_tags - {"KEEP"})
     (output / "labels.json").write_text(json.dumps(labels, indent=2) + "\n")
     scope = "Original template in-distribution evaluation; teacher rows are unreviewed train-only. Not real-world GEC quality."
@@ -59,6 +79,7 @@ def assemble(base, weak, output, max_template_train_rows=0):
                 "base_manifest_sha256": hash_file(base / "manifest.json"),
                 "weak_manifest_sha256": hash_file(weak / "manifest.json"),
                 "label_count": len(labels), "counts": dict(counts), "splits": {}}
+    manifest["evaluation"] = eval_manifest
     for split, records in splits.items():
         path = output / f"{split}.jsonl"
         with path.open("w") as stream:

@@ -31,12 +31,12 @@ prereleases from the latest stable release shortcut.
 1. Extract the Chrome ZIP into a permanent directory.
 2. Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**,
    and select the folder containing `manifest.json`.
-3. Open a regular site, click Gamma EH, and enable checking for that site.
+3. Open or reload a regular site. Checking starts automatically on supported fields.
 4. Local AI is off by default; enable it in the popup to try the model.
 
 Keep the extracted directory. Chrome loads unpacked assets from it. For updates,
 remove the old unpacked extension and load the newer extracted directory, then
-grant site permissions again. This resets extension preferences. Keeping the
+reload existing website tabs. This resets extension preferences. Keeping the
 old ZIP allows a rollback using the same remove/load steps. Unpacked installs
 do not update automatically.
 
@@ -99,8 +99,9 @@ hosted release workflow performs this exact-package verification automatically.
    inference before the publication job can run.
 5. Confirm the new prerelease has both versioned ZIPs and `SHA256SUMS.txt`.
    Download the Chrome asset and perform a clean unpacked install. The native
-   optional-site-permissions dialog still needs this manual check: the automated
-   extension fixture uses a test-only localhost grant.
+   installation and site-access controls still need this manual check; the
+   automated fixture loads the unchanged shipping manifest and verifies automatic
+   activation and per-site pause/resume.
 
 The build job has read-only repository permissions and no provider credentials.
 Only the publishing job gets `contents: write`. `gh release create --verify-tag`

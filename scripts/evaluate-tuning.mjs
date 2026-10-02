@@ -40,11 +40,12 @@ try {
   const model = resolve(values.model);
   const manifestBytes = await readFile(join(model, 'manifest.json'));
   const manifest = JSON.parse(manifestBytes);
+  assert.equal(manifest.editSchema ?? 1, 1, 'The cached threshold sweep requires legacy schema 1; evaluate richer edits through the per-threshold browser runner');
   report.model = {name: manifest.name, manifest_sha256: hash(manifestBytes),
     model_sha256: manifest.files['model.onnx'].sha256, policy: manifest};
   // Explicit diagnostic override; never changes files or claims release qualification.
-  const servedManifest = {...manifest, disableModelEdits: false};
-  report.diagnostic_policy_override = {disableModelEdits: false, confidenceThreshold: 0};
+  const servedManifest = {...manifest, disableModelEdits: false, confidenceThreshold: 0, confidenceThresholds: {}, maxPasses: 1};
+  report.diagnostic_policy_override = {disableModelEdits: false, confidenceThreshold: 0, confidenceThresholds: {}, maxPasses: 1};
   const assets = new Map([['/models/manifest.json', Buffer.from(JSON.stringify(servedManifest))]]);
   for (const name of ['labels.json', 'vocab.txt', 'model.onnx']) {
     const bytes = await readFile(join(model, name));
@@ -78,7 +79,7 @@ try {
       const batch = corpus.slice(start, start + 16);
       const outputs = await page.evaluate(async ({origin, batch, thresholds, verifyAll}) => {
         const engine = await import(origin + 'engine.mjs');
-        const options = {modelBaseUrl: origin + 'models/', preferWebGPU: false, confidenceThreshold: 0};
+        const options = {modelBaseUrl: origin + 'models/', preferWebGPU: false, confidenceThreshold: 0, maxPasses: 1};
         const results = [];
         for (const item of batch) {
           const rules = engine.analyzeRules(item.source);

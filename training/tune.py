@@ -26,7 +26,7 @@ def plan(data, epochs=8, device="cuda"):
             raise ValueError("Frozen dataset hash mismatch")
     return {"schema": 2, "dataset_manifest_sha256": hash_file(data / "manifest.json"),
             "labels_sha256": hash_file(data / "labels.json"),
-            "trainer_sha256": hash_file(Path(__file__).with_name("train.py")),
+            "trainer_sha256": hash_file(Path(__file__).with_name("train_synthetic.py")),
             "calibration_sha256": hash_file(Path(__file__).with_name("calibration.py")),
             "runner_sha256": hash_file(Path(__file__)), "device": device,
             "profiles": PROFILES, "epochs": epochs, "batch_size": 128,
@@ -63,7 +63,7 @@ def run(data, output, epochs=8, device="cuda", execute=False):
     if plan_path.exists() and json.loads(plan_path.read_text()) != spec:
         raise ValueError("Tuning settings or frozen inputs changed; choose a new output directory")
     plan_path.write_text(json.dumps(spec, indent=2) + "\n")
-    trainer = Path(__file__).with_name("train.py")
+    trainer = Path(__file__).with_name("train_synthetic.py")
     for profile in PROFILES:
         model, checkpoint = output / profile["name"] / "model", output / profile["name"] / "checkpoint"
         if completed(model, profile, spec):

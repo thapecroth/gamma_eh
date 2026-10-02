@@ -42,8 +42,8 @@ available in the dashboard). **Language:** English.
 > A little clarity, right where you write.
 >
 > Gamma EH offers English spelling and selected grammar suggestions in ordinary
-> website text boxes and plain-text editors. Enable it on the sites you choose,
-> then focus a supported field to see possible issues underlined. Hover or click
+> website text boxes and plain-text editors. Checking starts automatically on
+> ordinary websites. Focus a supported field to see possible issues underlined. Hover or click
 > an underlined word to review a correction. Accept it, dismiss it, or pause
 > checking for that field. Alt+F8 opens suggestions; Escape closes them.
 >
@@ -53,9 +53,9 @@ available in the dashboard). **Language:** English.
 > synthetic training baseline; its suggestions are not evidence of general
 > grammar accuracy. Review corrections before applying them.
 >
-> You control site access. Use the toolbar popup to enable the current site,
-> pause suggestions globally, turn Local AI on or off, or remove a site's
-> permission. Store installations receive updates through Chrome after
+> Use the toolbar popup to pause the current site, pause suggestions globally,
+> or turn Local AI on or off. Browser extension settings control host access.
+> Store installations receive updates through Chrome after
 > approved releases.
 >
 > Supported: ordinary textareas and plain-text contenteditable fields, up to
@@ -80,8 +80,8 @@ Required images:
 Run `npm run webstore:artwork` to regenerate icons/tile. PNGs are committed so
 normal builds do not require a browser for icons. After `npm run build`, run
 `npm run webstore:screenshots` to capture real UI and assert the demonstrated
-corrections. Like the extension test driver, the screenshot fixture uses a
-temporary localhost-only permission grant, never the shipping manifest. It
+corrections. Like the extension test driver, the screenshot fixture uses the
+unchanged shipping manifest and a fictional localhost page. It
 blocks external requests and removes its temporary browser profile afterward.
 Screenshots do not prove the native permission dialog or store installation.
 Both asset commands use the shared harness lock; wait for an active run to
@@ -90,15 +90,15 @@ finish before starting them.
 ## Privacy fields
 
 **Single purpose:** Provide local English writing suggestions in supported
-editable fields on websites the user explicitly enables.
+editable fields on ordinary websites, with global and per-site pause controls.
 
 | Permission | Justification |
 | --- | --- |
-| `activeTab` | Read the current tab's address when the user opens the popup, to display the site and request access to it. |
-| `scripting` | Register, inject, and remove the bundled writing-assistance content script on sites explicitly enabled by the user. |
-| `storage` | Save the writing-suggestion and Local AI preferences locally. Draft text and suggestions are not persisted. |
+| `activeTab` | Read the current tab's address when the user opens the popup, to display its site and pause state. |
+| `scripting` | Remove obsolete per-site script registrations when upgrading from older versions. Checking now uses bundled static content scripts. |
+| `storage` | Save the writing-suggestion and Local AI preferences and paused-site list locally. Draft text and suggestions are not persisted. |
 | `offscreen` | Run the bundled local inference worker in an extension-owned document without sending text to a service. |
-| Optional HTTP/HTTPS hosts | Users may choose any ordinary website; the popup requests access to one site at a time. Checking is not automatically enabled on every site. |
+| HTTP/HTTPS hosts | Automatically check supported fields on ordinary websites. The popup can pause globally or by site; browser settings control host access. |
 
 **Remote code:** Select **No**. Runtime code, model weights, and dictionary data
 are bundled. Model reads use extension-local URLs; CSP limits connections to
@@ -117,9 +117,8 @@ the implementation; offline processing is not exempt from disclosure.
 ## Reviewer instructions
 
 No login or subscription is required. Install in Chrome 116 or later. On an
-ordinary HTTPS page containing a textarea or plain-text editor, open Gamma EH,
-choose **Enable on this site**, and approve access. Reload the website if
-needed. Keep **Local AI** off initially.
+ordinary HTTPS page containing a textarea or plain-text editor, reload the tab
+and focus the field. Checking starts automatically. Keep **Local AI** off initially.
 
 Enter `She have a freind.` and focus the field. Open the suggestion badge or
 hover an underlined word. Accept both suggestions; the result is
@@ -175,7 +174,7 @@ back code through a higher-version release containing the revert.
 
 After approval, install from the store link and disable or remove the unpacked
 copy so two checkers do not run. The store item has its own identity; choose
-settings and enable site access once. Later updates come through Chrome.
+settings and site pauses once. Later updates come through Chrome.
 An `update_url` does not turn an unpacked installation into a store installation.
 
 Sources: [preparation](https://developer.chrome.com/docs/webstore/prepare),

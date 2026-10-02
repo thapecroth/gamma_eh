@@ -3173,5 +3173,140 @@
     "Rules/dictionary false corrections remain in full-engine metrics.",
     "The challenge was inspected; clean training controls share some challenge structures.",
     "No new checkpoint qualifies; high precision with fewer than 25 edits is insufficient evidence."
-  ]
+  ],
+  "integration_check": {
+    "parent_main_commit": "310f10a3a19d314d87d32503dce73a2540e0ae9e",
+    "test_before": {
+      "sha256": "a96d94935c2552aec61484b103efb6119e46ff8aae3669cef6321eab956acd45",
+      "passed": true,
+      "scope": "Complete-population JAX/WASM; actual ERRANT with best sentence F0.5 reference; not official JFLEG GLEU.",
+      "input_sha256": "22504390dc7921e1a4e85d77847b89953965ce385d22b428efec764e2abe6760",
+      "browser_report_sha256": "f66f483f02fc2983cfec7fe8c539ab98057b889aa36cac13a328a8fccefedf29",
+      "engine_source_sha256": "ee50abffe7ee2bebf07e6db2242a98c7aee97a711f624be7ff05562f23e03132",
+      "scorer_versions": {
+        "errant": "3.0.2",
+        "spacy": "3.8.7",
+        "en-core-web-sm": "3.8.0",
+        "rapidfuzz": "3.14.5"
+      },
+      "scores": {
+        "rules": {
+          "edit_precision": 0.71900826446281,
+          "edit_recall": 0.16904145077720206,
+          "edit_f0_5": 0.43558077436582116,
+          "true_positive_edits": 261,
+          "false_positive_edits": 102,
+          "missed_edits": 1283,
+          "predicted_edits": 363,
+          "sentences": 747,
+          "clean_sentences": 182,
+          "clean_sentences_changed": 2,
+          "clean_sentence_false_positive_rate": 0.01098901098901099
+        },
+        "model_only": [
+          {
+            "threshold": 0.85,
+            "edit_precision": 0.050724637681159424,
+            "edit_recall": 0.004720161834120027,
+            "edit_f0_5": 0.0171990171990172,
+            "true_positive_edits": 7,
+            "false_positive_edits": 131,
+            "missed_edits": 1476,
+            "predicted_edits": 138,
+            "sentences": 747,
+            "clean_sentences": 182,
+            "clean_sentences_changed": 23,
+            "clean_sentence_false_positive_rate": 0.12637362637362637
+          }
+        ],
+        "full_engine": [
+          {
+            "threshold": 0.85,
+            "edit_precision": 0.5529661016949152,
+            "edit_recall": 0.16904145077720206,
+            "edit_f0_5": 0.3802447552447552,
+            "true_positive_edits": 261,
+            "false_positive_edits": 211,
+            "missed_edits": 1283,
+            "predicted_edits": 472,
+            "sentences": 747,
+            "clean_sentences": 182,
+            "clean_sentences_changed": 24,
+            "clean_sentence_false_positive_rate": 0.13186813186813187
+          }
+        ]
+      },
+      "model": {
+        "name": "gamma-eh-tiny-edit-v1",
+        "manifest_sha256": "8f2880d15e8289d26aecaaae22d35d94f6f808ef9fb5933239c53da83124c7bf",
+        "model_sha256": "cb3280db7b33a7273ae75e87c8c5d432c63f9bdac89101d93dda72c776b38266"
+      }
+    },
+    "test_after": {
+      "sha256": "fa1112b0db4178c5b7019cb1333cbf6376a6ab25bcd3da4549610eab89993b58",
+      "passed": true,
+      "scope": "Complete-population JAX/WASM; actual ERRANT with best sentence F0.5 reference; not official JFLEG GLEU.",
+      "input_sha256": "22504390dc7921e1a4e85d77847b89953965ce385d22b428efec764e2abe6760",
+      "browser_report_sha256": "b7b24007e2411a08e7c45334fef3c6f09c95e20175dcf50c2e4ee61d632e184d",
+      "engine_source_sha256": "11e5dcd30a2c0bfb9267fd298712777fc670131b809bf2b2d9b708cd7a831266",
+      "scorer_versions": {
+        "errant": "3.0.2",
+        "spacy": "3.8.7",
+        "en-core-web-sm": "3.8.0",
+        "rapidfuzz": "3.14.5"
+      },
+      "scores": {
+        "rules": {
+          "edit_precision": 0.71900826446281,
+          "edit_recall": 0.16904145077720206,
+          "edit_f0_5": 0.43558077436582116,
+          "true_positive_edits": 261,
+          "false_positive_edits": 102,
+          "missed_edits": 1283,
+          "predicted_edits": 363,
+          "sentences": 747,
+          "clean_sentences": 182,
+          "clean_sentences_changed": 2,
+          "clean_sentence_false_positive_rate": 0.01098901098901099
+        },
+        "model_only": [
+          {
+            "threshold": 0.85,
+            "edit_precision": 0.875,
+            "edit_recall": 0.004720161834120027,
+            "edit_f0_5": 0.0231023102310231,
+            "true_positive_edits": 7,
+            "false_positive_edits": 1,
+            "missed_edits": 1476,
+            "predicted_edits": 8,
+            "sentences": 747,
+            "clean_sentences": 182,
+            "clean_sentences_changed": 0,
+            "clean_sentence_false_positive_rate": 0.0
+          }
+        ],
+        "full_engine": [
+          {
+            "threshold": 0.85,
+            "edit_precision": 0.71900826446281,
+            "edit_recall": 0.16904145077720206,
+            "edit_f0_5": 0.43558077436582116,
+            "true_positive_edits": 261,
+            "false_positive_edits": 102,
+            "missed_edits": 1283,
+            "predicted_edits": 363,
+            "sentences": 747,
+            "clean_sentences": 182,
+            "clean_sentences_changed": 2,
+            "clean_sentence_false_positive_rate": 0.01098901098901099
+          }
+        ]
+      },
+      "model": {
+        "name": "gamma-eh-tiny-edit-v1",
+        "manifest_sha256": "8f2880d15e8289d26aecaaae22d35d94f6f808ef9fb5933239c53da83124c7bf",
+        "model_sha256": "cb3280db7b33a7273ae75e87c8c5d432c63f9bdac89101d93dda72c776b38266"
+      }
+    }
+  }
 }

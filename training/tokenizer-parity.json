@@ -1,0 +1,84 @@
+{
+  "vocab_sha256": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3",
+  "cases": [
+    {
+      "word": "Café",
+      "ids": [
+        7668
+      ]
+    },
+    {
+      "word": "a中文b",
+      "ids": [
+        1037,
+        1746,
+        1861,
+        1038
+      ]
+    },
+    {
+      "word": "a_b",
+      "ids": [
+        1037,
+        1035,
+        1038
+      ]
+    },
+    {
+      "word": "𠮷",
+      "ids": [
+        100
+      ]
+    },
+    {
+      "word": "You're",
+      "ids": [
+        2017,
+        1005,
+        2128
+      ]
+    },
+    {
+      "word": "HELLO",
+      "ids": [
+        7592
+      ]
+    },
+    {
+      "word": "résumé",
+      "ids": [
+        13746
+      ]
+    },
+    {
+      "word": "McDonald",
+      "ids": [
+        9383
+      ]
+    },
+    {
+      "word": "مرحبا",
+      "ids": [
+        1295,
+        17149,
+        29820,
+        29816,
+        25573
+      ]
+    },
+    {
+      "word": "hello-world",
+      "ids": [
+        7592,
+        1011,
+        2088
+      ]
+    },
+    {
+      "word": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "ids": [
+        100
+      ]
+    }
+  ]
+}

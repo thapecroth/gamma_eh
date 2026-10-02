@@ -53,12 +53,16 @@ describe('model verb safety at high confidence', () => {
     });
     const result = await analyzeModel('A freind called.', {modelBaseUrl: '/disabled-policy/', preferWebGPU: false, confidenceThreshold: 0});
     expect(result.suggestions).toEqual([]);
-    expect(result.backend).toBe('wasm');
+    expect(result.backend).toBe('rules');
   });
 
   it('rejects an invalid edit policy', async () => {
-    vi.stubGlobal('fetch', async () => new Response(JSON.stringify({confidenceThreshold: .85, maxSequenceLength: 8, disableModelEdits: 'false'})));
-    await expect(analyzeModel('A freind called.', {modelBaseUrl: '/invalid-policy/', preferWebGPU: false})).rejects.toThrow('Invalid model edit policy');
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (url.endsWith('manifest.json')) return new Response(JSON.stringify({confidenceThreshold: .85, maxSequenceLength: 8, disableModelEdits: 'false'}));
+      if (url.endsWith('labels.json')) return new Response(JSON.stringify(labels));
+      return new Response(vocabulary);
+    });
+    await expect(analyzeModel('A freind called.', {modelBaseUrl: '/invalid-policy/', preferWebGPU: false})).rejects.toThrow('Invalid model correction policy');
   });
 
   it.each([

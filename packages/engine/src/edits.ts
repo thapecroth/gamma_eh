@@ -3,7 +3,8 @@ import type { Suggestion } from './types';
 function isValid(text: string, edit: Suggestion): boolean {
   return Number.isInteger(edit.start) && Number.isInteger(edit.end) &&
     edit.start >= 0 && edit.end >= edit.start && edit.end <= text.length &&
-    text.slice(edit.start, edit.end) === edit.original;
+    text.slice(edit.start, edit.end) === edit.original &&
+    (edit.checkedText === undefined || edit.checkedText === text);
 }
 
 export function applySuggestion(text: string, suggestion: Suggestion): string {
@@ -21,7 +22,9 @@ export function applySuggestions(text: string, suggestions: Suggestion[]): strin
     }
     previous = edit;
   }
-  return sorted.reverse().reduce((value, edit) => applySuggestion(value, edit), text);
+  // Every edit was checked against the same source above. Later splices must not
+  // compare a source snapshot with the partially corrected intermediate text.
+  return sorted.reverse().reduce((value, edit) => value.slice(0, edit.start) + edit.replacement + value.slice(edit.end), text);
 }
 
 export function preserveCase(original: string, replacement: string): string {
@@ -30,6 +33,6 @@ export function preserveCase(original: string, replacement: string): string {
   return replacement;
 }
 
-export function overlaps(a: Suggestion, b: Suggestion): boolean {
+export function overlaps(a: Pick<Suggestion, 'start' | 'end'>, b: Pick<Suggestion, 'start' | 'end'>): boolean {
   return a.start === b.start || (a.start < b.end && b.start < a.end);
 }
