@@ -40,6 +40,16 @@ populations, guards, and scoring methods.
 
 ## Independent human-reference evaluation
 
+The [public natural benchmark](../docs/public-benchmark.md) reruns the shipped
+policy on all 747 JFLEG and 6,845 CWEB test sentences in the actual browser.
+Official JFLEG corpus GLEU is 40.62 for guarded neural inference, 46.51 for
+rules/combined, and 40.47 for unchanged input. Standard CWEB ERRANT F0.5 is
+0.77 for neural and 4.05 for rules/combined. Neural proposes only two CWEB edits;
+rules/combined match 25 edits and produce 423 unmatched edits, changing
+315/5,881 reference-accepted sources. These results expose limited correction
+coverage and full-engine overcorrection; they do not qualify a reliable general
+model. See the [aggregate receipt](../docs/public-benchmark-results.json).
+
 The complete JFLEG test population contains 747 sentences with four fluency
 references each, including 182 sources accepted unchanged by at least one
 reference. Actual JAX JS FP32 Chromium/WASM predictions with the current engine

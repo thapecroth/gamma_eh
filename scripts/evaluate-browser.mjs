@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 import {createReadStream} from 'node:fs';
-import {access, mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
+import {access, mkdtemp, mkdir, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {tmpdir} from 'node:os';
 import {extname, join, resolve, sep} from 'node:path';
@@ -121,9 +122,18 @@ async function run(options) {
   catch (error) { if (error.code !== 'ENOENT') throw error; }
   const input = await inputs(options.input, options.limit);
   const localAssets = await assets(options.modelDir);
+  const engineHash = createHash('sha256');
+  for (const name of (await readdir(join(root, 'packages/engine/src'))).sort()) {
+    engineHash.update(name + '\0');
+    engineHash.update(await readFile(join(root, 'packages/engine/src', name)));
+  }
+  const code = {baseCommit: execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim(),
+    engineSourcesSha256: engineHash.digest('hex'),
+    runnerSha256: digest(await readFile(fileURLToPath(import.meta.url))),
+    packageLockSha256: digest(await readFile(join(root, 'package-lock.json')))};
   const temporary = await mkdtemp(join(tmpdir(), 'gamma-quality-browser-'));
   const evidence = {schema: 1, scope: 'Actual browser engine predictions; rules, neural, and combined modes scored separately.',
-    input: input.evidence, inputSha256: input.evidence.sha256, model: localAssets.evidence,
+    input: input.evidence, inputSha256: input.evidence.sha256, model: localAssets.evidence, code,
     backendPreference: options.webgpu ? 'webgpu-with-wasm-fallback' : 'wasm',
     runs: [], network: {blockedRequests: 0}, protectedTextCanaries: [], passed: false};
   let browser, context, server, page;
