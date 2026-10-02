@@ -44,6 +44,14 @@ defer disk writes after installers return; its
 [writeback documentation](https://docs.kernel.org/admin-guide/sysctl/vm.html#dirty-expire-centisecs)
 explains why a brief quiet sample cannot rule out pending writes.
 
+Before that drain/admission, the verifier runs the existing CPU Chromium
+capability probe as a bounded setup-only child. This prepares first-use browser
+executable/renderer I/O without collecting measurements or reusing a model session.
+The actual CLI still launches a separate browser and starts every trial with a
+fresh context/model. Reports retain setup, compilation, browser-start and paired
+trial host samples under the unchanged pressure policy. The aggregate also indexes
+refused campaign receipts, so an unexpected exit remains inspectable.
+
 The same serial campaign rejects baseline-only corrupted weights, a development
 corpus with one row removed, reused output directories and a source change after
 timing begins.
