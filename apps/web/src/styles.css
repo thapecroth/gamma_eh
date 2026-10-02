@@ -55,7 +55,12 @@ svg { flex-shrink: 0; }
 .draft-actions button:hover:not(:disabled) { background: #f0edf5; color: var(--purple); }
 .draft-actions button:disabled { color: #76776f; }
 .draft-actions .copy-button { margin-left: auto; color: var(--purple); }
-.writing-editor { width: 100%; flex: 1; resize: vertical; min-height: 348px; border: 0; padding: 22px 30px 24px; background: #fffefd; color: #424a3b; font: 17px/1.85 Georgia, 'Times New Roman', serif; border-radius: 0; }
+.writing-editor-container { position: relative; display: flex; flex: 1; min-width: 0; }
+.writing-editor, .writing-highlights { padding: 22px 30px 24px; font: 17px/1.85 Georgia, 'Times New Roman', serif; letter-spacing: normal; white-space: pre-wrap; overflow-wrap: break-word; tab-size: 8; }
+.writing-editor { width: 100%; flex: 1; resize: vertical; min-height: 348px; border: 0; background: #fffefd; color: #424a3b; border-radius: 0; }
+.writing-highlight-layer { position: absolute; top: 0; left: 0; overflow: hidden; pointer-events: none; }
+.writing-highlights { color: transparent; }
+.writing-error { text-decoration: underline wavy #c43f3f; text-decoration-thickness: 1.5px; text-underline-offset: 3px; text-decoration-skip-ink: none; }
 .writing-editor:focus-visible { outline: 0; box-shadow: inset 0 0 0 2px #876aa5; }
 .writing-editor::placeholder { color: #727865; }
 .editor-footer { min-height: 43px; padding: 10px 26px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); font-size: 10px; color: #69725d; }
@@ -140,7 +145,7 @@ svg { flex-shrink: 0; }
   .app-shell { padding: 0 32px; }
   .workspace { grid-template-columns: minmax(0, 1fr) 320px; }
   .intro-note { right: 38px; font-size: 16px; }
-  .writing-editor { padding: 22px 24px; font-size: 16px; }
+  .writing-editor, .writing-highlights { padding: 22px 24px; font-size: 16px; }
 }
 @media (max-width: 760px) {
   .app-shell { padding: 0 20px; }
@@ -159,7 +164,8 @@ svg { flex-shrink: 0; }
   .example-buttons button { padding: 9px 11px; }
   .workspace { grid-template-columns: 1fr; }
   .review-pane { border-left: 0; border-top: 1px solid var(--line); }
-  .writing-editor { min-height: 330px; padding: 20px 22px; font-size: 16px; }
+  .writing-editor { min-height: 330px; }
+  .writing-editor, .writing-highlights { padding: 20px 22px; font-size: 16px; }
   .pane-toolbar { padding: 0 21px; }
   .draft-actions { padding: 10px 14px 0; gap: 3px; }
   .editor-footer { padding: 12px 20px; font-size: 9px; }
