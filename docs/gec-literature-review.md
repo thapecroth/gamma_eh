@@ -283,8 +283,10 @@ Compare recall at matched edit precision and clean-text false-positive limits,
 alongside F0.5. A proposed starting target is 95% edit precision and at most 1%
 clean-sentence false positives on the product development set, subject to review
 of harmful edits and confidence intervals. These are planning gates, not achieved
-scores. If no model qualifies, retain opt-in neural suggestions and report the
-quality gap instead of weakening the gate silently.
+scores. The original recommendation was to retain opt-in neural suggestions if
+no model qualified. The current product enables the experimental model by
+default with [compatibility fallback](local-ai-defaults.md); these quality gates
+remain unmet and should be reported rather than weakened silently.
 
 Use a quality/latency/package/memory Pareto frontier rather than naming a winner
 from parameter count or a cross-paper leaderboard. The first implementation

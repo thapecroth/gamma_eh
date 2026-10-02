@@ -47,6 +47,11 @@ Unpacked installs do not auto-update. This is developer-mode
 installation, not a Chrome Web Store or one-click CRX installer. See the
 [release runbook](../../docs/releases.md) for checksums and publication details.
 
+Local AI is enabled by default. It uses WebGPU when compatible, falls back to
+local WASM CPU inference, and keeps spelling and rule suggestions working if
+the model cannot run. A saved Local AI opt-out is respected after updates.
+See [local AI defaults and compatibility](../../docs/local-ai-defaults.md).
+
 The popup can pause suggestions everywhere, disable experimental local AI, or
 pause checking on a site. Browser extension settings manage host access.
 Password inputs, payment/authentication fields,

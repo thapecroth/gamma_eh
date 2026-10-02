@@ -310,13 +310,14 @@ try {
       {name: 'dev-worker', url: '/src/inference-worker.ts?worker_file&type=module'},
     ]));
   } finally { await development.close(); }
-  for (const mode of ['unavailable', ...(process.env.GAMMA_TEST_WEBGPU === '1' ? ['allocation', 'kernel'] : [])]) {
+  for (const mode of ['unavailable', 'no-wasm', ...(process.env.GAMMA_TEST_WEBGPU === '1' ? ['allocation', 'kernel'] : [])]) {
     const fallback = await context.newPage();
     fallback.on('pageerror', error => failures.push(error.message));
     try {
       await fallback.addInitScript(mode => {
-        if (mode === 'unavailable') {
+        if (mode === 'unavailable' || mode === 'no-wasm') {
           Object.defineProperty(navigator, 'gpu', {value: {requestAdapter: async () => null}});
+          if (mode === 'no-wasm') Object.defineProperty(globalThis, 'WebAssembly', {value: undefined});
           return;
         }
         const requestAdapter = navigator.gpu.requestAdapter.bind(navigator.gpu);
@@ -345,12 +346,21 @@ try {
         };
       }, mode);
       await fallback.goto(origin + '/fixture.html');
-      const result = await fallback.evaluate(async origin => {
+      const result = await fallback.evaluate(async ({origin, mode}) => {
         const engine = await import(origin + '/test-engine.mjs');
-        const result = await engine.analyzeText('The students has a notebook.', {modelBaseUrl: origin + '/models/'});
+        const text = mode === 'no-wasm' ? '😀. She have a freind.' : 'The students has a notebook.';
+        const result = await engine.analyzeText(text, {modelBaseUrl: origin + '/models/'});
         return {backend: result.backend, modelError: result.modelError, actual: engine.applySuggestions(result.text, result.suggestions),
           modelEdit: result.suggestions.some(edit => edit.source === 'model'), injectedFailure: globalThis.__gammaGpuFailure};
-      }, origin);
+      }, {origin, mode});
+      if (mode === 'no-wasm') {
+        assert.equal(result.backend, 'rules', 'An incompatible runtime must retain local spelling and rule suggestions');
+        assert.equal(typeof result.modelError, 'string');
+        assert.equal(result.actual, '😀. She has a friend.');
+        assert.equal(result.modelEdit, false);
+        evidence.model.runtimeUnavailable = result;
+        continue;
+      }
       assert.equal(result.backend, 'wasm', 'GPU failure must fall back to the real JAX WASM model');
       assert.equal(result.modelError, undefined);
       assert.equal(result.actual, 'The students have a notebook.');
@@ -373,24 +383,28 @@ try {
   if (!background) background = await context.waitForEvent('serviceworker', {predicate: worker => worker.url().includes('background.mjs')});
   const extensionId = new URL(background.url()).hostname;
   assert.deepEqual(await background.evaluate(() => chrome.scripting.getRegisteredContentScripts()), [], 'Default activation must not need dynamic registration');
+  assert.deepEqual(await background.evaluate(() => chrome.storage.local.get('useAI')), {}, 'Fresh install must not need a saved AI preference');
   const fixture = await context.newPage();
   fixture.on('pageerror', error => failures.push(error.message));
   await fixture.goto(origin + '/fixture.html');
   await fixture.locator('#draft').focus();
-  await waitPanel(fixture, /2 suggestions.*Local rules/u);
   evidence.extension.defaultSiteActivation = true;
-  evidence.extension.localAIOptIn = true;
-  await background.evaluate(() => chrome.storage.local.set({useAI: true}));
   await fixture.waitForFunction(() => Boolean(document.querySelector('[data-gamma-ignore]')), {timeout: 30_000});
   // CDP lets this test inspect the closed shadow panel without changing the
   // shipping extension to expose page text or private suggestion state.
-  evidence.extension.backend = await waitPanel(fixture, /suggestions?.*Local AI/u);
+  evidence.extension.backend = await waitPanel(fixture, /2 suggestions.*Local AI/u);
   assert.match(evidence.extension.backend, process.env.GAMMA_TEST_WEBGPU === '1' ? /Local AI · WebGPU/u : /Local AI · CPU/u);
+  evidence.extension.localAIByDefault = true;
   await acceptFirst(fixture);
   await waitPanel(fixture, /1 suggestion/u);
   await acceptFirst(fixture);
   assert.equal(await fixture.locator('#draft').inputValue(), 'She has a friend.');
   evidence.extension.textareaCorrection = true;
+  await fixture.locator('#draft').fill('😀. The students has a notebook.');
+  await waitPanel(fixture, /1 suggestion.*Local AI/u);
+  await acceptFirst(fixture);
+  assert.equal(await fixture.locator('#draft').inputValue(), '😀. The students have a notebook.');
+  evidence.extension.defaultModelCorrectionWithUTF16 = true;
   const insecureFixture = await context.newPage();
   insecureFixture.on('pageerror', error => failures.push(error.message));
   await insecureFixture.goto(insecureOrigin + '/fixture.html');
@@ -412,6 +426,11 @@ try {
   assert.equal(await fixture.locator('#draft').inputValue(), 'my cat is hungry.');
   evidence.extension.cleanSentencePreserved = true;
   await background.evaluate(() => chrome.storage.local.set({useAI: false}));
+  await fixture.reload();
+  await fixture.locator('#draft').focus();
+  await waitPanel(fixture, /2 suggestions.*Local rules/u);
+  assert.deepEqual(await background.evaluate(() => chrome.storage.local.get('useAI')), {useAI: false});
+  evidence.extension.savedAIOptOutAfterReload = true;
   await fixture.locator('#draft').fill('halo');
   await waitPanel(fixture, /1 suggestion.*Local rules/u);
   await openSuggestions(fixture);

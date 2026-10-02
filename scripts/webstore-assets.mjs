@@ -70,7 +70,7 @@ async function screenshots() {
     }, {url: `chrome-extension://${extensionId}/popup.html`, origin});
     const popup = await popupPromise;
     await popup.locator('#site-name').filter({hasText: '127.0.0.1'}).waitFor();
-    assert.equal(await popup.locator('#use-ai').isChecked(), false, 'Local AI must remain opt-in');
+    assert.equal(await popup.locator('#use-ai').isChecked(), true, 'Local AI must be enabled by default');
     await popup.locator('#site-detail').filter({hasText: 'Enabled automatically.'}).waitFor();
     assert.equal(await popup.locator('#enable-site').isVisible(), false);
     await page.locator('#draft').focus();
