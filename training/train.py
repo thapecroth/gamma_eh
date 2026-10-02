@@ -3,6 +3,7 @@ import argparse
 import hashlib
 from importlib.metadata import version
 import json
+import math
 from pathlib import Path
 import random
 import re
@@ -163,6 +164,9 @@ def main(args):
         raise ValueError("Positive epochs, batch size, learning rate, development support and max-length 4..512 are required")
     if not 0 <= args.min_precision <= 1 or not 0 <= args.max_clean_fp <= 1:
         raise ValueError("Calibration constraints must be between zero and one")
+    if not math.isfinite(args.keep_weight) or args.keep_weight <= 0:
+        raise ValueError("KEEP loss weight must be finite and positive")
+    scored_splits = ["dev"] if args.development_only else ["dev", "test"]
     for path in [args.output, args.checkpoint]:
         if path.exists() and any(path.iterdir()): raise ValueError("Training output/checkpoint already exists; choose fresh directories")
     if not Path(args.base_model).exists() and not re.fullmatch(r"[0-9a-f]{40}", args.base_revision):
@@ -194,7 +198,7 @@ def main(args):
     if args.max_length > model.config.max_position_embeddings:
         raise ValueError("Context exceeds base model position embeddings")
     data, subset_coverage = {}, {}
-    for split in ["train", "dev", "test"]:
+    for split in ["train", *scored_splits]:
         data[split], subset_coverage[split] = load_split(args.data / f"{split}.jsonl", tokenizer, label_to_id,
                                                        args.max_length, allow_empty=split != "train")
     generator = torch.Generator().manual_seed(args.seed)
@@ -203,7 +207,7 @@ def main(args):
                for split, values in data.items()}
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate, weight_decay=.01)
     weights = torch.ones(len(labels), device=device)
-    weights[0] = .3
+    weights[0] = args.keep_weight
     loss_fn = torch.nn.CrossEntropyLoss(weight=weights, ignore_index=-100)
     args.checkpoint.mkdir(parents=True, exist_ok=True)
     schema = dataset_manifest.get("edit_schema", 1)
@@ -247,25 +251,29 @@ def main(args):
     chosen = calibrated["selected"]
     threshold, disabled = chosen["threshold"], calibrated["disable_model_edits"]
     category_thresholds = calibrated.get("category_thresholds", {})
-    test_records, test_inference = collect_proposals(rows["test"], tokenizer, torch_infer(model, device), labels,
-                                                     args.max_length, schema, args.inference_batch_size)
-    if test_inference["inference_failures"]:
-        raise ValueError("Selected checkpoint failed complete test inference validation")
-    complete_test = evaluate_records(rows["test"], test_records, threshold, disabled,
-                                     scorer=args.scorer, category_thresholds=category_thresholds)
-    diagnostic_test = evaluate_records(rows["test"], test_records,
-                                      calibrated["best_unconstrained"]["threshold"], scorer=args.scorer)
-    supported = {}
-    for split in ["dev", "test"]:
+    test_inference = complete_test = diagnostic_test = None
+    if not args.development_only:
+        test_records, test_inference = collect_proposals(rows["test"], tokenizer, torch_infer(model, device), labels,
+                                                         args.max_length, schema, args.inference_batch_size)
+        if test_inference["inference_failures"]:
+            raise ValueError("Selected checkpoint failed complete test inference validation")
+        complete_test = evaluate_records(rows["test"], test_records, threshold, disabled,
+                                         scorer=args.scorer, category_thresholds=category_thresholds)
+        diagnostic_test = evaluate_records(rows["test"], test_records,
+                                          calibrated["best_unconstrained"]["threshold"], scorer=args.scorer)
+    supported = {"test": None}
+    for split in scored_splits:
         summary, gold = predict(model, loaders[split], device)
         supported[split] = metrics(summary, gold, threshold, disabled) if summary is not None else None
     report = {"base_model": args.base_model, "base_revision": args.base_revision, "seed": args.seed,
               "device": device, "parameters": sum(p.numel() for p in model.parameters()),
               "schedule": {"epochs": args.epochs, "batch_size": args.batch_size, "learning_rate": args.learning_rate,
-                           "max_length": args.max_length}, "training_seconds": round(time.monotonic() - started, 2),
+                           "max_length": args.max_length, "keep_weight": args.keep_weight}, "training_seconds": round(time.monotonic() - started, 2),
               "epochs": history, "calibration": calibrated, "test": complete_test,
               "diagnostic_unconstrained_test": {**diagnostic_test,
-                  "deployment_policy": "Diagnostic only: threshold chosen on dev, without enforcing precision/clean-text constraints."},
+                  "deployment_policy": "Diagnostic only: threshold chosen on dev, without enforcing precision/clean-text constraints."} if diagnostic_test is not None else None,
+              "evaluation_mode": "development-only" if args.development_only else "development-and-test",
+              "test_status": "deferred" if args.development_only else "evaluated",
               "evaluation_hashes": evaluation_hashes, "supported_tagged_subset": supported,
               "supported_tagged_coverage": subset_coverage,
               "inference": {"dev": dev_inference, "test": test_inference},
@@ -343,15 +351,19 @@ def main(args):
     report["pytorch_diagnostic_unconstrained_test"] = report["diagnostic_unconstrained_test"]
     report["pytorch_supported_tagged_subset"] = report.pop("supported_tagged_subset")
     exports = {}
+    export_split = "dev" if args.development_only else "test"
     for filename in ["model.onnx", "model_quantized.onnx"]:
         session = quantized if filename == "model_quantized.onnx" else floating
-        records, inference = collect_proposals(rows["test"], tokenizer, lambda feed: session.run(["logits"], feed)[0],
-                                               labels, args.max_length, schema, args.inference_batch_size)
+        if args.development_only:
+            records, inference = (quantized_dev, quantized_dev_inference) if filename == "model_quantized.onnx" else (float_dev, float_dev_inference)
+        else:
+            records, inference = collect_proposals(rows[export_split], tokenizer, lambda feed: session.run(["logits"], feed)[0],
+                                                   labels, args.max_length, schema, args.inference_batch_size)
         if inference["inference_failures"]:
             raise ValueError("ONNX export failed complete-population inference validation")
         parity = {"max_logit_difference": 0., "argmax_matching": 0, "argmax_tokens": 0}
-        if loaders["test"] is not None:
-            for ids, mask, types, gold in loaders["test"]:
+        if loaders[export_split] is not None:
+            for ids, mask, types, gold in loaders[export_split]:
                 feed = {key: value.numpy() for key, value in zip(input_names, [ids, mask, types])}
                 onnx_logits = torch.from_numpy(session.run(["logits"], feed)[0])
                 with torch.inference_mode(): pytorch_logits = model(input_ids=ids, attention_mask=mask, token_type_ids=types).logits
@@ -359,22 +371,27 @@ def main(args):
                 parity["max_logit_difference"] = max(parity["max_logit_difference"], (onnx_logits - pytorch_logits).abs().max().item())
                 parity["argmax_matching"] += (onnx_logits.argmax(-1) == pytorch_logits.argmax(-1))[valid].sum().item()
                 parity["argmax_tokens"] += valid.sum().item()
-        exports[filename] = {"metrics": evaluate_records(rows["test"], records, threshold, disabled,
+        exports[filename] = {"split": export_split, "metrics": evaluate_records(rows[export_split], records, threshold, disabled,
                                                          scorer=args.scorer, category_thresholds=category_thresholds),
-                             "diagnostic_metrics": evaluate_records(rows["test"], records,
+                             "diagnostic_metrics": evaluate_records(rows[export_split], records,
                                 deployed_calibration["best_unconstrained"]["threshold"], scorer=args.scorer),
                              "inference": inference, "max_logit_difference": parity["max_logit_difference"],
                              "argmax_agreement": parity["argmax_matching"] / parity["argmax_tokens"] if parity["argmax_tokens"] else None}
     report["exports"] = exports
     report["deployed_weights"] = "model.onnx"
-    report["test"] = exports["model.onnx"]["metrics"]
-    report["diagnostic_unconstrained_test"] = {**exports["model.onnx"]["diagnostic_metrics"],
-        "deployment_policy": "Diagnostic only: shared threshold chosen on dev without safety constraints; never used to enable edits."}
+    if args.development_only:
+        report["development_export_metrics"] = exports["model.onnx"]["metrics"]
+        report["diagnostic_unconstrained_development"] = exports["model.onnx"]["diagnostic_metrics"]
+    else:
+        report["test"] = exports["model.onnx"]["metrics"]
+        report["diagnostic_unconstrained_test"] = {**exports["model.onnx"]["diagnostic_metrics"],
+            "deployment_policy": "Diagnostic only: shared threshold chosen on dev without safety constraints; never used to enable edits."}
     manifest = {"schema": 1, "name": f"gamma-eh-edit-v{schema}", "editSchema": schema, "maxPasses": 1,
                 "model_license": base_license if report["publication_allowed"] else "training-or-base-terms-unverified",
                 "publication_allowed": report["publication_allowed"], "base_model": args.base_model,
                 "base_revision": args.base_revision, "parameters": report["parameters"],
-                "confidenceThreshold": threshold, "disableModelEdits": disabled,
+                "confidenceThreshold": threshold, "disableModelEdits": disabled or args.development_only,
+                "development_only": args.development_only,
                 "confidenceThresholds": category_thresholds, "maxSequenceLength": args.max_length,
                 "experimental": True, "files": {}}
     for path in sorted(args.output.iterdir()):
@@ -395,6 +412,9 @@ def parser():
     result.add_argument("--inference-batch-size", type=int, default=16)
     result.add_argument("--max-length", type=int, default=64)
     result.add_argument("--learning-rate", type=float, default=5e-4)
+    result.add_argument("--keep-weight", type=float, default=.3, help="Loss weight for the KEEP class; finite and positive")
+    result.add_argument("--development-only", action="store_true",
+                        help="Defer all test inference, scoring and parity; export a disabled provisional model for the hill-climb loop")
     result.add_argument("--seed", type=int, default=42)
     result.add_argument("--base-model", default=BASE)
     result.add_argument("--base-revision", default=REVISION)
