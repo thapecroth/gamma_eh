@@ -95,16 +95,19 @@ try {
   lock = await acquireLock(root, '');
   originalRoot = await sourceStamp(root);
   evidence.commit = originalRoot.commit;
+  phase = 'quality-inputs';
   const quality = await realpath(values['quality-dir']);
   const manifestBytes = await readFile(join(quality, 'manifest.json')), devBytes = await readFile(join(quality, 'dev.jsonl'));
   validateFrozenQuality(JSON.parse(manifestBytes.toString('utf8')), devBytes, 'dev');
   const dependencies = await realpath(join(root, 'node_modules'));
   const fast = join(directory, 'fast'), slow = join(directory, 'slow');
+  phase = 'fixture-creation';
   for (const tree of [fast, slow]) {
     await git(root, 'worktree', 'add', '--detach', tree, evidence.commit); owned.push(tree);
     await symlink(dependencies, join(tree, 'node_modules'), 'dir');
   }
   assert.deepEqual(await changedProductPaths(fast), []);
+  phase = 'delay-injection';
   for (const {path, anchor, indent} of edits) {
     const original = await readFile(join(fast, path), 'utf8');
     assert.equal(original.split(anchor).length, 2, 'Fixture signature must occur exactly once');

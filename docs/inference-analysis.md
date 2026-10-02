@@ -38,6 +38,11 @@ uploaded by CI; corpus outputs, logs, bundles, maps and fixture trees remain pri
 in ignored artifact directories. `artifacts/inference-promotion-verification.json`
 records the result. Hosted acceptance controls complement the local verifier and
 do not establish general model accuracy, hardware performance or deployment.
+Fixture dependency links use the repository's portable `node_modules` ignore
+rule. A directory-only `node_modules/` rule excludes neither a symlink nor a file;
+local `.git/info/exclude` settings can hide that CI setup problem. Git's
+[ignore pattern rules](https://git-scm.com/docs/gitignore#_examples) describe this
+distinction. Actual bundled dependency bytes remain independently checked.
 
 ## Start with a trusted harness
 
