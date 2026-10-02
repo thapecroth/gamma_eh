@@ -9,6 +9,8 @@
 - [Inference performance](inference-performance.md): measured bottlenecks, bounded sentence reuse, compiled shape reuse, and reproducible browser benchmarks.
 - [Research and architecture](research-and-architecture.md): current WebGPU stack, model choices, correction flow, extension boundaries.
 - [Grammar correction literature review](gec-literature-review.md): evidence for compact edit models and span generation, browser tradeoffs, and a controlled experiment plan.
+- [Natural correction datasets](gec-datasets.md): human and synthetic sources, access, licensing, and public model training choices.
+- [Public natural benchmark](public-benchmark.md): official JFLEG GLEU, standard CWEB ERRANT, unchanged-text baselines, and reproducible current-model measurements.
 - [Local spelling](local-spelling.md): bundled dictionary, symmetric-delete lookup, ranking, provenance and safety boundaries.
 - [Dataset and training](dataset-and-training.md): provenance, deterministic generation, training, calibration, exports, evaluation limits.
 - [Harder synthetic challenge](synthetic-challenge.md): separate adversarial evaluation, original training augmentation, and current full-engine baseline.
