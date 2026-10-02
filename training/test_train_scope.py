@@ -10,8 +10,38 @@ from types import SimpleNamespace
 import pytest
 
 
+@pytest.mark.parametrize("fixture_field", ["source", "candidate"])
+@pytest.mark.parametrize("training_field", ["source", "target", "references"])
+def test_direct_judge_training_rejects_calibration_overlap_before_model_load(tmp_path, monkeypatch,
+                                                                           fixture_field, training_field):
+    for dependency in ("torch", "onnx", "onnxruntime", "transformers"):
+        pytest.importorskip(dependency)
+    import train
+    from test_compare_judge_rl import prepared
+
+    data, evaluation, fixture, calibration = prepared(tmp_path, monkeypatch)
+    path = data / "train.jsonl"
+    row = json.loads(path.read_text())
+    text = json.loads(fixture.read_text())["cases"][0][fixture_field]
+    text = "  ".join(text.upper().split())
+    row[training_field] = [text] if training_field == "references" else text
+    # Even CE-only human rows outside the synthetic reward subset must be disjoint.
+    row.update({"origin": "ErAConD", "license": "MIT", "dialog_id": "human-dialog"})
+    path.write_text(json.dumps(row) + "\n")
+    monkeypatch.setattr(train.AutoTokenizer, "from_pretrained",
+                        lambda *_args, **_kwargs: pytest.fail("Must reject overlap before loading a model"))
+    args = train.parser().parse_args(["--data", str(data), "--evaluation-dir", str(evaluation),
+        "--output", str(tmp_path / "output"), "--checkpoint", str(tmp_path / "checkpoint"),
+        "--epochs", "1", "--device", "cpu", "--objective", "llm-judge-reinforce",
+        "--judge-calibration", str(calibration), "--judge-calibration-fixture", str(fixture)])
+    with pytest.raises(ValueError, match="calibration source/candidate overlaps"):
+        train.main(args)
+    assert not args.output.exists() and not args.checkpoint.exists()
+
+
 @pytest.mark.parametrize("development_only", [True, False])
-def test_test_population_is_never_inferred_in_development_only_mode(tmp_path, monkeypatch, development_only):
+@pytest.mark.parametrize("objective", ["supervised", "anchored-reinforce"])
+def test_test_population_is_never_inferred_in_development_only_mode(tmp_path, monkeypatch, development_only, objective):
     torch = pytest.importorskip("torch")
     pytest.importorskip("onnx")
     pytest.importorskip("onnxruntime")
@@ -56,6 +86,7 @@ def test_test_population_is_never_inferred_in_development_only_mode(tmp_path, mo
         def save_pretrained(self, path):
             Path(path).mkdir(parents=True, exist_ok=True)
             self.config.save_pretrained(path)
+            torch.save(self.state_dict(), Path(path) / "pytorch_model.bin")
 
     loads, inferred = [], []
 
@@ -90,17 +121,23 @@ def test_test_population_is_never_inferred_in_development_only_mode(tmp_path, mo
     monkeypatch.setattr(train, "quantize_dynamic", lambda _source, target, **_kwargs: Path(target).write_bytes(b"fake quantized graph"))
     args = train.parser().parse_args(["--data", str(data), "--evaluation-dir", str(evaluation),
         "--output", str(tmp_path / "output"), "--checkpoint", str(tmp_path / "checkpoint"),
-        "--epochs", "1", "--device", "cpu", "--keep-weight", "1.0", *(["--development-only"] if development_only else [])])
+        "--epochs", "1", "--device", "cpu", "--keep-weight", "1.0", "--objective", objective,
+        *(["--development-only"] if development_only else [])])
     train.main(args)
     report = json.loads((args.output / "evaluation.json").read_text())
     manifest = json.loads((args.output / "manifest.json").read_text())
     assert report["schedule"]["keep_weight"] == 1.
+    assert report["objective"]["keep_weight"] == 1.
+    assert report["objective"]["name"] == objective
     assert report["test_status"] == ("deferred" if development_only else "evaluated")
     assert {value["split"] for value in report["exports"].values()} == {"dev" if development_only else "test"}
     if development_only:
         assert "test" not in inferred and "test" not in loads
         assert report["test"] is report["diagnostic_unconstrained_test"] is None
         assert report["pytorch_checkpoint_test"] is report["inference"]["test"] is None
+        assert "test_by_origin" not in report
+        assert {value["by_origin"]["unspecified"]["sentences"] for value in report["exports"].values()} == {1}
         assert manifest["disableModelEdits"] is True
     else:
         assert "test" in inferred and "test" in loads and report["test"] is not None
+        assert report["test_by_origin"]["unspecified"]["sentences"] == 1

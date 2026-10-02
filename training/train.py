@@ -21,6 +21,7 @@ from transformers import AutoModelForTokenClassification, AutoTokenizer, BertTok
 
 from evaluate import collect_proposals, evaluate_records, choose_calibration, choose_joint_calibration, load_evaluation, qualified
 from pairs import evaluation_keys, hash_file, normalized
+from rl_objective import anchored_loss, REWARDS, checkpoint_hashes, validate_coefficient, validate_checkpoint_labels
 
 BASE = "google/bert_uncased_L-2_H-128_A-2"
 REVISION = "30b0a37ccaaa32f332884b96992754e246e48c5f"
@@ -150,6 +151,17 @@ def evaluation_populations(args):
     return rows, hashes
 
 
+def score_origins(rows, records, threshold, disabled, scorer, category_thresholds):
+    """Separate original human utterances from added reference clean controls."""
+    origins = sorted({row.get("origin", "unspecified") for row in rows})
+    result = {}
+    for origin in origins:
+        indices = [index for index, row in enumerate(rows) if row.get("origin", "unspecified") == origin]
+        result[origin] = evaluate_records([rows[index] for index in indices], [records[index] for index in indices],
+                                         threshold, disabled, scorer=scorer, category_thresholds=category_thresholds)
+    return result
+
+
 class ExportModel(torch.nn.Module):
     def __init__(self, model):
         super().__init__()
@@ -160,8 +172,15 @@ class ExportModel(torch.nn.Module):
 
 
 def main(args):
-    if args.epochs < 1 or args.batch_size < 1 or args.inference_batch_size < 1 or args.min_dev_edits < 1 or not 4 <= args.max_length <= 512 or args.learning_rate <= 0:
+    if args.epochs < 1 or args.batch_size < 1 or args.inference_batch_size < 1 or args.min_dev_edits < 1 or not 4 <= args.max_length <= 512 or not math.isfinite(args.learning_rate) or args.learning_rate <= 0:
         raise ValueError("Positive epochs, batch size, learning rate, development support and max-length 4..512 are required")
+    objective = getattr(args, "objective", "supervised")
+    coefficient = getattr(args, "rl_coefficient", .05)
+    validate_coefficient(coefficient)
+    if objective not in {"supervised", "anchored-reinforce", "llm-judge-reinforce"}:
+        raise ValueError("Unknown training objective")
+    if objective == "supervised": coefficient = 0.
+    initial_checkpoint = getattr(args, "initial_checkpoint", None)
     if not 0 <= args.min_precision <= 1 or not 0 <= args.max_clean_fp <= 1:
         raise ValueError("Calibration constraints must be between zero and one")
     if not math.isfinite(args.keep_weight) or args.keep_weight <= 0:
@@ -176,16 +195,30 @@ def main(args):
     np.random.seed(args.seed)
     random.seed(args.seed)
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
+    if device == "cuda" and not torch.cuda.is_available():
+        raise ValueError("Requested CUDA device is unavailable")
     print(f"device={device}", flush=True)
     labels = json.loads((args.data / "labels.json").read_text())
     dataset_manifest = json.loads((args.data / "manifest.json").read_text())
+    license_files = dataset_manifest.get("license_files", {})
+    for filename, expected in license_files.items():
+        if Path(filename).name != filename or hash_file(args.data / filename) != expected:
+            raise ValueError("Dataset license notice hash mismatch or unsafe filename")
     if not labels or labels[0] != "KEEP": raise ValueError("KEEP must be label zero")
+    initial_hashes = validate_checkpoint_labels(initial_checkpoint, labels) if initial_checkpoint else None
     rows, evaluation_hashes = evaluation_populations(args)
+    judge_training_rows = None
+    if objective == "llm-judge-reinforce" and coefficient:
+        from judge import validate_calibration_training
+        judge_training_rows = [json.loads(line) for line in (args.data / "train.jsonl").read_text().splitlines()]
+        validate_calibration_training(judge_training_rows, args.judge_calibration_fixture)
     label_to_id = {label: i for i, label in enumerate(labels)}
-    tokenizer = AutoTokenizer.from_pretrained(args.base_model, revision=args.base_revision, use_fast=True,
-                                             local_files_only=args.local_files_only)
+    source = str(initial_checkpoint) if initial_checkpoint else args.base_model
+    load_options = {"local_files_only": True} if initial_checkpoint else {
+        "revision": args.base_revision, "local_files_only": args.local_files_only}
+    tokenizer = AutoTokenizer.from_pretrained(source, use_fast=True, **load_options)
     model = AutoModelForTokenClassification.from_pretrained(
-        args.base_model, revision=args.base_revision, local_files_only=args.local_files_only,
+        source, **load_options,
         num_labels=len(labels), id2label=dict(enumerate(labels)), label2id=label_to_id,
         attn_implementation="eager").to(device)
     if not isinstance(tokenizer, BertTokenizerFast) or not tokenizer.do_lower_case or model.config.model_type != "bert":
@@ -208,23 +241,80 @@ def main(args):
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate, weight_decay=.01)
     weights = torch.ones(len(labels), device=device)
     weights[0] = args.keep_weight
-    loss_fn = torch.nn.CrossEntropyLoss(weight=weights, ignore_index=-100)
+    sampling_generator = torch.Generator(device=device).manual_seed(args.seed)
     args.checkpoint.mkdir(parents=True, exist_ok=True)
     schema = dataset_manifest.get("edit_schema", 1)
+    judge_client, judge_rows, judge_config = None, [], None
+    if objective == "llm-judge-reinforce" and coefficient:
+        from judge import Judge, judge_spec, spec_hash, canonical, digest, validate_calibration
+        from judge_objective import select_rows, subset_spec, batch_loss
+        if not 1 <= args.judge_rl_batch_size <= 16 or not math.isfinite(args.judge_temperature) or args.judge_temperature <= 0:
+            raise ValueError("Judge RL batches must be 1..16 with positive finite temperature")
+        spec = judge_spec(args.judge_model, args.judge_provider, args.judge_auth,
+                          args.judge_provider_header, args.judge_auth_header)
+        if args.judge_calibration is None:
+            raise ValueError("LLM judge RL requires a passing exact-spec calibration receipt")
+        validate_calibration(args.judge_calibration, spec, args.judge_calibration_fixture)
+        judge_rows = select_rows(judge_training_rows, args.judge_rl_rows, args.seed)
+        subset = subset_spec(judge_rows)
+        if args.judge_subset_sha256 and args.judge_subset_sha256 != digest(canonical(subset)):
+            raise ValueError("Frozen synthetic judge subset changed")
+        if math.ceil(len(judge_rows) / args.judge_rl_batch_size) > len(loaders["train"]):
+            raise ValueError("RL batches exceed matched CE optimizer updates; reduce subset or RL batch size")
+        judge_client = Judge(args.judge_cache or args.output.parent / "judge-cache", spec,
+                             batch_size=args.judge_batch_size, max_requests=args.judge_max_requests,
+                             max_pairs=args.judge_max_pairs, timeout=args.judge_timeout)
+        judge_config = {"spec": spec, "spec_sha256": spec_hash(spec), "subset": subset,
+                        "subset_sha256": digest(canonical(subset)), "temperature": args.judge_temperature,
+                        "rl_batch_size": args.judge_rl_batch_size, "samples_per_source": 1,
+                        "baseline": "Detached greedy self-critical reward from the same eval-mode policy",
+                        "log_probability": "Sum over valid word-initial token actions; batch mean across sentences",
+                        "calibration_sha256": hash_file(args.judge_calibration),
+                        "budgets": {"max_requests": args.judge_max_requests, "max_pairs": args.judge_max_pairs}}
     best_score = None
     history = []
+    updates, examples_seen, checkpoint_epoch = 0, 0, None
     started = time.monotonic()
     for epoch in range(args.epochs):
         model.train()
         total_loss = 0.
-        for ids, mask, types, gold in loaders["train"]:
+        supervised_loss, policy_loss = 0., 0.
+        reward_sum, expected_reward_sum, sampled_tokens = 0., 0., 0
+        judge_epoch = {"rows": 0, "reward_sum": 0., "baseline_sum": 0., "advantage_abs_sum": 0.,
+                       "nonzero_advantages": 0, "sampled_changed": 0, "greedy_changed": 0}
+        for batch_index, (ids, mask, types, gold) in enumerate(loaders["train"]):
             optimizer.zero_grad(set_to_none=True)
             logits = model(input_ids=ids.to(device), attention_mask=mask.to(device), token_type_ids=types.to(device)).logits
-            loss = loss_fn(logits.reshape(-1, len(labels)), gold.to(device).reshape(-1))
+            tag_coefficient = coefficient if objective == "anchored-reinforce" else 0.
+            loss, diagnostics = anchored_loss(logits, gold.to(device), weights, tag_coefficient, sampling_generator)
+            if judge_client:
+                start = batch_index * args.judge_rl_batch_size
+                batch_rows = judge_rows[start:start + args.judge_rl_batch_size]
+                if batch_rows:
+                    policy, values = batch_loss(model, batch_rows, tokenizer, labels, schema, args.max_length,
+                                               device, sampling_generator, judge_client, args.judge_temperature)
+                    loss = loss + coefficient * policy
+                    diagnostics["policy_gradient_loss"] = policy.detach().item()
+                    count = values["rows"]
+                    judge_epoch["rows"] += count
+                    for name, source_name in (("reward_sum", "reward"), ("baseline_sum", "baseline_reward"),
+                                              ("advantage_abs_sum", "advantage_abs")):
+                        judge_epoch[name] += values[source_name] * count
+                    for name in ("nonzero_advantages", "sampled_changed", "greedy_changed"):
+                        judge_epoch[name] += values[name]
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.)
             optimizer.step()
             total_loss += loss.item()
+            supervised_loss += diagnostics["supervised_loss"]
+            policy_loss += diagnostics["policy_gradient_loss"]
+            if tag_coefficient and diagnostics["valid_tokens"]:
+                count = diagnostics["valid_tokens"]
+                reward_sum += diagnostics["sampled_reward"] * count
+                expected_reward_sum += diagnostics["expected_reward"] * count
+                sampled_tokens += count
+            updates += 1
+            examples_seen += ids.shape[0]
         model.eval()
         records, inference = collect_proposals(rows["dev"], tokenizer, torch_infer(model, device), labels,
                                                args.max_length, schema, args.inference_batch_size)
@@ -234,13 +324,27 @@ def main(args):
         development = selected["selected"] if selected["constraints_met"] else selected["best_unconstrained"]
         score = (selected["constraints_met"], development["edit_f0_5"])
         history.append({"epoch": epoch + 1, "loss": total_loss / len(loaders["train"]),
+                        "supervised_loss": supervised_loss / len(loaders["train"]),
+                        "policy_gradient_loss": policy_loss / len(loaders["train"]),
+                        "sampled_reward": reward_sum / sampled_tokens if sampled_tokens else None,
+                        "expected_reward": expected_reward_sum / sampled_tokens if sampled_tokens else None,
+                        "judge": {"rows": judge_epoch["rows"],
+                            "mean_reward": judge_epoch["reward_sum"] / judge_epoch["rows"] if judge_epoch["rows"] else None,
+                            "mean_baseline": judge_epoch["baseline_sum"] / judge_epoch["rows"] if judge_epoch["rows"] else None,
+                            "mean_abs_advantage": judge_epoch["advantage_abs_sum"] / judge_epoch["rows"] if judge_epoch["rows"] else None,
+                            **{name: judge_epoch[name] for name in ("nonzero_advantages", "sampled_changed", "greedy_changed")},
+                            "client": judge_client.stats() if judge_client else None} if judge_client else None,
                         "development": development, "constraints_met": selected["constraints_met"],
                         "inference": inference})
         print(json.dumps(history[-1]), flush=True)
         if best_score is None or score > best_score:
             best_score = score
+            checkpoint_epoch = epoch + 1
             model.save_pretrained(args.checkpoint)
             tokenizer.save_pretrained(args.checkpoint)
+            shutil.copyfile(args.data / "labels.json", args.checkpoint / "labels.json")
+            for filename in license_files:
+                shutil.copyfile(args.data / filename, args.checkpoint / filename)
     model = AutoModelForTokenClassification.from_pretrained(args.checkpoint, attn_implementation="eager",
                                                            local_files_only=True).to(device).eval()
     dev_records, dev_inference = collect_proposals(rows["dev"], tokenizer, torch_infer(model, device), labels,
@@ -269,6 +373,16 @@ def main(args):
               "device": device, "parameters": sum(p.numel() for p in model.parameters()),
               "schedule": {"epochs": args.epochs, "batch_size": args.batch_size, "learning_rate": args.learning_rate,
                            "max_length": args.max_length, "keep_weight": args.keep_weight}, "training_seconds": round(time.monotonic() - started, 2),
+              "objective": {"name": objective, "rl_coefficient": coefficient, "keep_weight": args.keep_weight,
+                            "rewards": REWARDS if objective == "anchored-reinforce" else None,
+                            "judge": judge_config,
+                            "baseline": "Detached exact per-token expected reward" if tag_coefficient else None,
+                            "scope": "Source/candidate LLM rubric reward plus supervised CE; independent human development/test." if objective == "llm-judge-reinforce" else "Training edit-tag supervision; independent decoded development/test evaluation."},
+              "training_budget": {"optimizer_updates": updates, "examples_seen": examples_seen,
+                                  "rows_per_epoch": len(data["train"]), "selected_checkpoint_epoch": checkpoint_epoch,
+                                  "optimizer_state": "AdamW starts fresh; initial checkpoint supplies model weights only."},
+              "initialization": {"checkpoint": str(initial_checkpoint) if initial_checkpoint else None,
+                                 "files": initial_hashes, "sampling_seed": args.seed},
               "epochs": history, "calibration": calibrated, "test": complete_test,
               "diagnostic_unconstrained_test": {**diagnostic_test,
                   "deployment_policy": "Diagnostic only: threshold chosen on dev, without enforcing precision/clean-text constraints."} if diagnostic_test is not None else None,
@@ -284,18 +398,30 @@ def main(args):
                            "onnxruntime": ort.__version__, "transformers": version("transformers"),
                            "numpy": np.__version__}
     report["code_sha256"] = {name: hash_file(Path(__file__).with_name(name)) for name in
-                             ["train.py", "evaluate.py", "legacy_spelling.py", "edit_ops.py", "data.py", "prepare_pairs.py", "pairs.py"]}
+                             ["train.py", "rl_objective.py", "judge.py", "judge_objective.py", "evaluate.py", "legacy_spelling.py", "edit_ops.py", "data.py", "prepare_pairs.py", "pairs.py"]}
+    if judge_client:
+        report["judge"] = {"stats": judge_client.stats(), "ledgers": {
+            name: hash_file(judge_client.directory / name) for name in ("spec.json", "requests.jsonl", "verdicts.jsonl")}}
+        judge_client.close()
     report["code_sha256"]["dictionary.generated.ts"] = hash_file(Path(__file__).resolve().parent.parent / "packages/engine/src/dictionary.generated.ts")
     report["code_sha256"]["spelling.ts"] = hash_file(Path(__file__).resolve().parent.parent / "packages/engine/src/spelling.ts")
     report["dataset_manifest_sha256"] = hash_file(args.data / "manifest.json")
+    report["training_data_sha256"] = hash_file(args.data / "train.jsonl")
+    report["labels_sha256"] = hash_file(args.data / "labels.json")
+    report["checkpoint_files"] = checkpoint_hashes(args.checkpoint)
     base_license = VERIFIED_BASE_LICENSES.get((args.base_model, args.base_revision), "unverified")
     report["base_license"] = base_license
     report["publication_allowed"] = report["publication_allowed"] and base_license != "unverified"
+    if initial_checkpoint:
+        report["publication_allowed"] = False
+        report["publication_restriction"] = "Local warm-start provenance is recorded but not independently qualified for weight publication."
     base_path = Path(args.base_model)
     if base_path.is_dir():
         report["local_base_files"] = {path.name: hash_file(path) for path in sorted(base_path.iterdir())
                                       if path.is_file() and path.name in {"config.json", "model.safetensors", "pytorch_model.bin", "vocab.txt"}}
     args.output.mkdir(parents=True, exist_ok=True)
+    for filename in license_files:
+        shutil.copyfile(args.data / filename, args.output / filename)
     model = model.cpu().eval()
     dummy = tokenizer("She have a book.", return_tensors="pt")
     input_names = ["input_ids", "attention_mask", "token_type_ids"]
@@ -347,6 +473,8 @@ def main(args):
     report["calibration"] = deployed_calibration
     report["quantized_development_inference"] = quantized_dev_inference
     report["fp32_development_inference"] = float_dev_inference
+    report["development_by_origin"] = score_origins(rows["dev"], float_dev, threshold, disabled,
+                                                    args.scorer, category_thresholds)
     report["pytorch_checkpoint_test"] = report["test"]
     report["pytorch_diagnostic_unconstrained_test"] = report["diagnostic_unconstrained_test"]
     report["pytorch_supported_tagged_subset"] = report.pop("supported_tagged_subset")
@@ -373,6 +501,8 @@ def main(args):
                 parity["argmax_tokens"] += valid.sum().item()
         exports[filename] = {"split": export_split, "metrics": evaluate_records(rows[export_split], records, threshold, disabled,
                                                          scorer=args.scorer, category_thresholds=category_thresholds),
+                             "by_origin": score_origins(rows[export_split], records, threshold, disabled,
+                                                        args.scorer, category_thresholds),
                              "diagnostic_metrics": evaluate_records(rows[export_split], records,
                                 deployed_calibration["best_unconstrained"]["threshold"], scorer=args.scorer),
                              "inference": inference, "max_logit_difference": parity["max_logit_difference"],
@@ -384,6 +514,7 @@ def main(args):
         report["diagnostic_unconstrained_development"] = exports["model.onnx"]["diagnostic_metrics"]
     else:
         report["test"] = exports["model.onnx"]["metrics"]
+        report["test_by_origin"] = exports["model.onnx"]["by_origin"]
         report["diagnostic_unconstrained_test"] = {**exports["model.onnx"]["diagnostic_metrics"],
             "deployment_policy": "Diagnostic only: shared threshold chosen on dev without safety constraints; never used to enable edits."}
     manifest = {"schema": 1, "name": f"gamma-eh-edit-v{schema}", "editSchema": schema, "maxPasses": 1,
@@ -399,6 +530,12 @@ def main(args):
             manifest["files"][path.name] = {"bytes": path.stat().st_size, "sha256": hash_file(path)}
     (args.output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     (args.output / "evaluation.json").write_text(json.dumps(report, indent=2) + "\n")
+    (args.checkpoint / "receipt.json").write_text(json.dumps({
+        "base_model": args.base_model, "base_revision": args.base_revision,
+        "labels_sha256": report["labels_sha256"], "training_data_sha256": report["training_data_sha256"],
+        "dataset_manifest_sha256": report["dataset_manifest_sha256"], "code_sha256": report["code_sha256"],
+        "publication_allowed": report["publication_allowed"], "objective": report["objective"],
+        "training_budget": report["training_budget"], "files": report["checkpoint_files"]}, indent=2) + "\n")
     print(json.dumps({"test": report["test"], "exports": exports}), flush=True)
 
 
@@ -416,6 +553,28 @@ def parser():
     result.add_argument("--development-only", action="store_true",
                         help="Defer all test inference, scoring and parity; export a disabled provisional model for the hill-climb loop")
     result.add_argument("--seed", type=int, default=42)
+    result.add_argument("--objective", choices=["supervised", "anchored-reinforce", "llm-judge-reinforce"], default="supervised")
+    result.add_argument("--rl-coefficient", type=float, default=.05,
+                        help="Nonnegative finite REINFORCE weight; supervised weighted CE always remains active")
+    result.add_argument("--initial-checkpoint", type=Path,
+                        help="Local matching edit classifier warm start; experimental nonpublishable weights")
+    result.add_argument("--judge-model", default="gpt-6-luna")
+    result.add_argument("--judge-provider", default="codex")
+    result.add_argument("--judge-auth", default="subscription")
+    result.add_argument("--judge-provider-header", default="X-CLIProxy-Provider")
+    result.add_argument("--judge-auth-header", default="X-CLIProxy-Auth-Mode")
+    result.add_argument("--judge-cache", type=Path)
+    result.add_argument("--judge-calibration", type=Path)
+    result.add_argument("--judge-calibration-fixture", type=Path,
+                        default=Path(__file__).resolve().parents[1] / "data/judge-calibration.json")
+    result.add_argument("--judge-subset-sha256")
+    result.add_argument("--judge-rl-rows", type=int, default=128)
+    result.add_argument("--judge-rl-batch-size", type=int, default=16)
+    result.add_argument("--judge-temperature", type=float, default=1.)
+    result.add_argument("--judge-max-requests", type=int, default=256)
+    result.add_argument("--judge-max-pairs", type=int, default=8192)
+    result.add_argument("--judge-batch-size", type=int, default=16)
+    result.add_argument("--judge-timeout", type=int, default=60)
     result.add_argument("--base-model", default=BASE)
     result.add_argument("--base-revision", default=REVISION)
     result.add_argument("--local-files-only", action="store_true")

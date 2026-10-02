@@ -1,0 +1,461 @@
+{
+  "schema": 1,
+  "date": "2026-10-01",
+  "scope": "Local exploratory BERT-Tiny study. Neural proposals only; no full-engine/browser accuracy claim. The longer schedule followed zero-edit development results in the short smoke run; the same test set was reused for exploratory confirmation, not fresh certification.",
+  "source_revision": "8401d3601f58170b55f0b1ca3773329c56b116f9",
+  "human_splits": {
+    "train": {
+      "rows": 1217,
+      "sha256": "d59244f1e875295d9879fca058aba37c4301c902d846bfcf81757d4ea5169175"
+    },
+    "dev": {
+      "rows": 118,
+      "sha256": "a4afbd91a8fa2bb4dc8a26db76d90a696acd1d337a5c255d395f02c8879afcd7"
+    },
+    "test": {
+      "rows": 188,
+      "sha256": "d9879bfb9395bdbcf5952b79181c00e8c1b7e875434b78b52b684f9c5fe10567"
+    }
+  },
+  "mixture": {
+    "selected_raw_rows": 4096,
+    "selected_raw_origins": {
+      "ErAConD": 1149,
+      "rule-corruption-v1": 1024,
+      "original-template-v1": 1923
+    },
+    "splits": {
+      "train": {
+        "accepted": 3993,
+        "population": 4096,
+        "unsupported_tag_examples": 0,
+        "sha256": "492333256a1e81698ce68c1d342f97703a9c81733d6b1240cbfc8f8ccb2ba2dc"
+      },
+      "dev": {
+        "accepted": 0,
+        "population": 0,
+        "unsupported_tag_examples": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "test": {
+        "accepted": 0,
+        "population": 0,
+        "unsupported_tag_examples": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "evaluation": {
+      "dev": {
+        "rows": 236,
+        "sha256": "c56ca345c92dc49f9e64c22d7365d442f3912862110da3db81e406e556ca6a6e",
+        "original_utterances": 118,
+        "reference_clean_controls": 118
+      },
+      "test": {
+        "rows": 379,
+        "sha256": "00538df959d61dfcb390ebcf0f8382def3309663cf49f9898e8e61c22522eab1",
+        "original_utterances": 188,
+        "reference_clean_controls": 191
+      }
+    },
+    "label_count": 505,
+    "labels_sha256": "9a67218909a0c1afff1feb208118f004397fa48b31383147c328a7dbcdfcf34c",
+    "human_corpus_manifest_sha256": "3f04c3ca77c021eb9878595e4eb44ad16f1b648a3867abe9e09865903fe6ecd3",
+    "counterexamples_sha256": "8473b5e5f9b99713cc7bb2ca3a59e9f77f887b7368d3629dc8d2938b59a5c529",
+    "seeds_sha256": "de228ec9fda0d77a99816aafd11d09e721692864dc36e2441784571fc1aab38a"
+  },
+  "scorer": "ERRANT 3.0.2 token-span edits; best supplied reference chosen by sentence F0.5; not the ErAConD paper protocol.",
+  "runs": {
+    "rules-rl-v1": {
+      "plan_sha256": "c4ac044e0cde25257c11d563798acac05f29a7b5da8fa599be437d3a2b5718b1",
+      "schedule": {
+        "warmup_epochs": 2,
+        "epochs": 2,
+        "batch_size": 64,
+        "max_length": 96,
+        "learning_rate": 0.0002,
+        "seed": 42,
+        "device": "cuda",
+        "scorer": "errant",
+        "rl_coefficient": 0.05
+      },
+      "initial_checkpoint_files": {
+        "ERACOND-LICENSE": "eb38ee0e7a949f78c4fd1e29aa96c71f45fb6caebb6519c691a466cac62bbc88",
+        "config.json": "c0ff3e4a45cf1d068ffdc7e25c6305b9f9df74bffa46550f5d1f76045275d716",
+        "labels.json": "9a67218909a0c1afff1feb208118f004397fa48b31383147c328a7dbcdfcf34c",
+        "model.safetensors": "9301286ff0eb4874e5509376f892b1024717e617314a874b1a1a1b81920ac952",
+        "receipt.json": "dc13e5f6ea5467dee17387dfe87d83aaeea7c2cece8e5b2b86a255976a55c319",
+        "special_tokens_map.json": "b6d346be366a7d1d48332dbc9fdf3bf8960b5d879522b7799ddba59e76237ee3",
+        "tokenizer.json": "f17212c38517cfedc9306b57eeffbaf58c4976fcb42e5a87b405f36a7b9a9eb2",
+        "tokenizer_config.json": "e711904cac23112776b678356ccf702cf934babaa01125f698ac43bf9ad38e73",
+        "vocab.txt": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+      },
+      "arms": {
+        "supervised": {
+          "training_budget": {
+            "optimizer_updates": 126,
+            "examples_seen": 7986,
+            "rows_per_epoch": 3993,
+            "selected_checkpoint_epoch": 1,
+            "optimizer_state": "AdamW starts fresh; initial checkpoint supplies model weights only."
+          },
+          "training_seconds": 6.69,
+          "policy_qualified_on_development": false,
+          "disable_model_edits": true,
+          "test": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 346,
+            "predicted_edits": 0,
+            "sentences": 379,
+            "clean_sentences": 223,
+            "clean_sentences_changed": 0,
+            "clean_sentence_false_positive_rate": 0.0,
+            "sentence_exact_match": 0.5883905013192612,
+            "threshold": 1.0,
+            "disable_model_edits": true
+          },
+          "test_by_origin": {
+            "ErAConD": {
+              "edit_precision": 1.0,
+              "edit_recall": 0.0,
+              "edit_f0_5": 0.0,
+              "true_positive_edits": 0,
+              "false_positive_edits": 0,
+              "missed_edits": 346,
+              "predicted_edits": 0,
+              "sentences": 188,
+              "clean_sentences": 32,
+              "clean_sentences_changed": 0,
+              "clean_sentence_false_positive_rate": 0.0,
+              "sentence_exact_match": 0.1702127659574468,
+              "threshold": 1.0,
+              "disable_model_edits": true
+            },
+            "ErAConD-human-reference-clean-control": {
+              "edit_precision": 1.0,
+              "edit_recall": 1.0,
+              "edit_f0_5": 1.0,
+              "true_positive_edits": 0,
+              "false_positive_edits": 0,
+              "missed_edits": 0,
+              "predicted_edits": 0,
+              "sentences": 191,
+              "clean_sentences": 191,
+              "clean_sentences_changed": 0,
+              "clean_sentence_false_positive_rate": 0.0,
+              "sentence_exact_match": 1.0,
+              "threshold": 1.0,
+              "disable_model_edits": true
+            }
+          },
+          "agent_diagnostics": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 16,
+            "predicted_edits": 0,
+            "sentences": 100,
+            "clean_sentences": 84,
+            "clean_sentences_changed": 0,
+            "clean_sentence_false_positive_rate": 0.0,
+            "sentence_exact_match": 0.84,
+            "threshold": 1.0,
+            "disable_model_edits": true
+          },
+          "publication_allowed": false,
+          "evaluation_sha256": "837c6f3151ba99b456b48f1e4d8f1481d56ba9d3a4071d07f9e351fd0f127f67",
+          "correct_test_edits_by_type": {}
+        },
+        "anchored-reinforce": {
+          "training_budget": {
+            "optimizer_updates": 126,
+            "examples_seen": 7986,
+            "rows_per_epoch": 3993,
+            "selected_checkpoint_epoch": 1,
+            "optimizer_state": "AdamW starts fresh; initial checkpoint supplies model weights only."
+          },
+          "training_seconds": 6.91,
+          "policy_qualified_on_development": false,
+          "disable_model_edits": true,
+          "test": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 346,
+            "predicted_edits": 0,
+            "sentences": 379,
+            "clean_sentences": 223,
+            "clean_sentences_changed": 0,
+            "clean_sentence_false_positive_rate": 0.0,
+            "sentence_exact_match": 0.5883905013192612,
+            "threshold": 1.0,
+            "disable_model_edits": true
+          },
+          "test_by_origin": {
+            "ErAConD": {
+              "edit_precision": 1.0,
+              "edit_recall": 0.0,
+              "edit_f0_5": 0.0,
+              "true_positive_edits": 0,
+              "false_positive_edits": 0,
+              "missed_edits": 346,
+              "predicted_edits": 0,
+              "sentences": 188,
+              "clean_sentences": 32,
+              "clean_sentences_changed": 0,
+              "clean_sentence_false_positive_rate": 0.0,
+              "sentence_exact_match": 0.1702127659574468,
+              "threshold": 1.0,
+              "disable_model_edits": true
+            },
+            "ErAConD-human-reference-clean-control": {
+              "edit_precision": 1.0,
+              "edit_recall": 1.0,
+              "edit_f0_5": 1.0,
+              "true_positive_edits": 0,
+              "false_positive_edits": 0,
+              "missed_edits": 0,
+              "predicted_edits": 0,
+              "sentences": 191,
+              "clean_sentences": 191,
+              "clean_sentences_changed": 0,
+              "clean_sentence_false_positive_rate": 0.0,
+              "sentence_exact_match": 1.0,
+              "threshold": 1.0,
+              "disable_model_edits": true
+            }
+          },
+          "agent_diagnostics": {
+            "edit_precision": 1.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 0,
+            "missed_edits": 16,
+            "predicted_edits": 0,
+            "sentences": 100,
+            "clean_sentences": 84,
+            "clean_sentences_changed": 0,
+            "clean_sentence_false_positive_rate": 0.0,
+            "sentence_exact_match": 0.84,
+            "threshold": 1.0,
+            "disable_model_edits": true
+          },
+          "publication_allowed": false,
+          "evaluation_sha256": "d18b0baf72c2e0cfa158e54624b61131f0ab0ba13a5985dc9e4cdeb7aec6375b",
+          "correct_test_edits_by_type": {}
+        }
+      }
+    },
+    "rules-rl-v2": {
+      "plan_sha256": "ccc769a0ecaa355c6f032518d8b8667ed401de7063425c7ff0dd261334039acb",
+      "schedule": {
+        "warmup_epochs": 8,
+        "epochs": 8,
+        "batch_size": 64,
+        "max_length": 96,
+        "learning_rate": 0.0002,
+        "seed": 42,
+        "device": "cuda",
+        "scorer": "errant",
+        "rl_coefficient": 0.05
+      },
+      "initial_checkpoint_files": {
+        "ERACOND-LICENSE": "eb38ee0e7a949f78c4fd1e29aa96c71f45fb6caebb6519c691a466cac62bbc88",
+        "config.json": "c0ff3e4a45cf1d068ffdc7e25c6305b9f9df74bffa46550f5d1f76045275d716",
+        "labels.json": "9a67218909a0c1afff1feb208118f004397fa48b31383147c328a7dbcdfcf34c",
+        "model.safetensors": "f67c0211ab7de94d53564c280705d8a62c61e6b174f156f10915e8a34df98792",
+        "receipt.json": "be902eef386c4d065e7c9897c1dd4d7aa6c6cf6afcbf9a14dcef8ab5fc38157e",
+        "special_tokens_map.json": "b6d346be366a7d1d48332dbc9fdf3bf8960b5d879522b7799ddba59e76237ee3",
+        "tokenizer.json": "f17212c38517cfedc9306b57eeffbaf58c4976fcb42e5a87b405f36a7b9a9eb2",
+        "tokenizer_config.json": "e711904cac23112776b678356ccf702cf934babaa01125f698ac43bf9ad38e73",
+        "vocab.txt": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+      },
+      "arms": {
+        "supervised": {
+          "training_budget": {
+            "optimizer_updates": 504,
+            "examples_seen": 31944,
+            "rows_per_epoch": 3993,
+            "selected_checkpoint_epoch": 2,
+            "optimizer_state": "AdamW starts fresh; initial checkpoint supplies model weights only."
+          },
+          "training_seconds": 11.71,
+          "policy_qualified_on_development": true,
+          "disable_model_edits": false,
+          "test": {
+            "edit_precision": 0.8738738738738738,
+            "edit_recall": 0.28034682080924855,
+            "edit_f0_5": 0.6139240506329114,
+            "true_positive_edits": 97,
+            "false_positive_edits": 14,
+            "missed_edits": 249,
+            "predicted_edits": 111,
+            "sentences": 379,
+            "clean_sentences": 223,
+            "clean_sentences_changed": 2,
+            "clean_sentence_false_positive_rate": 0.008968609865470852,
+            "sentence_exact_match": 0.6807387862796834,
+            "threshold": 0.6,
+            "disable_model_edits": false
+          },
+          "test_by_origin": {
+            "ErAConD": {
+              "edit_precision": 0.8818181818181818,
+              "edit_recall": 0.28034682080924855,
+              "edit_f0_5": 0.6170483460559797,
+              "true_positive_edits": 97,
+              "false_positive_edits": 13,
+              "missed_edits": 249,
+              "predicted_edits": 110,
+              "sentences": 188,
+              "clean_sentences": 32,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.03125,
+              "sentence_exact_match": 0.3617021276595745,
+              "threshold": 0.6,
+              "disable_model_edits": false
+            },
+            "ErAConD-human-reference-clean-control": {
+              "edit_precision": 0.0,
+              "edit_recall": 1.0,
+              "edit_f0_5": 0.0,
+              "true_positive_edits": 0,
+              "false_positive_edits": 1,
+              "missed_edits": 0,
+              "predicted_edits": 1,
+              "sentences": 191,
+              "clean_sentences": 191,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.005235602094240838,
+              "sentence_exact_match": 0.9947643979057592,
+              "threshold": 0.6,
+              "disable_model_edits": false
+            }
+          },
+          "agent_diagnostics": {
+            "edit_precision": 0.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 2,
+            "missed_edits": 16,
+            "predicted_edits": 2,
+            "sentences": 100,
+            "clean_sentences": 84,
+            "clean_sentences_changed": 1,
+            "clean_sentence_false_positive_rate": 0.011904761904761904,
+            "sentence_exact_match": 0.83,
+            "threshold": 0.6,
+            "disable_model_edits": false
+          },
+          "publication_allowed": false,
+          "evaluation_sha256": "25c9f48f8d31bffb0a9b5a480d93a00fada53590f1229bf02349233538a1b615",
+          "correct_test_edits_by_type": {
+            "M:PUNCT": 66,
+            "R:CONTR": 22,
+            "R:ORTH": 6,
+            "R:OTHER": 2,
+            "R:SPELL": 1
+          }
+        },
+        "anchored-reinforce": {
+          "training_budget": {
+            "optimizer_updates": 504,
+            "examples_seen": 31944,
+            "rows_per_epoch": 3993,
+            "selected_checkpoint_epoch": 2,
+            "optimizer_state": "AdamW starts fresh; initial checkpoint supplies model weights only."
+          },
+          "training_seconds": 13.02,
+          "policy_qualified_on_development": true,
+          "disable_model_edits": false,
+          "test": {
+            "edit_precision": 0.8703703703703703,
+            "edit_recall": 0.27167630057803466,
+            "edit_f0_5": 0.6041131105398457,
+            "true_positive_edits": 94,
+            "false_positive_edits": 14,
+            "missed_edits": 252,
+            "predicted_edits": 108,
+            "sentences": 379,
+            "clean_sentences": 223,
+            "clean_sentences_changed": 2,
+            "clean_sentence_false_positive_rate": 0.008968609865470852,
+            "sentence_exact_match": 0.6781002638522428,
+            "threshold": 0.6,
+            "disable_model_edits": false
+          },
+          "test_by_origin": {
+            "ErAConD": {
+              "edit_precision": 0.8785046728971962,
+              "edit_recall": 0.27167630057803466,
+              "edit_f0_5": 0.607235142118863,
+              "true_positive_edits": 94,
+              "false_positive_edits": 13,
+              "missed_edits": 252,
+              "predicted_edits": 107,
+              "sentences": 188,
+              "clean_sentences": 32,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.03125,
+              "sentence_exact_match": 0.35638297872340424,
+              "threshold": 0.6,
+              "disable_model_edits": false
+            },
+            "ErAConD-human-reference-clean-control": {
+              "edit_precision": 0.0,
+              "edit_recall": 1.0,
+              "edit_f0_5": 0.0,
+              "true_positive_edits": 0,
+              "false_positive_edits": 1,
+              "missed_edits": 0,
+              "predicted_edits": 1,
+              "sentences": 191,
+              "clean_sentences": 191,
+              "clean_sentences_changed": 1,
+              "clean_sentence_false_positive_rate": 0.005235602094240838,
+              "sentence_exact_match": 0.9947643979057592,
+              "threshold": 0.6,
+              "disable_model_edits": false
+            }
+          },
+          "agent_diagnostics": {
+            "edit_precision": 0.0,
+            "edit_recall": 0.0,
+            "edit_f0_5": 0.0,
+            "true_positive_edits": 0,
+            "false_positive_edits": 2,
+            "missed_edits": 16,
+            "predicted_edits": 2,
+            "sentences": 100,
+            "clean_sentences": 84,
+            "clean_sentences_changed": 1,
+            "clean_sentence_false_positive_rate": 0.011904761904761904,
+            "sentence_exact_match": 0.83,
+            "threshold": 0.6,
+            "disable_model_edits": false
+          },
+          "publication_allowed": false,
+          "evaluation_sha256": "09a7acbca814969758bb533dccced0fed7d32b01e4db7c1ca3165b400edcb366",
+          "correct_test_edits_by_type": {
+            "M:PUNCT": 66,
+            "R:CONTR": 22,
+            "R:ORTH": 3,
+            "R:OTHER": 2,
+            "R:SPELL": 1
+          }
+        }
+      }
+    }
+  },
+  "release_decision": "Do not promote. Both longer-run models fall below the 95% held-out edit precision target, fail to correct all 16 agent diagnostic errors, and alter 1 of 84 valid diagnostics. Warm-start weights remain nonpublishable experiments. Product assets unchanged."
+}
