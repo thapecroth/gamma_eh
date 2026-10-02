@@ -13,6 +13,7 @@ import re
 import tarfile
 from urllib.request import urlopen
 from urllib.parse import urlencode
+from urllib.parse import urlsplit
 
 from edit_ops import render, tokenize
 from pairs import hash_file, normalized, validate_pair
@@ -25,6 +26,17 @@ NORMALIZATION = "Join standard spaCy English contractions, then edit-schema-2 ca
 def canonical(text):
     text = re.sub(r"\b([A-Za-z]+)\s+(n['’]t|['’](?:s|m|d|ll|re|ve))\b", r"\1\2", text, flags=re.IGNORECASE)
     return render(tokenize(text), 2)
+
+
+def repository_slug(value):
+    if value.startswith("https://"):
+        parsed = urlsplit(value)
+        if parsed.netloc != "github.com" or parsed.query or parsed.fragment:
+            raise ValueError("Invalid originating repository URL")
+        value = parsed.path.strip("/").removesuffix(".git")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", value):
+        raise ValueError("Invalid originating repository slug")
+    return value
 
 
 def keys(text):
@@ -204,7 +216,7 @@ def github_pairs(path, license_cache):
             if len(line) > 1_000_000:
                 raise ValueError("Oversized GitHub record")
             commit = json.loads(line)
-            repo, revision = commit["repo"], commit["commit"]
+            repo, revision = repository_slug(commit["repo"]), commit["commit"]
             proof = licenses.get(f"{repo}@{revision}")
             for index, edit in enumerate(commit["edits"]):
                 if edit["src"].get("lang") != "eng" or edit["tgt"].get("lang") != "eng":
@@ -274,20 +286,34 @@ def dolt_rows(spec, max_scanned):
     repos = spec.get("repositories", [])
     if not repos or any(not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo) for repo in repos):
         raise ValueError("Explicit repository sampling scope required")
-    scope = ",".join("'" + repo + "'" for repo in repos)
-    for offset in range(0, max_scanned, 500):
-        limit = min(500, max_scanned - offset)
-        query = (f"SELECT * FROM edits AS OF '{revision}' WHERE source_lang='eng' AND target_lang='eng' "
-                 f"AND is_typo=1 AND repo IN ({scope}) "
-                 "AND (LOWER(source_path) LIKE '%.md' OR LOWER(source_path) LIKE '%.rst' OR LOWER(source_path) LIKE '%.txt') "
-                 f"ORDER BY repo,commit_hash,edit_number LIMIT {limit} OFFSET {offset}")
-        with urlopen(spec["api_url"] + "?" + urlencode({"q": query}), timeout=60) as response:
-            value = json.loads(response.read(8_000_001))
-        if value.get("query_execution_status") != "Success":
-            raise ValueError("Pinned Dolt query failed; no partial corpus import")
-        rows = value["rows"]
-        yield from rows
-        if len(rows) < limit:
+    remaining = max_scanned
+    # Equality-scoped requests avoid sorting the entire multi-repository result
+    # on the public API, while preserving a deterministic repository prefix.
+    for repo in sorted(repos):
+        offset = 0
+        while remaining:
+            limit = min(500, remaining)
+            query = (f"SELECT * FROM edits AS OF '{revision}' WHERE repo='https://github.com/{repo}' "
+                     "AND source_lang='eng' AND target_lang='eng' AND is_typo=1 "
+                     "AND (LOWER(source_path) LIKE '%.md' OR LOWER(source_path) LIKE '%.rst' OR LOWER(source_path) LIKE '%.txt') "
+                     f"ORDER BY commit_hash,edit_number LIMIT {limit} OFFSET {offset}")
+            with urlopen(spec["api_url"] + "?" + urlencode({"q": query}), timeout=60) as response:
+                value = json.loads(response.read(8_000_001))
+            if value.get("query_execution_status") != "Success":
+                raise ValueError("Pinned Dolt query failed; no partial corpus import")
+            rows = value["rows"]
+            if len(rows) > limit:
+                raise ValueError("Dolt response exceeded requested bound")
+            for row in rows:
+                row["repo"] = repository_slug(row["repo"])
+                if row["repo"] != repo or not re.fullmatch(r"[0-9a-f]{40}", row["commit_hash"]):
+                    raise ValueError("Invalid originating repository/commit")
+            yield from rows
+            remaining -= len(rows)
+            if len(rows) < limit:
+                break
+            offset += limit
+        if not remaining:
             break
 
 
