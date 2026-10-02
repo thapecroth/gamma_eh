@@ -5,6 +5,9 @@ a mixed-source candidate. These are bounded integration experiments. They do
 not train on the entire C4/WikEd corpora, certify model quality, or replace the
 shipped model. Corpus text, checkpoints and ONNX candidates stay Git-ignored.
 
+See the [completed pilots and comparison figure](training-corpora-results.md)
+for the actual per-source and mixed-source results, pending inputs and gates.
+
 ## Sources and PR boundaries
 
 Each source has its own specification and documentation change. Importer and
