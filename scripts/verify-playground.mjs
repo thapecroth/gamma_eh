@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import { preview } from 'vite';
 import { browserArguments, findChromium } from './browser-environment.mjs';
 import { buildPaths } from './paths.mjs';
@@ -12,7 +13,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const { webOutput, artifactDir } = buildPaths(root);
 const gpuRequired = process.env.GAMMA_TEST_WEBGPU === '1';
 const base = webBase();
-const evidence = { basePath: base, extensionLoaded: false, checks: {}, externalRequests: [], outsideBaseRequests: [], uploads: [], errors: [] };
+const evidence = { basePath: base, extensionLoaded: false, checks: {}, accessibility: [], externalRequests: [], outsideBaseRequests: [], uploads: [], errors: [] };
 await mkdir(artifactDir, { recursive: true });
 let server;
 let browser;
@@ -73,6 +74,14 @@ async function verifyUnderlines(page, expected) {
   assert.deepEqual(failures, []);
 }
 
+async function auditAccessibility(page, state) {
+  const result = await new AxeBuilder({page}).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  const findings = rows => rows.map(({id, impact, nodes}) => ({id, impact, targets: nodes.map(node => node.target)}));
+  const receipt = {state, engine: result.testEngine, violations: findings(result.violations), manualReview: findings(result.incomplete)};
+  evidence.accessibility.push(receipt);
+  assert.deepEqual(receipt.violations, [], `${state} accessibility violations: ${JSON.stringify(receipt.violations)}`);
+}
+
 try {
   let siteUrl = process.env.GAMMA_PLAYGROUND_URL;
   if (!siteUrl) {
@@ -108,9 +117,10 @@ try {
   page.on('pageerror', error => evidence.errors.push(error.message));
   await page.goto(site.href);
   await ready(page);
+  await auditAccessibility(page, 'desktop-default-ai');
   const editor = page.getByLabel('Your writing', { exact: true });
   const acceptAll = page.getByRole('button', { name: 'Accept all suggestions', exact: true });
-  const undo = page.getByRole('button', { name: 'Undo correction', exact: true });
+  const undo = page.getByRole('button', { name: 'Undo last change', exact: true });
   assert.equal(await page.getByRole('checkbox').isChecked(), true, 'Local AI must start enabled');
   assert.match(await page.locator('.backend-status').textContent(), gpuRequired ? /Local AI · WebGPU/u : /Local AI · CPU/u);
   assert.equal(await page.locator('.model-warning').count(), 0);
@@ -121,6 +131,7 @@ try {
   await verifyUnderlines(page);
   await page.getByRole('checkbox').uncheck();
   await ready(page);
+  await auditAccessibility(page, 'desktop-rules');
 
   for (const name of ['Everyday writing', 'A spelling check', 'An email']) {
     await page.getByRole('button', { name, exact: true }).click();
@@ -131,7 +142,7 @@ try {
   const sample = await editor.inputValue();
   const initialCount = await page.locator('.suggestion-card').count();
   assert.equal(await page.locator('.writing-error').count(), initialCount);
-  await page.getByRole('button', { name: /^Dismiss:/u }).first().click();
+  await page.getByRole('button', { name: /^Dismiss correction:/u }).first().click();
   assert.equal(await editor.inputValue(), sample);
   assert.equal(await page.locator('.suggestion-card').count(), initialCount - 1);
   assert.equal(await page.locator('.writing-error').count(), initialCount - 1, 'Dismiss must remove its underline');
@@ -146,7 +157,7 @@ try {
   assert.equal(await page.locator('.writing-error').count(), 0, 'Typing must clear stale underlines immediately');
   await ready(page);
   await verifyUnderlines(page, ['definitly', 'freind', 'freind']);
-  await page.getByRole('button', { name: 'Accept', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Accept correction: definitly to definitely', exact: true }).click();
   await ready(page);
   await verifyUnderlines(page, ['freind', 'freind']);
   evidence.checks.underlineUTF16RepeatedWordsAndAccept = true;
@@ -166,7 +177,7 @@ try {
 
   await editor.fill('😀. She have a freind.');
   await ready(page);
-  await page.getByRole('button', { name: 'Accept', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Accept correction: have to has', exact: true }).click();
   assert.equal(await editor.inputValue(), '😀. She has a freind.');
   await undo.click();
   assert.equal(await editor.inputValue(), '😀. She have a freind.');
@@ -198,6 +209,49 @@ try {
   assert.equal(await page.getByRole('button', { name: 'Copy text', exact: true }).isDisabled(), true);
   await page.getByText('Make room for your words.', { exact: true }).waitFor();
   evidence.checks.blankDraft = true;
+  await auditAccessibility(page, 'empty-draft');
+
+  const personalDraft = 'A fictional draft I want to keep. 😀';
+  for (const action of ['Clear', 'Reset example', 'Everyday writing']) {
+    await editor.fill(personalDraft);
+    await ready(page);
+    await page.getByRole('button', {name: action, exact: true}).click();
+    assert.notEqual(await editor.inputValue(), personalDraft);
+    assert.equal(await undo.isDisabled(), false, `${action} must be reversible`);
+    await undo.click();
+    assert.equal(await editor.inputValue(), personalDraft);
+    assert.equal(await undo.isDisabled(), true, 'Recovery is one step and cannot replay stale text');
+  }
+  await page.getByRole('button', {name: 'Clear', exact: true}).click();
+  await editor.fill('A newer fictional draft.');
+  assert.equal(await undo.isDisabled(), true, 'Typing must invalidate older recovery snapshots');
+  await ready(page);
+  evidence.checks.destructiveActionsRecoverable = true;
+
+  for (const name of ['Privacy policy', 'Help and limitations', 'Report a problem']) {
+    const link = page.getByRole('link', {name, exact: true});
+    assert.equal(await link.count(), 1);
+    assert.equal(await link.isVisible(), true);
+    if (name === 'Report a problem') assert.match(await link.getAttribute('href'), /^https:\/\/github\.com\/thapecroth\/gamma_eh\//u);
+    else {
+      const documentPage = await context.newPage();
+      const response = await documentPage.goto(new URL(await link.getAttribute('href'), page.url()).href);
+      assert.equal(response.status(), 200, `${name} is included in the shipped web assets`);
+      assert.equal(await documentPage.getByRole('heading', {level: 1}).count(), 1);
+      assert.equal(await documentPage.locator('script').count(), 0);
+      await auditAccessibility(documentPage, name);
+      await documentPage.setViewportSize({width: 320, height: 844});
+      assert.equal(await documentPage.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      const privacyHref = await documentPage.getByRole('link', {name: 'Privacy policy', exact: true}).first().getAttribute('href');
+      assert.equal(new URL(privacyHref, documentPage.url()).origin, new URL(page.url()).origin);
+      await documentPage.close();
+    }
+  }
+  const policy = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');
+  assert.match(policy, /connect-src 'self'/u);
+  assert.match(policy, /script-src 'self' 'wasm-unsafe-eval'/u);
+  assert.equal(await page.locator('meta[name="referrer"]').getAttribute('content'), 'no-referrer');
+  evidence.checks.publicHelpAndLocalContentPolicy = true;
 
   await page.getByRole('button', { name: 'Try local AI', exact: true }).click();
   assert.equal(await page.getByRole('checkbox').isChecked(), true);
@@ -212,6 +266,7 @@ try {
   });
   assert.equal(await page.locator('.model-warning').count(), 0);
   assert((await page.locator('.suggestion-origin').allTextContents()).includes('LOCAL MODEL'), 'AI example must exercise an actual model-origin correction');
+  await auditAccessibility(page, 'local-ai');
   assert(requests.some(url => new URL(url).pathname === `${base}models/model.onnx`));
   await acceptAll.click();
   assert.match(await editor.inputValue(), /^The students have a notebook\./u);
@@ -244,6 +299,13 @@ try {
     await painted(page);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `No horizontal overflow at ${width}px`);
     await verifyUnderlines(page);
+    if (width === 320) {
+      await auditAccessibility(page, 'mobile-320');
+      const policyLink = page.getByRole('link', {name: 'Privacy policy', exact: true});
+      await policyLink.focus();
+      await page.keyboard.press('Tab');
+      assert.equal(await page.getByRole('link', {name: 'Help and limitations', exact: true}).evaluate(link => document.activeElement === link), true);
+    }
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: join(artifactDir, 'playground-mobile.png'), fullPage: true });

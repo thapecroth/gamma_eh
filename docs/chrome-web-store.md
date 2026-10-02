@@ -6,6 +6,12 @@ receive the same review and automatic updates as public items. This document
 is preparation, not evidence of publication. Record the actual store URL here
 after the first approval.
 
+Store preparation and automated upload do not establish GA. The
+[GA readiness record](ga-readiness.md) separately requires native store install,
+update/settings/site-access checks and reviewed launch evidence. The existing
+release pipeline continues to publish experimental GitHub prereleases by
+default; stable promotion never submits a new store package.
+
 ## First submission
 
 1. [Register a publisher](https://developer.chrome.com/docs/webstore/register)

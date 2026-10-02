@@ -36,10 +36,11 @@ prereleases from the latest stable release shortcut.
    spelling and rules if the model cannot run. A saved AI opt-out is respected.
 
 Keep the extracted directory. Chrome loads unpacked assets from it. For updates,
-remove the old unpacked extension and load the newer extracted directory, then
-reload existing website tabs. This resets extension preferences. Keeping the
-old ZIP allows a rollback using the same remove/load steps. Unpacked installs
-do not update automatically.
+replace its contents with the newer extracted package, click **Reload** on the
+extension card, then reload existing website tabs. Keeping the same installation
+preserves its settings and permissions; removing it resets them. Keep the old
+ZIP for a rollback using the same replace/reload steps. Unpacked installs do
+not update automatically.
 
 This is **not** a signed CRX or Chrome Web Store installation. Ordinary one-click
 installation requires a separate Web Store submission and review. See Chrome's
@@ -56,7 +57,7 @@ sha256sum gamma-eh-chrome-v0.1.0.zip
 
 Compare the result with the corresponding entry in `SHA256SUMS.txt`.
 On macOS use `shasum -a 256`; on Windows PowerShell use `Get-FileHash -Algorithm SHA256`.
-With both ZIPs downloaded, `sha256sum --check SHA256SUMS.txt` checks both together.
+With all three ZIPs downloaded, `sha256sum --check SHA256SUMS.txt` checks them together.
 Checksums detect a mismatch; they are not an independent signing or provenance system.
 
 ## Build packages locally
@@ -79,37 +80,43 @@ locally, first run the normal checks and browser preflight, then extract the
 packages and run the documented browser harness against their contents. The
 hosted release workflow performs this exact-package verification automatically.
 
-## Publish a version
+## Publish an experimental version
 
-1. Update the root `package.json` version and `apps/extension/manifest.json`
-   together; update package-lock metadata with npm. Use a nonzero `X.Y.Z` with
-   each component between 0 and 65535. Prerelease status is GitHub metadata,
-   not a `-beta` suffix in Chrome's version.
-2. Open a PR, review the docs/model card, and merge it to `main`.
-3. From the merged commit, create and push the matching version tag:
+1. Open a PR, review the docs/model card, and merge it to `main`. The main-push
+   workflow automatically chooses a new version and creates a version-only
+   tagged snapshot as described below. Main's version need not be bumped for
+   every automatic release.
+2. For a manually chosen version instead, update the root package, lockfile root
+   metadata and extension manifest together. Use a nonzero `X.Y.Z`, with each
+   component at most 65535; GitHub prerelease status is metadata, not a `-beta`
+   suffix in Chrome's version. Merge the reviewed metadata, then tag the commit:
 
    ```sh
    git tag -a v0.1.0 -m 'Gamma EH v0.1.0 experimental baseline'
    git push origin v0.1.0
    ```
 
-4. Wait for the **Release** workflow. It checks tag/version agreement and that
-   the tagged commit is reachable from `main`. App checks, packaging tests,
+3. Wait for the **Release** workflow. It checks tag/version agreement and that
+   the tag is on main or is its reviewed version-only child snapshot. App checks, packaging tests,
    dataset tests, and capability preflight run sequentially. It builds once,
    unpacks the release ZIPs, and exercises actual WASM/WebGPU web and extension
    inference before the publication job can run.
-5. Confirm the new prerelease has both versioned ZIPs and `SHA256SUMS.txt`.
+4. Confirm the new prerelease has all three versioned ZIPs and `SHA256SUMS.txt`.
    Download the Chrome asset and perform a clean unpacked install. The native
    installation and site-access controls still need this manual check; the
    automated fixture loads the unchanged shipping manifest and verifies automatic
    activation and per-site pause/resume.
 
 The build job has read-only repository permissions and no provider credentials.
-Only the publishing job gets `contents: write`. `gh release create --verify-tag`
+The prepare job gets `contents: write` to push its version tag; publishing and
+explicit stable-promotion jobs get it for release metadata. `gh release create --verify-tag`
 requires the existing tag; it does not create one implicitly. Existing releases
 are not clobbered. Manual workflow dispatch supports retrying an existing tag
 after a transient failure before publication. If already published, use a new
-version rather than replacing downloads.
+version rather than replacing downloads. Dispatch defaults to `experimental`.
+An explicit `channel: stable` promotes an existing prerelease only after the
+[GA readiness gate](ga-readiness.md) passes for its exact archives. Main pushes
+never automatically create stable releases.
 
 ## Safety boundaries and evidence
 
@@ -129,7 +136,7 @@ version rather than replacing downloads.
 - The public model is experimental. Hosted WebGPU uses SwiftShader software;
   successful checks do not establish physical-GPU speed or grammar accuracy.
 
-Browser evidence is retained as a workflow artifact for seven days. The public
+Browser and release evidence is retained as a workflow artifact for 90 days. The public
 ZIPs remain attached to the release. See [browser verification](browser-testing.md)
 for what the automated checks do and do not establish.
 

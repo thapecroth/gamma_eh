@@ -1,0 +1,12 @@
+{
+  "id": "clang8",
+  "training_split": "train",
+  "release_eligible": false,
+  "format": "tsv",
+  "license": "CC-BY-NC-SA-4.0",
+  "license_scope": "Data CC BY-NC-SA 4.0; Apache code does not override Lang-8 source and cLang-8 target terms.",
+  "supervision": "gT5-generated-target",
+  "source_url": "https://github.com/google-research-datasets/clang8",
+  "revision": "0fa5bf90bfa7a038b62175c7b262c4b72023393d",
+  "access": "Obtain original Lang-8 through owner access, run pinned official cLang-8 alignment recipe, provide English source/target TSV."
+}

@@ -1,0 +1,15 @@
+{
+  "id": "nucle",
+  "training_split": "train",
+  "release_eligible": false,
+  "format": "m2-tar",
+  "license": "LicenseRef-NUCLE",
+  "license_scope": "Owner-provided NUCLE agreement; noncommercial research/trials only; preserve archive agreement.",
+  "supervision": "human-annotated",
+  "source_url": "https://www.comp.nus.edu.sg/~nlp/corpora.html",
+  "revision": "NUCLE BEA2019 standardized train archive; actual owner-provided file SHA256 recorded",
+  "members": [
+    "nucle/m2/nucle.train.gold.bea19.m2"
+  ],
+  "access": "Request the official BEA2019 standardized archive and provide its local path."
+}

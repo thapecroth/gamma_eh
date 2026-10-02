@@ -180,7 +180,7 @@ try {
   evidence.web.rulesToggle = true;
   await page.getByLabel('Your writing', {exact: true}).fill('halo');
   await page.getByText('Did you mean “hello” as a greeting? “Halo” is also a valid word.').waitFor();
-  await page.getByRole('button', {name: 'Accept', exact: true}).click();
+  await page.getByRole('button', {name: /^Accept correction:/u}).click();
   assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), 'hello');
   await page.getByLabel('Your writing', {exact: true}).fill('A halo surrounds the moon.');
   await page.getByText('No suggestions from this checker.').waitFor();

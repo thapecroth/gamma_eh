@@ -54,6 +54,8 @@ jobs:
         run: npm run test:playground
       - name: Verify local model, web editor, and Chrome extension
         run: npm run test:browser
+      - name: Verify native undo and adversarial edit handlers
+        run: npm run test:editing
       - name: Verify extension popup and editing flows
         run: npm run test:extension
       - name: Evaluate harder original synthetic challenge
@@ -90,6 +92,7 @@ jobs:
             artifacts/inference-analysis/verification-*/analysis/*.cpuprofile
             artifacts/inference-analysis/verification-*/analysis/*.trace.json
             artifacts/browser-smoke.json
+            artifacts/editing-integrity.json
             artifacts/synthetic-challenge.json
             data/generated/harder-v1/manifest.json
             data/generated/harder-v1/challenge.json
@@ -106,7 +109,7 @@ jobs:
             artifacts/agents/extension-*/trace.zip
             docs/assets/webstore/*.png
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 90
   inference-promotion-e2e:
     needs: [app, data]
     runs-on: ubuntu-latest
@@ -150,7 +153,7 @@ jobs:
           retention-days: 7
   pages-build:
     # Publish only a main-branch push whose app, data, and browser gates passed.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && (github.event.repository.private != true || vars.PAGES_ENABLED == 'true')
     needs: browser-e2e
     runs-on: ubuntu-latest
     permissions:
@@ -174,7 +177,7 @@ jobs:
         with:
           path: dist/pages/web
   pages-deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && (github.event.repository.private != true || vars.PAGES_ENABLED == 'true')
     needs: pages-build
     runs-on: ubuntu-latest
     permissions:

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 
+export const inlineScenarioId = 'inline-interactions';
+
 // Real pointer/keyboard events exercise the shipping content script. `inspect`
 // uses CDP to read its closed shadow root without exposing it to the host page.
 export async function verifyInline({fixture, directory, evidence, setting, text, wait, status, inspect}) {
@@ -16,7 +18,7 @@ export async function verifyInline({fixture, directory, evidence, setting, text,
     const rect = await inspect(selector, 'function() { const r=this.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2}; }');
     assert(rect, `Expected visible ${selector}`); await fixture.mouse.click(rect.x, rect.y);
   }
-  const inline = {kind: 'mandatory', id: 'inline-interactions', passed: false, checks: []};
+  const inline = {kind: 'mandatory', id: inlineScenarioId, passed: false, checks: []};
   evidence.scenarios.push(inline);
   await setting('enabled', true); await setting('useAI', false); await fixture.reload();
   await fixture.locator('#draft').focus();

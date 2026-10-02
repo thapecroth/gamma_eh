@@ -79,6 +79,12 @@ test('store upload uses the packaged version and refuses a modified archive', as
   await assert.rejects(verifiedArchive(directory, '0.1.0'), /checksum/u);
 });
 
+test('stable packaging cannot bypass reviewed promotion with a channel variable', async t => {
+  const {root} = await fixture(t);
+  await assert.rejects(packageBuiltRelease(root, {environment: {GAMMA_RELEASE_CHANNEL: 'stable'}}), /reviewed promotion/u);
+  await assert.rejects(packageBuiltRelease(root, {environment: {GAMMA_RELEASE_CHANNEL: 'ga'}}), /channel/u);
+});
+
 test('release packaging refuses a missing or incorrectly sized store icon', async t => {
   const {root} = await fixture(t);
   const filename = join(root, 'dist/extension/icons/icon-128.png');

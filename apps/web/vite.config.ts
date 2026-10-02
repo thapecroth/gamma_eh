@@ -6,13 +6,23 @@ import { defineConfig } from 'vite-plus';
 import react from '@vitejs/plugin-react';
 import { webGPUAdapterVitePlugin } from '../../scripts/webgpu-adapter-options.mjs';
 import { webBase } from '../../scripts/web-base.mjs';
+import { webContentPolicy, webDocumentsPlugin } from '../../scripts/web-documents.mjs';
 
 const base = webBase();
 
 export default defineConfig({
   base,
   root: fileURLToPath(new URL('.', import.meta.url)),
-  plugins: [react(), webGPUAdapterVitePlugin(), {
+  plugins: [react(), webGPUAdapterVitePlugin(), webDocumentsPlugin(base), {
+    name: 'production-content-security-policy',
+    apply: 'build',
+    transformIndexHtml() {
+      return [{tag: 'meta', attrs: {
+        'http-equiv': 'Content-Security-Policy',
+        content: webContentPolicy,
+      }, injectTo: 'head-prepend'}];
+    },
+  }, {
     name: 'local-inference-assets',
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
