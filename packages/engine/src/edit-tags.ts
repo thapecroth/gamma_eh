@@ -1,5 +1,6 @@
 import { preserveCase } from './edits';
-import { validArticleEdit, validVerbEdit } from './guards';
+import { validAppendEdit, validArticleEdit, validReplacementEdit, validVerbEdit } from './guards';
+import { spellingWords } from './spelling';
 import { splitWords, type WordToken } from './tokenizer';
 
 const wordPattern = /^[A-Za-z]+(?:['’][A-Za-z]+)*$/u;
@@ -65,13 +66,29 @@ function validPayloadArticles(tokens: string[], nextWord: string): boolean {
     validArticleEdit(token.toLowerCase(), tokens[index + 1] ?? nextWord));
 }
 
-export function decodeProposal(text: string, words: WordToken[], index: number, tag: string, confidence: number, schema: number): DecodedEdit | undefined {
+export function decodeProposal(text: string, words: WordToken[], index: number, tag: string, confidence: number, schema: number, wholeWords?: ReadonlySet<string>): DecodedEdit | undefined {
   const word = words[index];
   if (!word || (!wordPattern.test(word.text) && !(schema === 2 && punctuationPattern.test(word.text)))) return;
   if (tag === 'KEEP') return;
+  const whole = schema === 1 ? wholeWords ?? new Set([...spellingWords(text)]
+    .filter(match => wordPattern.test(match[0])).map(match => `${match.index}:${match.index + match[0].length}`)) : undefined;
+  if (whole && !whole.has(`${word.start}:${word.end}`)) return;
   let {start, end} = word;
   let replacement: string;
   const nextWord = words[index + 1]?.text ?? '';
+  if (schema === 1) {
+    const next = words[index + 1];
+    const eligibleNext = next && whole?.has(`${next.start}:${next.end}`) ? next : undefined;
+    if (tag === 'DELETE') {
+      const previous = words[index - 1];
+      if (['had', 'that'].includes(word.text.toLowerCase()) || !previous || previous.text.toLowerCase() !== word.text.toLowerCase() ||
+          !whole?.has(`${previous.start}:${previous.end}`) || !/^[ \t]+$/u.test(text.slice(previous.end, start))) return;
+      while (start > 0 && /[ \t]/u.test(text[start - 1])) start--;
+      return {start, end, replacement: ''};
+    }
+    if (tag.startsWith('REPLACE:') && !validReplacementEdit(text, word, tag.slice(8), eligibleNext?.text ?? '')) return;
+    if (tag.startsWith('APPEND:') && !validAppendEdit(text, word, tag.slice(7), eligibleNext)) return;
+  }
   if (tag === 'DELETE') {
     const lower = word.text.toLowerCase();
     const duplicate = wordPattern.test(word.text) && !['had', 'that'].includes(lower) &&

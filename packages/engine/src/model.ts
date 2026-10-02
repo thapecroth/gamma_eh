@@ -3,6 +3,7 @@ import { applySuggestions, overlaps } from './edits';
 import { decodeProposal, tagCategory } from './edit-tags';
 import { EditHistory } from './edit-history';
 import { analyzeRules, protectedSpans } from './rules';
+import { spellingWords } from './spelling';
 import { WordPieceTokenizer } from './tokenizer';
 import type { EngineOptions, Suggestion } from './types';
 
@@ -85,6 +86,9 @@ async function analyzePass(text: string, options: EngineOptions, model: LoadedMo
   if (manifest.disableModelEdits) return {suggestions, modelRuns};
   if (!session) throw new Error('Model session unavailable');
   const protectedRanges = protectedSpans(text);
+  const wholeWords = (manifest.editSchema ?? 1) === 1 ? new Set([...spellingWords(text)]
+    .filter(match => /^[A-Za-z]+(?:['’][A-Za-z]+)*$/u.test(match[0]))
+    .map(match => `${match.index}:${match.index + match[0].length}`)) : undefined;
   for (const chunk of tokenizer.chunks(text, manifest.maxSequenceLength)) {
     const first = chunk.positions[0]?.word.start ?? 0;
     const last = chunk.positions.at(-1)?.word.end ?? 0;
@@ -112,7 +116,7 @@ async function analyzePass(text: string, options: EngineOptions, model: LoadedMo
       const requiredConfidence = Math.max(threshold, manifest.confidenceThreshold,
         manifest.confidenceThresholds?.[tagCategory(tag)] ?? threshold);
       if (!Number.isFinite(confidence) || confidence < requiredConfidence) continue;
-      const edit = decodeProposal(text, words, index, tag, confidence, manifest.editSchema ?? 1);
+      const edit = decodeProposal(text, words, index, tag, confidence, manifest.editSchema ?? 1, wholeWords);
       if (!edit) continue;
       const {start, end, replacement} = edit;
       if (suggestions.some(previous => overlaps(previous, edit))) continue;

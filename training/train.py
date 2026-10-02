@@ -276,7 +276,9 @@ def main(args):
                            "onnxruntime": ort.__version__, "transformers": version("transformers"),
                            "numpy": np.__version__}
     report["code_sha256"] = {name: hash_file(Path(__file__).with_name(name)) for name in
-                             ["train.py", "evaluate.py", "edit_ops.py", "data.py", "prepare_pairs.py", "pairs.py"]}
+                             ["train.py", "evaluate.py", "legacy_spelling.py", "edit_ops.py", "data.py", "prepare_pairs.py", "pairs.py"]}
+    report["code_sha256"]["dictionary.generated.ts"] = hash_file(Path(__file__).resolve().parent.parent / "packages/engine/src/dictionary.generated.ts")
+    report["code_sha256"]["spelling.ts"] = hash_file(Path(__file__).resolve().parent.parent / "packages/engine/src/spelling.ts")
     report["dataset_manifest_sha256"] = hash_file(args.data / "manifest.json")
     base_license = VERIFIED_BASE_LICENSES.get((args.base_model, args.base_revision), "unverified")
     report["base_license"] = base_license

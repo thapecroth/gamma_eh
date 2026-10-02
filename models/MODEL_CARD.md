@@ -48,28 +48,41 @@ at the existing 0.85 threshold, one correction pass, produced:
 | Engine | Edit precision | Edit recall | Edit F0.5 | Clean sources changed |
 | --- | --- | --- | --- | --- |
 | Rules, including local dictionary | 71.90% | 16.90% | 43.56% | 2/182 |
-| Neural | 5.07% | 0.47% | 1.72% | 23/182 |
-| Combined | 55.30% | 16.90% | 38.02% | 24/182 |
+| Neural | 87.50% | 0.47% | 2.31% | 0/182 |
+| Combined | 71.90% | 16.90% | 43.56% | 2/182 |
 
 These are custom best-sentence-reference scores using actual ERRANT edit
 extraction, not official JFLEG GLEU, BEA scores, or universal grammar accuracy.
 No sentences were removed for vocabulary, alignment, or inference; no inference
-failed. JFLEG includes stylistic rewrites. The model remains an experimental
-opt-in baseline, and the poor clean-text result is a reason to require natural
-development calibration before promoting another student. The independent
+failed. JFLEG includes stylistic rewrites. Neural precision is based on only eight
+predictions (seven correct); its very low recall and small support do not qualify
+it as a broadly accurate model. The model remains an experimental opt-in baseline.
+The independent
 benchmark was never added to training. See the [quality workflow](../docs/model-quality.md)
 for frozen population hashes, methodology, controlled candidates, and deployment
 gates. Raw benchmark text and browser predictions stay local.
 
 Development has 754 sentences and 216 accepted unchanged sources. Rules change
-38/216 development clean sources, neural changes 26/216, and combined changes
-54/216. The low test rules clean-change rate does not certify development
+38/216 development clean sources, neural changes 1/216, and combined changes
+38/216. The low test rules clean-change rate does not certify development
 quality. Four controlled schema-2 students were also trained and executed in the
 browser. The best development diagnostic was mixed data with a larger BERT;
 its test neural F0.5 reached 7.78%, but edit precision was only 19.77%. None
 met the precision, clean-text and minimum-support gates, so their exports
 disable neural edits and the bundled weights remain unchanged. See the
 [completed results](../docs/model-quality-results.md) and aggregate hashes.
+
+A further controlled synthetic tuning study trained four students on 58,479 CC0
+pairs, varying KEEP loss weight and learning rate. None met natural development
+qualification, so no new weights were promoted. General safeguards for the bundled
+schema-1 decoder instead reduced false neural test edits from 131 to 1, retaining
+all seven true edits. Combined test F0.5 rose from 38.02% to 43.56%, and changed
+clean sources fell from 24/182 to 2/182. The final integrated engine was compared
+with the preceding main engine on the complete test population in the actual
+browser, verifying public API equivalence for every sentence. Combined scores now
+equal rules alone on this population. The historical quality-round measurements
+remain in their original results page. See [controlled model tuning](../docs/model-tuning.md)
+and its aggregate receipts for the distinct study and decoder comparison.
 
 ## Browser engine validation and limitations
 
@@ -91,6 +104,11 @@ rule-driven deletions. Verb replacements must agree with a supported simple
 sentence-initial subject and preserve verb family and tense. Unknown or
 ambiguous contexts abstain, regardless of model confidence; see
 [the verb-suggestion safeguard](../docs/dataset-and-training.md#conservative-verb-suggestions).
+Legacy lexical replacements require a known canonical typo or a nearby dictionary
+word for an unknown source; known words and homophones abstain. Whole spelling
+boundaries protect identifiers, compounds and Unicode fragments. Legacy article
+insertion requires bounded subject and countable-object evidence. These restrictions
+apply to the bundled schema-1 classifier; the richer schema-2 edit contract is preserved.
 Rule/model overlap gives rules priority. Classifier
 metrics above do not include these runtime guards.
 

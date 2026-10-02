@@ -24,6 +24,16 @@ def words(text):
     return [{"text": match.group(), "start": match.start(), "end": match.end()} for match in TOKEN_RE.finditer(text)]
 
 
+def test_shared_legacy_guard_fixture():
+    fixture = json.loads(Path(__file__).with_name("legacy-guard-parity.json").read_text())
+    for row in fixture["cases"]:
+        tokens = words(row["source"])
+        index = [i for i, token in enumerate(tokens) if token["text"] == row["anchor"]][row.get("occurrence", 0)]
+        proposal = decode_proposal(row["source"], tokens, index, row["tag"], .999, 1)
+        result = apply_proposals(row["source"], [proposal] if proposal else [], .85)
+        assert result == row["target"], row
+
+
 def test_shared_decoder_fixture_and_invalid_payloads():
     fixture = json.loads(Path(__file__).with_name("edit-parity.json").read_text())
     for case in fixture["cases"]:
