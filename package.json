@@ -20,6 +20,7 @@
     "test:release": "node --test --test-isolation=none tests/release.node.mjs",
     "test:browser": "node scripts/verify-browser.mjs",
     "benchmark:inference": "node scripts/benchmark-inference.mjs",
+    "test:playground": "node scripts/verify-playground.mjs",
     "data:synthetic": "python3 training/synthetic_challenge.py",
     "evaluate:synthetic": "npm run data:synthetic && node scripts/evaluate-synthetic.mjs",
     "test:agents": "python3 scripts/agent-supervisor.py node --test --test-isolation=none tests/agent-harness.node.mjs",
