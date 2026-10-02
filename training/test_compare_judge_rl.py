@@ -4,7 +4,7 @@ import shutil
 import pytest
 
 import calibrate_judge
-from compare_judge_rl import command, plan
+from compare_judge_rl import command, plan, save_comparison
 from judge import FLAGS, Judge, validate_calibration, judge_spec
 from pairs import hash_file
 from test_compare_rl import fixture_dataset
@@ -94,3 +94,31 @@ def test_existing_warmup_requires_original_data_and_ordered_labels(tmp_path, mon
     (initial / "receipt.json").write_text(json.dumps(receipt))
     with pytest.raises(ValueError, match="data/labels/provenance"):
         plan(data, evaluation, tmp_path / "output", calibration, fixture=fixture, initial_checkpoint=initial)
+
+
+def test_completed_comparison_preserves_receipt_when_only_diagnostic_time_changes(tmp_path):
+    path = tmp_path / "comparison.json"
+    result = {"plan_sha256": "frozen", "arms": {"supervised": {"counterexamples": {
+        "policy": {"edit_f0_5": 0.5}, "inference": {"inference_seconds": 1., "inference_failures": 0}}}}}
+    assert save_comparison(path, result) == result
+    original = path.read_bytes()
+    replay = json.loads(path.read_text())
+    replay["arms"]["supervised"]["counterexamples"]["inference"]["inference_seconds"] = 2.
+    assert save_comparison(path, replay) == result
+    assert path.read_bytes() == original
+    assert replay["arms"]["supervised"]["counterexamples"]["inference"]["inference_seconds"] == 2.
+
+
+@pytest.mark.parametrize("change", ["metric", "failure", "plan"])
+def test_completed_comparison_rejects_material_changes(tmp_path, change):
+    path = tmp_path / "comparison.json"
+    result = {"plan_sha256": "frozen", "arms": {"supervised": {"counterexamples": {
+        "policy": {"edit_f0_5": 0.5}, "inference": {"inference_seconds": 1., "inference_failures": 0}}}}}
+    save_comparison(path, result)
+    original = path.read_bytes()
+    if change == "metric": result["arms"]["supervised"]["counterexamples"]["policy"]["edit_f0_5"] = 0.6
+    elif change == "failure": result["arms"]["supervised"]["counterexamples"]["inference"]["inference_failures"] = 1
+    else: result["plan_sha256"] = "changed"
+    with pytest.raises(ValueError, match="metadata changed"):
+        save_comparison(path, result)
+    assert path.read_bytes() == original

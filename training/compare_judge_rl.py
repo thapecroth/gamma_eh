@@ -1,5 +1,6 @@
 """Bounded matched supervised / calibrated LLM-judge RL experiment, sequential and local."""
 import argparse
+from copy import deepcopy
 import json
 import math
 import os
@@ -109,6 +110,25 @@ def verify_judge_report(spec, report):
             raise ValueError("Completed judge cache/receipt changed")
 
 
+def comparison_identity(result):
+    """Exclude only fresh diagnostic wall time from immutable result checks."""
+    identity = deepcopy(result)
+    for arm in identity["arms"].values():
+        if arm.get("counterexamples") is not None:
+            arm["counterexamples"]["inference"].pop("inference_seconds", None)
+    return identity
+
+
+def save_comparison(path, result):
+    if path.exists():
+        previous = json.loads(path.read_text())
+        if comparison_identity(previous) != comparison_identity(result):
+            raise ValueError("Completed comparison metadata changed")
+        return previous
+    path.write_text(json.dumps(result, indent=2) + "\n")
+    return result
+
+
 def run(spec):
     verify_inputs(spec)
     if endpoint(os.environ.get("GAMMA_JUDGE_BASE_URL", "http://127.0.0.1:8317/v1")) != spec["judge_endpoint"]:
@@ -160,12 +180,7 @@ def run(spec):
               "warmup_training_budget": warmup_budget, "resource_match": spec["resource_match"],
               "judge_spec_sha256": spec["judge_spec_sha256"], "arms": results,
               "scope": "Matched local experiment; judge rewards are not independent accuracy, and no model is promoted automatically."}
-    result_path = output / "comparison.json"
-    if result_path.exists():
-        previous = json.loads(result_path.read_text())
-        if previous != result: raise ValueError("Completed comparison metadata changed")
-    else: result_path.write_text(json.dumps(result, indent=2) + "\n")
-    return result
+    return save_comparison(output / "comparison.json", result)
 
 
 if __name__ == "__main__":
