@@ -19,6 +19,50 @@ def write_rows(path, rows):
     path.write_text("".join(json.dumps(row) + "\n" for row in rows))
 
 
+def screened_pair(**overrides):
+    from teacher_recipes import lexical_family
+    target = "She is ready for the workshop."
+    row = {"source": "She are ready for the workshop.", "target": target, "category": "agreement",
+           "origin": "glm-recipe-machine-screened", "model": "glm-5.3",
+           "license": "provider-terms-unverified", "status": "screened", "admission_status": "screened",
+           "review_status": "machine-verified", "split": "train", "human_reviewed": False,
+           "weak_supervision": True, "family_id": lexical_family(target), "recipe_id": "agreement_subject",
+           "recipe_version": 1, "run_fingerprint": "a" * 64,
+           "blind_review": {"corrected": target, "source_is_grammatical": False},
+           "pair_review": {"target_is_grammatical": True}, "guard_coverage": {"alignment": True, "guarded": True}}
+    return {**row, **overrides}
+
+
+def test_preparation_retains_machine_provenance_without_promoting_review_or_license(tmp_path):
+    source = tmp_path / "pairs.jsonl"
+    write_rows(source, [screened_pair()])
+    output = tmp_path / "prepared"
+    manifest = prepare([source], output, allow_weak_train=True, allow_unverified_teacher_terms=True, schema=2)
+    row = json.loads((output / "train.jsonl").read_text())
+    assert row["review_status"] == "weak-supervision" and row["human_reviewed"] is False
+    assert row["recipe_version"] == 1 and row["run_fingerprint"] == "a" * 64
+    assert row["clean_group"] == screened_pair()["family_id"]
+    assert row["blind_review"] == screened_pair()["blind_review"]
+    assert manifest["publication_allowed"] is False
+    assert manifest["evaluation"]["dev"]["rows"] == manifest["evaluation"]["test"]["rows"] == 0
+
+
+@pytest.mark.parametrize("overrides,reason", [
+    ({"admission_status": "quarantined", "status": "screened"}, "not_admitted"),
+    ({"split": "dev"}, "teacher_heldout"),
+    ({"split": "test"}, "teacher_heldout"),
+    ({"blind_review": None}, "teacher_evidence_missing"),
+    ({"human_reviewed": True}, "teacher_evidence_missing"),
+])
+def test_preparation_rejects_revocations_heldout_teacher_families_and_missing_evidence(tmp_path, overrides, reason):
+    source = tmp_path / "pairs.jsonl"
+    write_rows(source, [screened_pair(**overrides)])
+    output = tmp_path / "prepared"
+    manifest = prepare([source], output, allow_weak_train=True, allow_unverified_teacher_terms=True, schema=2)
+    assert not (output / "train.jsonl").read_text()
+    assert manifest["counts"]["rejected:" + reason] == 1
+
+
 def words(text):
     from edit_ops import TOKEN_RE
     return [{"text": match.group(), "start": match.start(), "end": match.end()} for match in TOKEN_RE.finditer(text)]

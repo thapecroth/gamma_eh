@@ -14,6 +14,7 @@
 - [Harder synthetic challenge](synthetic-challenge.md): separate adversarial evaluation, original training augmentation, and current full-engine baseline.
 - [Controlled model tuning](model-tuning.md): frozen CC0 training comparison, actual browser/natural evaluation, promotion gates and lexical safeguards.
 - [Scaling the dataset](massive-dataset.md): resumable teacher generation, pinned C4 streaming, and train-only weak supervision.
+- [Machine-screened teacher data](verified-teacher-data.md): versioned recipes, deterministic errors, blind repair, guarded coverage, immutable shards and train-only admission.
 - [End-to-end teacher pilot](live-pilot.md): real CLIProxyAPI calls, isolated student training and builds, and browser verification.
 - [Independent model quality](model-quality.md): frozen human references, expanded edits, GLM/C4 data, safe export calibration, and controlled browser comparisons.
 - [Model quality results](model-quality-results.md): completed 10,436-pair GLM corpus, four trained students, actual browser comparisons, and promotion decisions.

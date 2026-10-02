@@ -11,6 +11,10 @@ from edit_ops import reconstruct
 from pairs import group_id, hash_file, normalized, validate_pair
 
 LICENSES = {"CC0-1.0", "CC-BY-4.0", "Apache-2.0", "MIT"}
+TEACHER_ORIGINS = {"llm-teacher", "glm-recipe-machine-screened"}
+SCREENING_FIELDS = ("row_id", "recipe_id", "recipe_version", "family_id", "split", "register", "context",
+                    "job_id", "run_fingerprint", "mutation", "guard_coverage", "blind_review", "pair_review",
+                    "status", "screening_status", "admission_status", "human_reviewed", "weak_supervision")
 
 
 def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_labels=4096,
@@ -38,11 +42,27 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
                     counts["scanned"] += 1
                     try:
                         raw = json.loads(line)
+                        if not isinstance(raw, dict): raise ValueError("schema")
+                        if (raw.get("review_status") == "quarantined"
+                                or raw.get("status") in {"quarantined", "unsupported", "duplicate"}
+                                or "admission_status" in raw and raw["admission_status"] != "screened"):
+                            raise ValueError("not_admitted")
+                        recipe_teacher = raw.get("origin") == "glm-recipe-machine-screened"
+                        if recipe_teacher:
+                            if raw.get("split") != "train": raise ValueError("teacher_heldout")
+                            if (raw.get("admission_status") != "screened" or raw.get("status") != "screened"
+                                    or raw.get("review_status") != "machine-verified"
+                                    or raw.get("human_reviewed") is not False or raw.get("weak_supervision") is not True
+                                    or not isinstance(raw.get("family_id"), str)
+                                    or len(raw["family_id"]) != 64
+                                    or any(char not in "0123456789abcdef" for char in raw["family_id"])
+                                    or not raw.get("run_fingerprint") or not raw.get("blind_review") or not raw.get("pair_review")):
+                                raise ValueError("teacher_evidence_missing")
                         row = validate_pair(raw)
                         license_id = raw.get("license")
-                        if raw.get("origin") == "llm-teacher" and teacher_license: license_id = teacher_license
+                        if raw.get("origin") in TEACHER_ORIGINS and teacher_license: license_id = teacher_license
                         local_teacher = (allow_unverified_teacher_terms and allow_weak_train
-                                         and raw.get("origin") == "llm-teacher"
+                                         and raw.get("origin") in TEACHER_ORIGINS
                                          and license_id == "provider-terms-unverified")
                         if license_id not in LICENSES and not local_teacher: raise ValueError("license_unverified")
                         reviewed = raw.get("review_status") == "human-reviewed" and not local_teacher
@@ -54,7 +74,11 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
                                     "source_url": raw.get("source_url"),
                                     "original_source_url": raw.get("original_source_url"),
                                     "prompt_sha256": raw.get("prompt_sha256")})
+                        if recipe_teacher:
+                            row.update({name: raw[name] for name in SCREENING_FIELDS if name in raw})
+                            row["clean_group"] = raw["family_id"]
                         source_metadata = {name: row.get(name) for name in ["origin", "license", "source_revision", "source_url", "original_source_url", "model", "prompt_sha256"]}
+                        if recipe_teacher: source_metadata["run_fingerprint"] = row["run_fingerprint"]
                         if row["origin"] == "martinsr/c4_200m":
                             source_metadata.update({"attribution": "Stahlberg and Kumar (2021), Google C4_200M; parquet conversion by martinsr",
                                                     "license_scope": "Corruption edits CC-BY-4.0; source-corpus notices also apply."})
@@ -97,7 +121,7 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
                     except (ValueError, KeyError, TypeError) as error:
                         counts["rejected"] += 1
                         reason = str(error) if isinstance(error, ValueError) else "schema"
-                        if reason not in {"license_unverified", "unreviewed", "schema", "category", "category_mismatch", "length", "control_character", "no_english_letters", "contact_or_secret_pattern", "clean_mismatch", "word_limit"}:
+                        if reason not in {"license_unverified", "unreviewed", "schema", "category", "category_mismatch", "length", "control_character", "no_english_letters", "contact_or_secret_pattern", "clean_mismatch", "word_limit", "not_admitted", "teacher_heldout", "teacher_evidence_missing"}:
                             reason = "schema"
                         counts["rejected:" + reason] += 1
             db.commit()
