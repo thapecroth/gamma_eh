@@ -74,8 +74,9 @@ The [expanded parity results](inference-quality-parity.json) compare the active
 bundled model before and after this optimization on all 754 JFLEG development
 and 747 test sentences. Each sentence ran in model-only and combined modes with
 one and two correction passes on both WASM and WebGPU: 12,008 paired comparisons.
-The baseline engine matches the latest integration base `0b0378c`; the playground
-update did not change inference or decoding. Frozen input, model, engine bundle,
+The baseline engine matches integration base `0b0378c`; subsequent playground
+and GitHub Pages integration changed no engine code, decoding, or weights.
+Frozen input, model, engine bundle,
 and private prediction-report hashes accompany the aggregate evidence. Raw
 sentences, references, and predictions remain in ignored local artifacts.
 
