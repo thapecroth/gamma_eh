@@ -1,7 +1,7 @@
 import type { AnalysisResult } from '@gamma/engine';
 
 export interface Settings { enabled: boolean; useAI: boolean; disabledSites: string[] }
-export const DEFAULT_SETTINGS: Settings = { enabled: true, useAI: false, disabledSites: [] };
+export const DEFAULT_SETTINGS: Settings = { enabled: true, useAI: true, disabledSites: [] };
 export const MAX_FIELD_LENGTH = 6_000;
 
 export interface CheckMessage {

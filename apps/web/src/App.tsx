@@ -186,7 +186,7 @@ export default function App() {
               <label className="toggle-label"><input type="checkbox" checked={useAI} onChange={(event) => { setUseAI(event.target.checked); invalidateCheck(); }} /><span className="switch" aria-hidden="true" />Local AI<span className="experimental">EXPERIMENTAL</span></label>
               <div className="backend-status" role="status"><span className={`status-dot ${status}`} />{status === 'checking' ? useAI ? 'Checking on your device…' : 'Checking local rules…' : status === 'error' ? 'Checker unavailable' : backendLabel}{current && <span className="check-time">{Math.round(result.elapsedMs).toLocaleString()} ms</span>}</div>
             </div>
-            {result?.modelError && current && <p className="model-warning">Local AI couldn’t load. Spelling and rule suggestions still work. Try switching Local AI off and on again.</p>}
+            {result?.modelError && current && <p className="model-warning">Local AI is unavailable here. Spelling and rule suggestions are running instead. You can switch Local AI off and on to retry.</p>}
             {useAI && <p className="model-note">A tiny model trained on synthetic examples. Experimental suggestions may miss real-world errors.</p>}
             <div className="suggestion-list" aria-live="polite" aria-busy={status === 'checking'}>
               {status === 'checking' ? <div className="empty-state"><span className="checking-symbol" aria-hidden="true">✧</span><p>Giving your words a look.</p><span>{useAI ? 'The first local AI check may take a moment.' : 'Spelling and grammar checks run right here.'}</span></div>
