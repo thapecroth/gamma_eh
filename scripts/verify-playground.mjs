@@ -21,6 +21,12 @@ async function ready(page) {
   await page.locator('.status-dot.ready').waitFor({ timeout: 90_000 });
 }
 
+async function painted(page) {
+  // Programmatic scrolling updates scrollTop before the browser dispatches its
+  // scroll event. Measure after rendering, including scroll and resize callbacks.
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+}
+
 async function verifyUnderlines(page, expected) {
   const marks = page.locator('.writing-error');
   if (expected) assert.deepEqual(await marks.allTextContents(), expected);
@@ -150,9 +156,10 @@ try {
   await verifyUnderlines(page, ['definately', 'freind']);
   await editor.evaluate(element => { element.scrollTop = element.scrollHeight; });
   await page.waitForFunction(() => document.querySelector('.writing-editor').scrollTop > 0);
+  await painted(page);
   await verifyUnderlines(page);
   await editor.evaluate(element => { element.style.height = `${element.clientHeight + 80}px`; });
-  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await painted(page);
   await verifyUnderlines(page);
   await editor.evaluate(element => element.style.removeProperty('height'));
   evidence.checks.underlineScrollResizeTabsAndTrailingNewline = true;
@@ -234,7 +241,7 @@ try {
   await page.screenshot({ path: join(artifactDir, 'playground-desktop.png'), fullPage: true });
   for (const width of [320, 390, 768]) {
     await page.setViewportSize({ width, height: 844 });
-    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await painted(page);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `No horizontal overflow at ${width}px`);
     await verifyUnderlines(page);
   }
