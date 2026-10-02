@@ -45,6 +45,8 @@ jobs:
       - name: Check browser runtime capabilities
         timeout-minutes: 2
         run: npm run check:environment
+      - name: Verify inference analysis profiles and promotion gate on CPU
+        run: npm run test:inference-analysis
       - run: npm run build
       - name: Verify playground on CPU without an extension
         run: GAMMA_TEST_WEBGPU=0 npm run test:playground
@@ -81,6 +83,7 @@ jobs:
           name: browser-e2e-evidence
           path: |
             artifacts/environment.json
+            artifacts/inference-analysis-verification.json
             artifacts/browser-smoke.json
             artifacts/synthetic-challenge.json
             data/generated/harder-v1/manifest.json
