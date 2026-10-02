@@ -1,5 +1,9 @@
 # Web playground
 
+**[Open the public playground](https://thapecroth.github.io/gamma_eh/)** — no
+installation required. See [GitHub Pages deployment](github-pages.md) for the
+hosting workflow and live verification.
+
 The web app is the Gamma EH playground: a standalone writing demo that needs no
 Chrome extension, account, API key, or inference server. Visitors open the page
 and type or paste a draft. Rules and the bundled spelling dictionary run by
@@ -63,13 +67,15 @@ npx vp preview --config apps/web/vite.config.ts --host 127.0.0.1
 
 The standard build creates the standalone site in `dist/web`, including its
 bundled worker/runtime and `models/` assets. Serve that entire directory on a
-static host at the origin root. Serve JavaScript as JavaScript and WASM as
+static host at the origin root, or set `GAMMA_WEB_BASE` for a repository subpath
+as described in [GitHub Pages deployment](github-pages.md). Serve JavaScript as JavaScript and WASM as
 `application/wasm`. Use HTTPS for a public deployment; localhost also supports
 the clipboard and WebGPU. The additional extension artifacts are separate;
 visitors to the web playground do not use them.
 
 Opening `index.html` through `file://` is unsupported because workers and model
-fetches require HTTP(S). No public deployment is created by these build commands.
+fetches require HTTP(S). Local build commands do not publish the site; checked
+main-branch pushes publish it through GitHub Actions.
 
 ## Verify without an extension
 

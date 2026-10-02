@@ -28,7 +28,7 @@ type WorkerResponse = { requestId: number; result?: AnalysisResult; error?: stri
 
 function Mark({ compact = false }: { compact?: boolean }) {
   return <a className="brand" href="#">
-    <img className="brand-icon" src="/favicon.svg" width="32" height="35" alt="" />
+    <img className="brand-icon" src={`${import.meta.env.BASE_URL}favicon.svg`} width="32" height="35" alt="" />
     <span>gamma<span className="brand-suffix"> eh</span></span>
     {!compact && <span className="brand-tag"> PLAYGROUND</span>}
     <span className="sr-only"> home</span>

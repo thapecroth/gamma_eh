@@ -100,8 +100,10 @@ test('validates Chrome-compatible versions and exact matching release tags', () 
   assert.throws(() => releaseVersion('0.1.0', '0.1.0', 'v0.1.1'), /must match/u);
 });
 
-test('rejects private model directories and experimental profiles', () => {
+test('rejects private model directories, experimental profiles, and hosted web paths', () => {
   assert.equal(publicBuildPaths('/project').modelDirectory, '/project/models/browser');
+  assert.equal(publicBuildPaths('/project', {GAMMA_WEB_BASE: '/'}).modelDirectory, '/project/models/browser');
+  assert.throws(() => publicBuildPaths('/project', {GAMMA_WEB_BASE: '/gamma_eh/'}), /root web path/u);
   assert.throws(() => publicBuildPaths('/project', {GAMMA_BUILD_PROFILE: 'pilot'}), /default public/u);
   assert.throws(() => publicBuildPaths('/project', {GAMMA_MODEL_DIR: 'artifacts/private/model'}), /isolated/u);
 });
