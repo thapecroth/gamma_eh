@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "source_receipt": "training-corpora-results.json",
+  "source_sha256": "886926a0d473c985d308df9eb935165413b3bf7db3b365e0eacd5e4c99917bf2",
+  "renderer_sha256": "f77e4aadedfed51aae90c5172eef6f3d6c693873c99bf23bc95082bba59da483",
+  "versions": {
+    "matplotlib": "3.10.7",
+    "numpy": "2.2.6"
+  },
+  "files": {
+    "training-corpora-overview.png": {
+      "bytes": 252241,
+      "sha256": "3d130aafa6e3703a0de76dacd53641987054d83ca4e3ccb2d1773416804a1597"
+    },
+    "training-corpora-overview.svg": {
+      "bytes": 24346,
+      "sha256": "c0322d917e49529f62aef24971ec83326b9eef7db8dc9e2677854f6dfa80ba0a"
+    }
+  }
+}

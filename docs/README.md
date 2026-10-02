@@ -36,3 +36,6 @@
 - [Model card](../models/MODEL_CARD.md): trained checkpoint scope and measured results.
 
 - [Firefox extension](firefox.md): installation and browser-specific background setup.
+
+- [Natural-corpus training](training-corpora.md) — source adapters, separate local research runs, and preserved release terms.
+- [Natural-corpus training results](training-corpora-results.md): five completed source pilots, their combined candidate, measured gates, source PRs and reproducible figures.

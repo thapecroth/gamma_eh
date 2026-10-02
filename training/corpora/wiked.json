@@ -1,0 +1,17 @@
+{
+  "id": "wiked",
+  "training_split": "train",
+  "release_eligible": false,
+  "format": "wiked-prefix",
+  "license": "CC-BY-SA-3.0",
+  "license_scope": "Wikipedia 2014 text inherits CC BY-SA 3.0; retain dump, page/revision metadata and source attribution; no unrestricted weight publication claim.",
+  "supervision": "natural-revision-unreviewed",
+  "source_url": "https://github.com/snukky/wikiedits",
+  "revision": "2e307bf1cd43e0b3247e4968624bbd5eafc2272a",
+  "download_url": "https://data.statmt.org/romang/wiked/wiked-v1.0.en.tgz",
+  "sha256": "aec9861b1ecda255e536c36b3deab124b8aef3995f35520fe7f3ffb4272edab3",
+  "max_download_bytes": 16777216,
+  "prefix_bytes": 16777216,
+  "member": "wiked.enwiki.20140304/enwiki-20140304-pages-meta-history27.xml-p030525063p031162817.txt.wiked.gz",
+  "sampling_scope": "Exact 16MiB compressed raw-archive prefix, one nested member; archive is not fully downloaded. Hash covers the prefix, not the whole corpus."
+}

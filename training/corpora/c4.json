@@ -1,0 +1,12 @@
+{
+  "id": "c4",
+  "training_split": "train",
+  "release_eligible": false,
+  "format": "c4-parquet",
+  "license": "CC-BY-4.0",
+  "license_scope": "Google corruption edits CC BY 4.0; underlying C4 web-text rights/notices are separate and have not been reviewed for public weights.",
+  "supervision": "synthetic-corruption",
+  "source_url": "https://github.com/google-research-datasets/C4_200M-synthetic-dataset-for-grammatical-error-correction",
+  "mirror_url": "https://huggingface.co/datasets/martinsr/c4_200m",
+  "revision": "c46acd6e099d2bf712cd8d0496cb2ba135e786c8"
+}

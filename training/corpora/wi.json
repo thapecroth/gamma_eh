@@ -1,0 +1,17 @@
+{
+  "id": "wi",
+  "training_split": "train",
+  "release_eligible": false,
+  "format": "m2-tar",
+  "license": "LicenseRef-Cambridge-WI",
+  "license_scope": "Cambridge W&I v2.1 noncommercial research/education only; retain licence.wi.txt; no unrestricted data/weight publication. LOCNESS is not a training split.",
+  "supervision": "human-annotated",
+  "source_url": "https://www.cl.cam.ac.uk/research/nl/bea2019st/",
+  "revision": "W&I v2.1 BEA2019",
+  "download_url": "https://www.cl.cam.ac.uk/research/nl/bea2019st/data/wi+locness_v2.1.bea19.tar.gz",
+  "sha256": "d5cbf68cda3da0c3af69dd672614d07287bfe996b87da0c75051d5349d76c666",
+  "max_download_bytes": 40000000,
+  "members": [
+    "wi+locness/m2/ABC.train.gold.bea19.m2"
+  ]
+}
