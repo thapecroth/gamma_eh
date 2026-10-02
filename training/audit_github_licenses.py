@@ -39,6 +39,8 @@ def audit(spec, output, max_scanned=500, max_commits=100):
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(proofs, indent=2) + "\n")
         print(json.dumps(counts), flush=True)
+    if not counts["checked"]:
+        raise ValueError("No originating commits found; license audit did not succeed")
     return counts
 
 
