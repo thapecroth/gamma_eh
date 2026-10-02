@@ -10,6 +10,7 @@ import { firefoxManifest } from './firefox-manifest.mjs';
 import { buildPaths } from './paths.mjs';
 import { webBase } from './web-base.mjs';
 import { runtimeManifest, runtimeVersions } from './inference-runtime.mjs';
+import { releaseChannel } from './ga-readiness.mjs';
 
 const run = promisify(execFile);
 const extensionFiles = ['manifest.json', 'background.mjs', 'content.js', 'popup.js', 'popup.html', 'popup.css', 'offscreen.html', 'offscreen.mjs', 'inference-worker.mjs'];
@@ -97,6 +98,9 @@ async function publicModel(root) {
 }
 
 async function metadata(root, environment, tag) {
+  if (releaseChannel(environment.GAMMA_RELEASE_CHANNEL) === 'stable') {
+    throw new Error('Stable releases require reviewed promotion of existing prerelease archives; do not rebuild or replace them.');
+  }
   const paths = publicBuildPaths(root, environment);
   const pkg = await json(join(root, 'package.json'));
   const extension = await json(join(root, 'apps/extension/manifest.json'));
@@ -147,7 +151,7 @@ async function licenses(root, stage, web, version) {
 function installInstructions(version, web, firefox = false) {
   if (firefox) return `# Gamma EH ${version} — Firefox extension\n\nUse Firefox 140 or newer. Extract this ZIP, open about:debugging#/runtime/this-firefox,\nchoose Load Temporary Add-on and select manifest.json. Open or reload a normal website. Suggestions start automatically.\nTemporary installs disappear on restart. Permanent installation requires Mozilla signing.\nLocal AI is opt-in; use the popup to pause checking globally or on the current site.\n`;
 
-  return web ? `# Gamma EH ${version} — web editor\n\nServe this extracted directory with a static HTTP server on localhost or HTTPS.\nDo not open index.html as file://; workers and WebGPU need a secure origin.\nFor example, with Python 3: python -m http.server 8080 --bind 127.0.0.1\nThen open http://localhost:8080. Enable Local AI to try the model.\n`
+  return web ? `# Gamma EH ${version} — web editor\n\nServe this extracted directory with a static HTTP server on localhost or HTTPS.\nDo not open index.html as file://; workers and WebGPU need a secure origin.\nFor example, with Python 3: python -m http.server 8080 --bind 127.0.0.1\nThen open http://localhost:8080. Experimental Local AI starts enabled; switch it off for rules-only checking.\n`
     : `# Gamma EH ${version} — Chrome extension\n\n1. Extract the ZIP into a permanent folder. No build tools are required.\n2. Open chrome://extensions in Chrome 116 or newer.\n3. Enable Developer mode, click Load unpacked, and select this folder\n   (the one containing manifest.json). Keep the folder after installation.\n4. Open or reload a normal website. Suggestions start automatically.\n5. Use a textarea or plain-text contenteditable. Local AI is opt-in.\n\nTo update an unpacked install, replace the contents of the same folder,\nclick Reload on its card in chrome://extensions, and refresh website tabs.\nRemoving the installation resets settings and site permissions.\nUnpacked installs do not auto-update. Once a Chrome Web Store listing is\navailable, switch to its store install once to receive automatic updates.\nSee https://github.com/thapecroth/gamma_eh/blob/main/docs/chrome-web-store.md\nfor publication status and instructions. This ZIP is also the store upload\npackage; downloading a ZIP does not install a store-managed extension.\n`;
 }
 

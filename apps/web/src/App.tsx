@@ -47,7 +47,7 @@ function SuggestionCard({ suggestion, onAccept, onDismiss }: { suggestion: Sugge
     <div className="suggestion-label"><span className={`category-dot ${suggestion.category}`} aria-hidden="true" />{suggestion.category}<span className="suggestion-origin">{suggestion.source === 'model' ? 'LOCAL MODEL' : suggestion.source.toUpperCase()}</span></div>
     <p className="correction"><span className="original">{suggestion.original || '(insert)'}</span><Arrow /><span className="replacement">{suggestion.replacement || '(remove)'}</span></p>
     <p className="suggestion-message">{suggestion.message}</p>
-    <div className="suggestion-actions"><button className="accept-button" onClick={onAccept}>Accept <span aria-hidden="true">✓</span></button><button className="dismiss-button" onClick={onDismiss} aria-label={`Dismiss: ${suggestion.message}`}>Dismiss</button></div>
+    <div className="suggestion-actions"><button className="accept-button" onClick={onAccept} aria-label={`Accept correction: ${suggestion.original || 'insert'} to ${suggestion.replacement || 'remove'}`}>Accept <span aria-hidden="true">✓</span></button><button className="dismiss-button" onClick={onDismiss} aria-label={`Dismiss correction: ${suggestion.original || 'insert'} to ${suggestion.replacement || 'remove'}`}>Dismiss</button></div>
   </article>;
 }
 
@@ -108,10 +108,12 @@ export default function App() {
     setRevision((previous) => previous + 1);
   }
 
-  function updateDraft(next: string, message = '') {
+  function updateDraft(next: string, message = '', undoable = false) {
+    const previous = textRef.current;
     textRef.current = next;
     setText(next);
-    setUndoText(null);
+    // Recover a button-driven replacement, but never overwrite newer typing.
+    setUndoText(undoable && next !== previous ? previous : null);
     setNotice(message);
     invalidateCheck();
   }
@@ -119,15 +121,14 @@ export default function App() {
   function loadExample(item: typeof EXAMPLES[number]) {
     setExampleId(item.id);
     if (item.id === 'ai') setUseAI(true);
-    updateDraft(item.text, `${item.label} loaded.`);
+    updateDraft(item.text, `${item.label} loaded.`, true);
   }
 
   function accept(suggestion: Suggestion) {
     if (!current || textRef.current !== result.text) return;
     try {
       const previous = textRef.current;
-      updateDraft(applySuggestion(previous, suggestion), 'Suggestion accepted.');
-      setUndoText(previous);
+      updateDraft(applySuggestion(previous, suggestion), 'Suggestion accepted.', true);
       editorRef.current?.focus();
     } catch { setNotice('Your text changed. Suggestions will refresh.'); }
   }
@@ -136,8 +137,7 @@ export default function App() {
     if (!current || !suggestions.length || textRef.current !== result.text) return;
     try {
       const previous = textRef.current;
-      updateDraft(applySuggestions(previous, suggestions), 'Suggestions accepted.');
-      setUndoText(previous);
+      updateDraft(applySuggestions(previous, suggestions), 'Suggestions accepted.', true);
       editorRef.current?.focus();
     } catch { setNotice('Your text changed. Suggestions will refresh.'); }
   }
@@ -170,10 +170,10 @@ export default function App() {
         <div className="workspace">
           <div className="editor-pane">
             <div className="pane-toolbar"><span className="document-title"><span aria-hidden="true">▤</span>{example.title}</span><span className="language">English</span></div>
-            <div className="draft-actions" aria-label="Draft actions">
-              <button onClick={() => updateDraft(example.text, 'Example reset.')}>Reset example</button>
-              <button disabled={!text} onClick={() => { updateDraft('', 'Draft cleared.'); editorRef.current?.focus(); }}>Clear</button>
-              <button disabled={undoText === null} onClick={() => { if (undoText !== null) updateDraft(undoText, 'Last correction undone.'); }}>Undo correction</button>
+            <div className="draft-actions" role="group" aria-label="Draft actions">
+              <button onClick={() => updateDraft(example.text, 'Example reset.', true)}>Reset example</button>
+              <button disabled={!text} onClick={() => { updateDraft('', 'Draft cleared.', true); editorRef.current?.focus(); }}>Clear</button>
+              <button disabled={undoText === null} onClick={() => { if (undoText !== null) updateDraft(undoText, 'Last change undone.'); }}>Undo last change</button>
               <button className="copy-button" disabled={!text} onClick={() => void copyDraft()}>Copy text <span aria-hidden="true">↗</span></button>
             </div>
             <label className="sr-only" htmlFor="writing-editor">Your writing</label>
@@ -181,7 +181,7 @@ export default function App() {
             <div className="editor-footer"><span>{words} {words === 1 ? 'word' : 'words'}<span className="footer-divider">·</span>{text.length.toLocaleString()} / 20,000 characters</span><span className="saved-indicator"><span /> In this tab only</span></div>
           </div>
           <aside className="review-pane" aria-label="Writing suggestions">
-            <div className="review-heading"><div><h2>A second pair of eyes <span aria-hidden="true">✧</span></h2><p>You choose what to change.</p></div><span className="issue-count" aria-label={`${suggestions.length} suggestions`}>{suggestions.length}</span></div>
+            <div className="review-heading"><div><h2>A second pair of eyes <span aria-hidden="true">✧</span></h2><p>You choose what to change.</p></div><span className="issue-count" role="status" aria-label={`${suggestions.length} suggestions`}>{suggestions.length}</span></div>
             <div className="checker-settings">
               <label className="toggle-label"><input type="checkbox" checked={useAI} onChange={(event) => { setUseAI(event.target.checked); invalidateCheck(); }} /><span className="switch" aria-hidden="true" />Local AI<span className="experimental">EXPERIMENTAL</span></label>
               <div className="backend-status" role="status"><span className={`status-dot ${status}`} />{status === 'checking' ? useAI ? 'Checking on your device…' : 'Checking local rules…' : status === 'error' ? 'Checker unavailable' : backendLabel}{current && <span className="check-time">{Math.round(result.elapsedMs).toLocaleString()} ms</span>}</div>
@@ -205,10 +205,10 @@ export default function App() {
         <div className="principles">
           <div><span className="step-number">01</span><h3>Bring your words</h3><p>Start with an example or paste your own draft. No extension, sign-up, or API key.</p></div>
           <div><span className="step-number">02</span><h3>Check on your device</h3><p>Local AI, spelling, and rules check your draft here. You can switch the experimental model off anytime.</p></div>
-          <div><span className="step-number">03</span><h3>Keep your voice</h3><p>Accept a change, dismiss it, or undo your last correction. Copy your text when you’re ready.</p></div>
+          <div><span className="step-number">03</span><h3>Keep your voice</h3><p>Accept a change, dismiss it, or undo your last change. Copy your text when you’re ready.</p></div>
         </div>
       </section>
     </main>
-    <footer className="site-footer"><Mark compact /><p>Small model. Open code. Your words.</p><span>Apache 2.0 · Open source</span></footer>
+    <footer className="site-footer"><Mark compact /><p>Small model. Open code. Your words.</p><nav aria-label="Help and privacy"><a href={`${import.meta.env.BASE_URL}privacy.html`} target="_blank" rel="noreferrer">Privacy policy</a><a href={`${import.meta.env.BASE_URL}help.html`} target="_blank" rel="noreferrer">Help and limitations</a><a href="https://github.com/thapecroth/gamma_eh/issues" target="_blank" rel="noreferrer">Report a problem</a></nav><span>Apache 2.0 · Open source</span></footer>
   </div>;
 }

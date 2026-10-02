@@ -1,12 +1,37 @@
-# Gamma EH extension privacy policy
+# Gamma EH privacy policy
 
-Effective date: September 30, 2026.
+Effective date: October 1, 2026.
 
-Gamma EH provides English writing suggestions inside supported website text
-fields. Checking runs on your device. It has no account system, analytics,
+Gamma EH provides English writing suggestions in its web editor and inside
+supported website text fields through its extension. Checking runs on your device.
+It has no account system, analytics,
 advertising, or developer-operated service that receives your writing.
 
-## Information processed on your device
+## Web editor
+
+The web editor checks the draft you type or paste in that tab. Local rules and
+the bundled dictionary run on your device. Local AI is experimental and starts
+enabled in the web editor; you can switch it off anytime. When enabled, it loads
+model files from the site's own origin
+and runs inference on your device. Drafts are never included in those asset
+requests or sent to an inference service.
+
+Drafts, suggestions, and the one-step undo snapshot remain in tab and worker
+memory. The web editor does not save them in browser storage, cookies, a
+database, or an account. Reloading or closing the tab loses the draft. Copy
+text writes the current draft to your system clipboard only when you choose
+that action; your operating system and other applications control clipboard
+retention and access. Gamma EH does not read your clipboard automatically.
+
+The public site is hosted on GitHub Pages. Loading it sends ordinary requests
+for HTML, JavaScript, styles, icons, and optional model files to the host. The
+host can process connection information such as your IP address and browser
+headers under [GitHub's privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
+Those requests do not contain your draft. Gamma EH adds no analytics or draft
+logging. Host-operated access logs are separate from the local checker; this
+policy does not promise that the hosting provider retains no connection data.
+
+## Extension information processed on your device
 
 When you focus a supported textarea or plain-text
 editor, the extension reads that field's text, including existing text, to find
@@ -24,7 +49,7 @@ Password inputs, payment/authentication input fields, fields marked private or
 sensitive, and unsupported rich editors are excluded. Gamma EH cannot recognize
 every kind of sensitive information in an ordinary text field.
 
-## Information retained locally
+## Extension information retained locally
 
 Gamma EH saves preferences in local extension storage: whether writing
 suggestions and experimental Local AI are enabled, plus the list of paused
@@ -43,7 +68,7 @@ dictionary data, and executable runtime code are included in the package.
 Chrome downloads extension packages and updates from the Chrome Web Store.
 Those browser-managed requests do not include your writing from Gamma EH.
 Google and the websites you visit have their own privacy practices; this policy
-describes the Gamma EH extension. Visiting project links or sending a support
+describes Gamma EH's web editor and extension. Visiting project links or sending a support
 report is a separate action; anything you include in a report is visible to
 its recipient. Do not post private writing in public issues.
 

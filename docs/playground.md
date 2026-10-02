@@ -10,6 +10,13 @@ and type or paste a draft. Local AI starts enabled alongside rules and the bundl
 spelling dictionary. Its switch turns the experimental model off or back on;
 **Try local AI** also enables it.
 
+The footer opens bundled `privacy.html` and `help.html` pages in a new tab, so
+reading them preserves the draft. The build renders these pages from
+`docs/privacy.md` and `docs/support.md` using a build-only Markdown dependency;
+it ships no document parser or external runtime. Both pages share the app's
+local content policy, work under the configured base path, and are included in
+release ZIPs. Other project reference links open the public repository.
+
 ## Run locally
 
 With Node 24.11+ (24.x) and dependencies installed:
@@ -31,9 +38,11 @@ included model from this checkout; no extension build or installation is needed.
   Accepting or dismissing a suggestion removes its mark. Typing clears old marks
   immediately while the checker refreshes.
 - Accept or dismiss a change, or accept all current suggestions.
-- **Undo correction** restores the draft before the last accepted change or
-  group of changes. Editing, clearing, loading an example, or resetting discards
-  this one-step undo so it cannot overwrite a newer draft.
+- **Undo last change** restores the draft before the last accepted correction,
+  Clear, Reset example, or example selection. New typing invalidates that
+  recovery snapshot. Reloading or closing the tab loses the draft. It does not
+  provide a persistent document history. Accept all records the draft before
+  that entire group of changes.
 - **Reset example** restores the selected example, including dismissed
   suggestions. **Clear** gives you a blank page. **Copy text** copies the draft;
   if clipboard access fails, the page selects the text for manual copying.

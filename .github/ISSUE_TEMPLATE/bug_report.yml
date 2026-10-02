@@ -1,0 +1,44 @@
+name: Report a problem
+description: Report an installation, checking, or editing problem using fictional text.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Reports are public. Replace your writing with a fictional example.
+        Do not include credentials, personal information, private conversations,
+        browser profiles, or screenshots of real drafts.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did the problem happen?
+      options: [Web editor, Chrome extension, Experimental Firefox extension]
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Version, browser, and operating system
+      placeholder: "Gamma EH 0.1.1; Chrome 149; Windows 11"
+    validations:
+      required: true
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Checker mode
+      options: [Local rules, Local AI WebGPU, Local AI CPU, Unknown]
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce with fictional writing
+      description: Include the field type and installation method if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
