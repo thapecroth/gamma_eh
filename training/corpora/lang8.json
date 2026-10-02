@@ -1,0 +1,15 @@
+{
+  "id": "lang8",
+  "training_split": "train",
+  "release_eligible": false,
+  "format": "m2-tar",
+  "license": "LicenseRef-Lang8",
+  "license_scope": "NAIST Lang-8 research/education only; commercial permission must come from corpus owner.",
+  "supervision": "crowd-corrected",
+  "source_url": "https://sites.google.com/site/naistlang8corpora",
+  "revision": "Lang-8 BEA2019 standardized train archive; actual owner-provided file SHA256 recorded",
+  "members": [
+    "lang8/m2/lang8.train.auto.bea19.m2"
+  ],
+  "access": "Request the official BEA2019 standardized archive and provide its local path."
+}
