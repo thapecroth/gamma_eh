@@ -3,7 +3,8 @@
 Mixed training data and a larger student improved independent neural edit scores,
 but **none of the four students qualified for release**. All candidate exports
 explicitly disable neural edits. The bundled checkpoint remains an experimental,
-opt-in model; its weights were not replaced. This comparison establishes useful
+default-enabled model; its weights were not replaced. See
+[local AI defaults and compatibility](local-ai-defaults.md) for the current policy. This comparison establishes useful
 training and measurement infrastructure, not production grammar accuracy.
 
 The [aggregate results](model-quality-results.json) contain population, dataset,

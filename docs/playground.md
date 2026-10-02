@@ -8,7 +8,8 @@ The web app is the Gamma EH playground: a standalone writing demo that needs no
 Chrome extension, account, API key, or inference server. Visitors open the page
 and type or paste a draft. Local AI starts enabled alongside rules and the bundled
 spelling dictionary. Its switch turns the experimental model off or back on;
-**Try local AI** also enables it.
+**Try local AI** also enables it. If the model cannot run, spelling and rule
+suggestions continue automatically. See [local AI defaults](local-ai-defaults.md).
 
 ## Run locally
 

@@ -3,7 +3,8 @@
 The public demo is at **https://thapecroth.github.io/gamma_eh/**. Anyone can open
 it and try Gamma EH without installing the Chrome extension, creating an account,
 or supplying an API key. GitHub serves static files; checks run on the visitor's
-device. Local AI is optional and remains an experimental synthetic baseline.
+device. Local AI starts enabled, falls back when unavailable, and remains an
+experimental synthetic baseline.
 
 ## Deployment
 
