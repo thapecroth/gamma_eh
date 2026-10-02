@@ -25,8 +25,12 @@ matching assets/source hashes and real CPU profiles. The holdout is untouched.
 These deliberate delays test validation plumbing and demonstrate no real
 optimization speedup. Pressure, swapping or an inconclusive result fails this
 verification; the harness policy is never relaxed or retried to select a lucky run.
-CI waits 30 seconds after Chromium/corpus installation so installer I/O pressure
-can decay before any trial. The real pressure gates still apply to the full run.
+Before either measured campaign, the verifier uses the analyzer's unchanged
+pressure policy and swap-counter checks to require quiet samples spanning ten
+seconds. It samples every five seconds, waits at most three minutes, records
+admission evidence, and fails on timeout or interruption. This lets installer I/O
+decay before any trial. The real pressure gates still apply to the full run;
+measured campaigns are never rerun to obtain a favorable result.
 
 The same serial campaign rejects baseline-only corrupted weights, a development
 corpus with one row removed, reused output directories and a source change after

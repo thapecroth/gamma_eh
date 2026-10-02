@@ -124,8 +124,6 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Import pinned evaluation corpus locally
         run: python3 training/import_jfleg.py --execute --output data/imported/jfleg-evaluation
-      - name: Allow installer I/O pressure to settle before trials
-        run: sleep 30
       - name: Verify actual promotion and rejection exits on CPU
         run: npm run test:inference-promotion
       - name: Preserve aggregate promotion evidence

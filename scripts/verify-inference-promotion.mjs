@@ -4,7 +4,7 @@ import {join, relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parseArgs} from 'node:util';
 import {acquireLock, changedProductPaths, git, jsonFile, runCommand, runId, sourceStamp} from './agent-runtime.mjs';
-import {digest, frozenQuality, policy, profileTree, validateFrozenQuality} from './inference-analysis.mjs';
+import {digest, frozenQuality, policy, profileTree, validateFrozenQuality, waitForQuietHost} from './inference-analysis.mjs';
 
 // Controlled delays exercise promotion plumbing; they are not an optimization.
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -20,6 +20,15 @@ const edits = [
 let lock, originalRoot, phase = 'setup', interrupted = false;
 const onSignal = () => { interrupted = true; evidence.passed = false; process.exitCode = 1; };
 for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(signal, onSignal);
+
+async function admit(name) {
+  phase = `${name}-admission`;
+  evidence.admission ??= {};
+  console.log(JSON.stringify({phase, status: 'waiting-for-quiet-host'}));
+  try { evidence.admission[name] = await waitForQuietHost({interrupted: () => interrupted}); }
+  catch (error) { evidence.admission[name] = error.admission; throw error; }
+  console.log(JSON.stringify({phase, status: 'admitted', waitedMs: evidence.admission[name].waitedMs}));
+}
 
 async function analyze(name, args, expectedCode, output = join(directory, name), timeoutMs = 300000) {
   assert(!interrupted, 'Promotion verification interrupted');
@@ -121,8 +130,10 @@ try {
   const positiveTrees = {candidate: fast, baseline: slow, anchor: slow};
   const negativeTrees = {candidate: slow, baseline: fast, anchor: fast};
   const args = trees => Object.entries(trees).flatMap(([name, tree]) => [`--${name}`, tree]);
+  await admit('positive');
   await analyze('positive', [...args(positiveTrees), '--quality-dir', quality], 0);
   await verifyComparison('positive', positiveTrees); evidence.checks.acceptedExit0 = true;
+  await admit('negative');
   await analyze('negative', [...args(negativeTrees), '--quality-dir', quality], 2);
   await verifyComparison('negative', negativeTrees); evidence.checks.rejectedExit2 = true;
 
