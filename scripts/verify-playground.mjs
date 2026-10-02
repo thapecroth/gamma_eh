@@ -21,6 +21,52 @@ async function ready(page) {
   await page.locator('.status-dot.ready').waitFor({ timeout: 90_000 });
 }
 
+async function verifyUnderlines(page, expected) {
+  const marks = page.locator('.writing-error');
+  if (expected) assert.deepEqual(await marks.allTextContents(), expected);
+  assert((await marks.count()) > 0, 'Expected errors to be underlined in the draft');
+  const failures = await page.evaluate(() => {
+    const editor = document.querySelector('.writing-editor');
+    const layer = document.querySelector('.writing-highlight-layer');
+    const style = getComputedStyle(editor);
+    const bounds = editor.getBoundingClientRect();
+    // Independently measure native textarea typography with a single text node.
+    const reference = document.createElement('div');
+    for (const property of ['boxSizing', 'font', 'letterSpacing', 'wordSpacing', 'padding', 'whiteSpace', 'overflowWrap', 'tabSize']) {
+      reference.style[property] = style[property];
+    }
+    Object.assign(reference.style, { position: 'fixed', visibility: 'hidden', border: '0',
+      left: `${bounds.left - editor.scrollLeft}px`, top: `${bounds.top - editor.scrollTop}px`, width: `${editor.clientWidth}px` });
+    reference.textContent = editor.value + '\u200b';
+    document.body.append(reference);
+    const failures = [];
+    try {
+      if (layer.clientWidth !== editor.clientWidth || layer.clientHeight !== editor.clientHeight) failures.push('Highlight clipping must match the textarea content area');
+      if (getComputedStyle(layer).pointerEvents !== 'none' || layer.getAttribute('aria-hidden') !== 'true') failures.push('Highlights must leave selection and accessibility to the textarea');
+      for (const mark of document.querySelectorAll('.writing-error')) {
+        const start = Number(mark.dataset.start);
+        const end = Number(mark.dataset.end);
+        if (mark.textContent !== editor.value.slice(start, end)) failures.push('Underline does not match its UTF-16 source range');
+        const decoration = getComputedStyle(mark);
+        if (decoration.textDecorationLine !== 'underline' || decoration.textDecorationStyle !== 'wavy' || decoration.textDecorationColor !== 'rgb(196, 63, 63)') failures.push('Expected a red wavy underline');
+        const nativeRange = document.createRange();
+        nativeRange.setStart(reference.firstChild, start);
+        nativeRange.setEnd(reference.firstChild, end);
+        const actualRange = document.createRange();
+        actualRange.selectNodeContents(mark);
+        const expectedRects = [...nativeRange.getClientRects()];
+        const actualRects = [...actualRange.getClientRects()];
+        if (expectedRects.length !== actualRects.length || expectedRects.some((rect, index) =>
+          ['left', 'top', 'width', 'height'].some(key => Math.abs(rect[key] - actualRects[index][key]) > 1))) {
+          failures.push(`Underline is misaligned for ${mark.textContent}`);
+        }
+      }
+    } finally { reference.remove(); }
+    return failures;
+  });
+  assert.deepEqual(failures, []);
+}
+
 try {
   let siteUrl = process.env.GAMMA_PLAYGROUND_URL;
   if (!siteUrl) {
@@ -59,11 +105,16 @@ try {
   const editor = page.getByLabel('Your writing', { exact: true });
   const acceptAll = page.getByRole('button', { name: 'Accept all suggestions', exact: true });
   const undo = page.getByRole('button', { name: 'Undo correction', exact: true });
-  assert.equal(await page.getByRole('checkbox').isChecked(), false);
-  assert.equal(requests.some(url => new URL(url).pathname.startsWith(`${base}models/`)), false, 'Rules must not download the model before opt-in');
+  assert.equal(await page.getByRole('checkbox').isChecked(), true, 'Local AI must start enabled');
+  assert.match(await page.locator('.backend-status').textContent(), gpuRequired ? /Local AI · WebGPU/u : /Local AI · CPU/u);
+  assert.equal(await page.locator('.model-warning').count(), 0);
+  assert(requests.some(url => new URL(url).pathname === `${base}models/model.onnx`), 'Default AI must execute the bundled model');
   assert.equal(context.serviceWorkers().length, 0);
   assert.equal(await page.evaluate(() => Boolean(globalThis.chrome?.runtime?.id)), false);
-  evidence.checks.noExtensionOrModelRequired = true;
+  evidence.checks.defaultLocalAIWithoutExtension = true;
+  await verifyUnderlines(page);
+  await page.getByRole('checkbox').uncheck();
+  await ready(page);
 
   for (const name of ['Everyday writing', 'A spelling check', 'An email']) {
     await page.getByRole('button', { name, exact: true }).click();
@@ -73,14 +124,38 @@ try {
   }
   const sample = await editor.inputValue();
   const initialCount = await page.locator('.suggestion-card').count();
+  assert.equal(await page.locator('.writing-error').count(), initialCount);
   await page.getByRole('button', { name: /^Dismiss:/u }).first().click();
   assert.equal(await editor.inputValue(), sample);
   assert.equal(await page.locator('.suggestion-card').count(), initialCount - 1);
+  assert.equal(await page.locator('.writing-error').count(), initialCount - 1, 'Dismiss must remove its underline');
   await page.getByRole('button', { name: 'Reset example', exact: true }).click();
   await ready(page);
   assert.equal(await editor.inputValue(), sample);
   assert.equal(await page.locator('.suggestion-card').count(), initialCount, 'Reset must refresh dismissed suggestions even when the text is identical');
+  await verifyUnderlines(page);
   evidence.checks.examplesAndDismissReset = true;
+
+  await editor.fill('😀. I would definitly help my freind. My freind is here.');
+  assert.equal(await page.locator('.writing-error').count(), 0, 'Typing must clear stale underlines immediately');
+  await ready(page);
+  await verifyUnderlines(page, ['definitly', 'freind', 'freind']);
+  await page.getByRole('button', { name: 'Accept', exact: true }).first().click();
+  await ready(page);
+  await verifyUnderlines(page, ['freind', 'freind']);
+  evidence.checks.underlineUTF16RepeatedWordsAndAccept = true;
+
+  await editor.fill(`${'A clear sentence.\n'.repeat(32)}😀\tI would definately help my freind.\n`);
+  await ready(page);
+  await verifyUnderlines(page, ['definately', 'freind']);
+  await editor.evaluate(element => { element.scrollTop = element.scrollHeight; });
+  await page.waitForFunction(() => document.querySelector('.writing-editor').scrollTop > 0);
+  await verifyUnderlines(page);
+  await editor.evaluate(element => { element.style.height = `${element.clientHeight + 80}px`; });
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await verifyUnderlines(page);
+  await editor.evaluate(element => element.style.removeProperty('height'));
+  evidence.checks.underlineScrollResizeTabsAndTrailingNewline = true;
 
   await editor.fill('😀. She have a freind.');
   await ready(page);
@@ -159,7 +234,9 @@ try {
   await page.screenshot({ path: join(artifactDir, 'playground-desktop.png'), fullPage: true });
   for (const width of [320, 390, 768]) {
     await page.setViewportSize({ width, height: 844 });
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `No horizontal overflow at ${width}px`);
+    await verifyUnderlines(page);
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: join(artifactDir, 'playground-mobile.png'), fullPage: true });
@@ -184,6 +261,8 @@ try {
   });
   await stale.goto(site.href);
   await ready(stale);
+  await stale.getByRole('checkbox').uncheck();
+  await ready(stale);
   await stale.getByLabel('Your writing', { exact: true }).fill('She have a freind.');
   await stale.waitForFunction(() => window.delayedReplyReady === true);
   await stale.getByRole('checkbox').check();
@@ -194,6 +273,7 @@ try {
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   });
   assert.match(await stale.locator('.backend-status').textContent(), /Local AI/u, 'An older result with identical text must not override a newer mode');
+  await verifyUnderlines(stale, ['have', 'freind']);
   await stale.close();
   evidence.checks.staleWorkerReplyIgnored = true;
 
@@ -203,11 +283,11 @@ try {
   await fallback.route('**/models/**', route => route.fulfill({ status: 503, body: 'Unavailable' }));
   await fallback.goto(site.href);
   await ready(fallback);
-  await fallback.getByRole('button', { name: 'Try local AI', exact: true }).click();
-  await ready(fallback);
+  assert.equal(await fallback.getByRole('checkbox').isChecked(), true);
   await fallback.locator('.model-warning').waitFor();
   await fallback.getByLabel('Your writing', { exact: true }).fill('She have a freind.');
   await ready(fallback);
+  await verifyUnderlines(fallback, ['have', 'freind']);
   await fallback.getByRole('button', { name: 'Accept all suggestions', exact: true }).click();
   assert.equal(await fallback.getByLabel('Your writing', { exact: true }).inputValue(), 'She has a friend.');
   evidence.checks.modelFailureFallsBackToRules = true;
@@ -226,7 +306,7 @@ try {
   await page.reload();
   await ready(page);
   assert.equal(await editor.inputValue(), sample, 'Private drafts must not persist across a reload');
-  assert.equal(await page.getByRole('checkbox').isChecked(), false);
+  assert.equal(await page.getByRole('checkbox').isChecked(), true);
   assert.deepEqual(evidence.externalRequests, []);
   assert.deepEqual(evidence.outsideBaseRequests, []);
   assert.deepEqual(evidence.uploads, []);

@@ -155,8 +155,7 @@ try {
     if (!response.ok) throw new Error('Model manifest unavailable');
     return response.json();
   });
-  await page.getByRole('checkbox').focus();
-  await page.getByRole('checkbox').press('Space');
+  assert.equal(await page.getByRole('checkbox').isChecked(), true, 'Local AI must be enabled by default');
   await page.getByRole('status').filter({hasText: /Local AI|Local rules/u}).first().waitFor({timeout: 90_000});
   evidence.web.initialBackend = await page.locator('.backend-status').textContent();
   evidence.web.modelWarning = await page.locator('.model-warning').count() ? await page.locator('.model-warning').textContent() : null;
