@@ -150,12 +150,12 @@ def completed(spec, name, epochs, initial_hashes, newly_executed=False):
     objective = "supervised" if name == "warmup" else name
     if (report["schedule"] != expected_schedule or report["seed"] != spec["seed"] or report["device"] != spec["device"]
             or report["objective"]["name"] != objective or report["objective"]["rl_coefficient"] != (
-                spec["rl_coefficient"] if objective == "anchored-reinforce" else 0.)
+                spec["rl_coefficient"] if objective != "supervised" else 0.)
             or report["initialization"]["files"] != initial_hashes
             or report["dataset_manifest_sha256"] != spec["input_hashes"][str(Path(spec["data"]) / "manifest.json")]):
         raise ValueError("Existing comparison receipt differs from the frozen schedule/initialization")
     for source, expected in spec["code_hashes"].items():
-        if Path(source).name != "compare_rl.py" and report["code_sha256"].get(Path(source).name) != expected:
+        if Path(source).name not in {"compare_rl.py", "compare_judge_rl.py"} and report["code_sha256"].get(Path(source).name) != expected:
             raise ValueError("Existing trainer receipt used different frozen code")
     for filename, asset in manifest["files"].items():
         if Path(filename).name != filename or hash_file(model / filename) != asset["sha256"]:

@@ -177,7 +177,7 @@ def main(args):
     objective = getattr(args, "objective", "supervised")
     coefficient = getattr(args, "rl_coefficient", .05)
     validate_coefficient(coefficient)
-    if objective not in {"supervised", "anchored-reinforce"}:
+    if objective not in {"supervised", "anchored-reinforce", "llm-judge-reinforce"}:
         raise ValueError("Unknown training objective")
     if objective == "supervised": coefficient = 0.
     initial_checkpoint = getattr(args, "initial_checkpoint", None)
@@ -236,6 +236,34 @@ def main(args):
     sampling_generator = torch.Generator(device=device).manual_seed(args.seed)
     args.checkpoint.mkdir(parents=True, exist_ok=True)
     schema = dataset_manifest.get("edit_schema", 1)
+    judge_client, judge_rows, judge_config = None, [], None
+    if objective == "llm-judge-reinforce" and coefficient:
+        from judge import Judge, judge_spec, spec_hash, canonical, digest, validate_calibration
+        from judge_objective import select_rows, subset_spec, batch_loss
+        if not 1 <= args.judge_rl_batch_size <= 16 or not math.isfinite(args.judge_temperature) or args.judge_temperature <= 0:
+            raise ValueError("Judge RL batches must be 1..16 with positive finite temperature")
+        spec = judge_spec(args.judge_model, args.judge_provider, args.judge_auth,
+                          args.judge_provider_header, args.judge_auth_header)
+        if args.judge_calibration is None:
+            raise ValueError("LLM judge RL requires a passing exact-spec calibration receipt")
+        validate_calibration(args.judge_calibration, spec, args.judge_calibration_fixture)
+        judge_rows = select_rows([json.loads(line) for line in (args.data / "train.jsonl").read_text().splitlines()],
+                                 args.judge_rl_rows, args.seed)
+        subset = subset_spec(judge_rows)
+        if args.judge_subset_sha256 and args.judge_subset_sha256 != digest(canonical(subset)):
+            raise ValueError("Frozen synthetic judge subset changed")
+        if math.ceil(len(judge_rows) / args.judge_rl_batch_size) > len(loaders["train"]):
+            raise ValueError("RL batches exceed matched CE optimizer updates; reduce subset or RL batch size")
+        judge_client = Judge(args.judge_cache or args.output.parent / "judge-cache", spec,
+                             batch_size=args.judge_batch_size, max_requests=args.judge_max_requests,
+                             max_pairs=args.judge_max_pairs, timeout=args.judge_timeout)
+        judge_config = {"spec": spec, "spec_sha256": spec_hash(spec), "subset": subset,
+                        "subset_sha256": digest(canonical(subset)), "temperature": args.judge_temperature,
+                        "rl_batch_size": args.judge_rl_batch_size, "samples_per_source": 1,
+                        "baseline": "Detached greedy self-critical reward from the same eval-mode policy",
+                        "log_probability": "Sum over valid word-initial token actions; batch mean across sentences",
+                        "calibration_sha256": hash_file(args.judge_calibration),
+                        "budgets": {"max_requests": args.judge_max_requests, "max_pairs": args.judge_max_pairs}}
     best_score = None
     history = []
     updates, examples_seen, checkpoint_epoch = 0, 0, None
@@ -245,17 +273,35 @@ def main(args):
         total_loss = 0.
         supervised_loss, policy_loss = 0., 0.
         reward_sum, expected_reward_sum, sampled_tokens = 0., 0., 0
-        for ids, mask, types, gold in loaders["train"]:
+        judge_epoch = {"rows": 0, "reward_sum": 0., "baseline_sum": 0., "advantage_abs_sum": 0.,
+                       "nonzero_advantages": 0, "sampled_changed": 0, "greedy_changed": 0}
+        for batch_index, (ids, mask, types, gold) in enumerate(loaders["train"]):
             optimizer.zero_grad(set_to_none=True)
             logits = model(input_ids=ids.to(device), attention_mask=mask.to(device), token_type_ids=types.to(device)).logits
-            loss, diagnostics = anchored_loss(logits, gold.to(device), weights, coefficient, sampling_generator)
+            tag_coefficient = coefficient if objective == "anchored-reinforce" else 0.
+            loss, diagnostics = anchored_loss(logits, gold.to(device), weights, tag_coefficient, sampling_generator)
+            if judge_client:
+                start = batch_index * args.judge_rl_batch_size
+                batch_rows = judge_rows[start:start + args.judge_rl_batch_size]
+                if batch_rows:
+                    policy, values = batch_loss(model, batch_rows, tokenizer, labels, schema, args.max_length,
+                                               device, sampling_generator, judge_client, args.judge_temperature)
+                    loss = loss + coefficient * policy
+                    diagnostics["policy_gradient_loss"] = policy.detach().item()
+                    count = values["rows"]
+                    judge_epoch["rows"] += count
+                    for name, source_name in (("reward_sum", "reward"), ("baseline_sum", "baseline_reward"),
+                                              ("advantage_abs_sum", "advantage_abs")):
+                        judge_epoch[name] += values[source_name] * count
+                    for name in ("nonzero_advantages", "sampled_changed", "greedy_changed"):
+                        judge_epoch[name] += values[name]
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.)
             optimizer.step()
             total_loss += loss.item()
             supervised_loss += diagnostics["supervised_loss"]
             policy_loss += diagnostics["policy_gradient_loss"]
-            if coefficient and diagnostics["valid_tokens"]:
+            if tag_coefficient and diagnostics["valid_tokens"]:
                 count = diagnostics["valid_tokens"]
                 reward_sum += diagnostics["sampled_reward"] * count
                 expected_reward_sum += diagnostics["expected_reward"] * count
@@ -275,6 +321,12 @@ def main(args):
                         "policy_gradient_loss": policy_loss / len(loaders["train"]),
                         "sampled_reward": reward_sum / sampled_tokens if sampled_tokens else None,
                         "expected_reward": expected_reward_sum / sampled_tokens if sampled_tokens else None,
+                        "judge": {"rows": judge_epoch["rows"],
+                            "mean_reward": judge_epoch["reward_sum"] / judge_epoch["rows"] if judge_epoch["rows"] else None,
+                            "mean_baseline": judge_epoch["baseline_sum"] / judge_epoch["rows"] if judge_epoch["rows"] else None,
+                            "mean_abs_advantage": judge_epoch["advantage_abs_sum"] / judge_epoch["rows"] if judge_epoch["rows"] else None,
+                            **{name: judge_epoch[name] for name in ("nonzero_advantages", "sampled_changed", "greedy_changed")},
+                            "client": judge_client.stats() if judge_client else None} if judge_client else None,
                         "development": development, "constraints_met": selected["constraints_met"],
                         "inference": inference})
         print(json.dumps(history[-1]), flush=True)
@@ -314,8 +366,9 @@ def main(args):
                            "max_length": args.max_length}, "training_seconds": round(time.monotonic() - started, 2),
               "objective": {"name": objective, "rl_coefficient": coefficient, "keep_weight": .3,
                             "rewards": REWARDS if objective == "anchored-reinforce" else None,
-                            "baseline": "Detached exact per-token expected reward" if coefficient else None,
-                            "scope": "Training edit-tag supervision; independent decoded development/test evaluation."},
+                            "judge": judge_config,
+                            "baseline": "Detached exact per-token expected reward" if tag_coefficient else None,
+                            "scope": "Source/candidate LLM rubric reward plus supervised CE; independent human development/test." if objective == "llm-judge-reinforce" else "Training edit-tag supervision; independent decoded development/test evaluation."},
               "training_budget": {"optimizer_updates": updates, "examples_seen": examples_seen,
                                   "rows_per_epoch": len(data["train"]), "selected_checkpoint_epoch": checkpoint_epoch,
                                   "optimizer_state": "AdamW starts fresh; initial checkpoint supplies model weights only."},
@@ -334,7 +387,11 @@ def main(args):
                            "onnxruntime": ort.__version__, "transformers": version("transformers"),
                            "numpy": np.__version__}
     report["code_sha256"] = {name: hash_file(Path(__file__).with_name(name)) for name in
-                             ["train.py", "rl_objective.py", "evaluate.py", "legacy_spelling.py", "edit_ops.py", "data.py", "prepare_pairs.py", "pairs.py"]}
+                             ["train.py", "rl_objective.py", "judge.py", "judge_objective.py", "evaluate.py", "legacy_spelling.py", "edit_ops.py", "data.py", "prepare_pairs.py", "pairs.py"]}
+    if judge_client:
+        report["judge"] = {"stats": judge_client.stats(), "ledgers": {
+            name: hash_file(judge_client.directory / name) for name in ("spec.json", "requests.jsonl", "verdicts.jsonl")}}
+        judge_client.close()
     report["code_sha256"]["dictionary.generated.ts"] = hash_file(Path(__file__).resolve().parent.parent / "packages/engine/src/dictionary.generated.ts")
     report["code_sha256"]["spelling.ts"] = hash_file(Path(__file__).resolve().parent.parent / "packages/engine/src/spelling.ts")
     report["dataset_manifest_sha256"] = hash_file(args.data / "manifest.json")
@@ -473,11 +530,28 @@ def parser():
     result.add_argument("--max-length", type=int, default=64)
     result.add_argument("--learning-rate", type=float, default=5e-4)
     result.add_argument("--seed", type=int, default=42)
-    result.add_argument("--objective", choices=["supervised", "anchored-reinforce"], default="supervised")
+    result.add_argument("--objective", choices=["supervised", "anchored-reinforce", "llm-judge-reinforce"], default="supervised")
     result.add_argument("--rl-coefficient", type=float, default=.05,
                         help="Nonnegative finite REINFORCE weight; supervised weighted CE always remains active")
     result.add_argument("--initial-checkpoint", type=Path,
                         help="Local matching edit classifier warm start; experimental nonpublishable weights")
+    result.add_argument("--judge-model", default="gpt-6-luna")
+    result.add_argument("--judge-provider", default="codex")
+    result.add_argument("--judge-auth", default="subscription")
+    result.add_argument("--judge-provider-header", default="X-CLIProxy-Provider")
+    result.add_argument("--judge-auth-header", default="X-CLIProxy-Auth-Mode")
+    result.add_argument("--judge-cache", type=Path)
+    result.add_argument("--judge-calibration", type=Path)
+    result.add_argument("--judge-calibration-fixture", type=Path,
+                        default=Path(__file__).resolve().parents[1] / "data/judge-calibration.json")
+    result.add_argument("--judge-subset-sha256")
+    result.add_argument("--judge-rl-rows", type=int, default=128)
+    result.add_argument("--judge-rl-batch-size", type=int, default=16)
+    result.add_argument("--judge-temperature", type=float, default=1.)
+    result.add_argument("--judge-max-requests", type=int, default=256)
+    result.add_argument("--judge-max-pairs", type=int, default=8192)
+    result.add_argument("--judge-batch-size", type=int, default=16)
+    result.add_argument("--judge-timeout", type=int, default=60)
     result.add_argument("--base-model", default=BASE)
     result.add_argument("--base-revision", default=REVISION)
     result.add_argument("--local-files-only", action="store_true")
