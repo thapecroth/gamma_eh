@@ -2,6 +2,7 @@ import { JaxSession } from './jax-runtime';
 import { applySuggestions, overlaps } from './edits';
 import { decodeProposal, tagCategory } from './edit-tags';
 import { EditHistory } from './edit-history';
+import { InferenceCache } from './inference-cache';
 import { analyzeRules, protectedSpans } from './rules';
 import { spellingWords } from './spelling';
 import { WordPieceTokenizer } from './tokenizer';
@@ -21,6 +22,7 @@ interface LoadedModel {
   labels: string[];
   manifest: ModelManifest;
   backend: 'webgpu' | 'wasm' | 'rules';
+  logitsCache: InferenceCache;
 }
 
 const sessions = new Map<string, Promise<LoadedModel>>();
@@ -60,11 +62,12 @@ async function load(options: EngineOptions): Promise<LoadedModel> {
     throw new Error('Invalid model correction policy');
   }
   const tokenizer = new WordPieceTokenizer(await vocabResponse.text());
-  if (policy.disableModelEdits) return {tokenizer, labels, manifest: policy, backend: 'rules'};
+  const logitsCache = new InferenceCache();
+  if (policy.disableModelEdits) return {tokenizer, labels, manifest: policy, backend: 'rules', logitsCache};
   const bytes = new Uint8Array(await (await fetchAsset(base, 'model.onnx')).arrayBuffer());
   const session = await JaxSession.create(bytes, options.preferWebGPU !== false);
   const backend = session.backend;
-  return {session, tokenizer, labels, manifest: manifest as ModelManifest, backend};
+  return {session, tokenizer, labels, manifest: manifest as ModelManifest, backend, logitsCache};
 }
 
 function getModel(options: EngineOptions): Promise<LoadedModel> {
@@ -96,17 +99,26 @@ async function analyzePass(text: string, options: EngineOptions, model: LoadedMo
     // deletes a duplicate. Do not infer conflicting edits from that context.
     if (protectedRanges.some(range => first < range.end && range.start < last) ||
         ruleSuggestions.some(edit => !edit.replacement && first < edit.end && edit.start < last)) continue;
-    const logits = await session.run(chunk.ids);
-    modelRuns++;
-    if (logits.dims.length !== 3 || logits.dims[0] !== 1 || logits.dims[1] !== chunk.ids.length ||
-        logits.dims[2] !== labels.length || logits.data.length !== chunk.ids.length * labels.length) {
-      throw new Error('Unexpected model output shape');
+    const key = chunk.ids.join(',');
+    let data = model.logitsCache.get(key);
+    if (!data) {
+      const logits = await session.run(chunk.ids);
+      modelRuns++;
+      if (logits.dims.length !== 3 || logits.dims[0] !== 1 || logits.dims[1] !== chunk.ids.length ||
+          logits.dims[2] !== labels.length || !(logits.data instanceof Float32Array) ||
+          logits.data.length !== chunk.ids.length * labels.length) {
+        throw new Error('Unexpected model output shape');
+      }
+      if (!logits.data.every(Number.isFinite)) throw new Error('Nonfinite model output');
+      data = logits.data;
+      model.logitsCache.set(key, data);
     }
-    if (!logits.data.every(Number.isFinite)) throw new Error('Nonfinite model output');
+    // Uncased/unknown tokens can share IDs while source words, safety context,
+    // offsets, casing, and caller thresholds change. Decode every current draft.
     const words = chunk.positions.map(({word}) => word);
     for (const [index, {word, position}] of chunk.positions.entries()) {
       if (protectedRanges.some(range => word.start < range.end && range.start < word.end)) continue;
-      const row = logits.data.subarray(position * labels.length, (position + 1) * labels.length);
+      const row = data.subarray(position * labels.length, (position + 1) * labels.length);
       let best = 0;
       for (let i = 1; i < row.length; i++) if (row[i] > row[best]) best = i;
       if (!best) continue;

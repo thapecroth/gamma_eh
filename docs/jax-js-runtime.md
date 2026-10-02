@@ -10,7 +10,11 @@ in `training/`.
 
 `packages/engine/src/jax-runtime.ts` initializes WASM and optionally WebGPU. It
 loads the FP32 `model.onnx` on the selected device and JIT-compiles the forward
-pass for each sequence shape. GPU startup checks actual graph execution, including
+pass for sequence shapes rounded up to multiples of eight. Padding is masked
+out and removed from returned logits. A bounded per-model raw-logit cache reuses
+unchanged windows while decoding edits against the current source. See
+[inference performance](inference-performance.md) for bounds and measurements.
+GPU startup checks actual graph execution, including
 kernel compilation. Missing adapters, allocation failures, and startup kernel
 failures fall back to the same FP32 model on WASM. Later inference errors surface
 through the existing rules fallback and model warning.

@@ -5,15 +5,16 @@ const runtime = vi.hoisted(() => ({runs: 0, predict: (_ids: number[], _position:
 vi.mock('../packages/engine/src/jax-runtime', () => ({
   JaxSession: {create: async () => ({backend: 'wasm', run: async (ids: number[]) => {
     runtime.runs++;
-    const values = new Float32Array(ids.length * 6);
-    for (let position = 0; position < ids.length; position++) values[position * 6 + runtime.predict(ids, position)] = 12;
-    return {data: values, dims: [1, ids.length, 6]};
+    const values = new Float32Array(ids.length * labels.length);
+    for (let position = 0; position < ids.length; position++) values[position * labels.length + runtime.predict(ids, position)] = 12;
+    return {data: values, dims: [1, ids.length, labels.length]};
   }})},
 }));
 
 let manifest: Record<string, unknown>;
 let key = 0;
-const labels = ['KEEP', 'CASE:TITLE', 'CASE:LOWER', 'SUFFIX:ADD_S', 'APPEND_EXACT:,', 'REPLACE_EXACT:had'];
+const labels = ['KEEP', 'CASE:TITLE', 'CASE:LOWER', 'SUFFIX:ADD_S', 'APPEND_EXACT:,', 'REPLACE_EXACT:had',
+  'REPLACE_EXACT:world', 'REPLACE_EXACT:hello'];
 const vocab = '[PAD]\n[UNK]\n[CLS]\n[SEP]\nhello\n.\nworld\nbooks\n,\nshe\nhave\na\nbook\n';
 const options = () => ({modelBaseUrl: '/test-model-' + key++ + '/', preferWebGPU: false});
 
@@ -75,11 +76,20 @@ describe('model deployment policy', () => {
     expect(() => applySuggestions('stale ' + result.text, result.suggestions)).toThrow(/changed/u);
   });
 
-  it('stops correction cycles without undoing the accepted first pass', async () => {
-    runtime.predict = (ids, position) => ids[position] === 4 ? (runtime.runs === 1 ? 1 : 2) : 0;
+  it('reuses deterministic uncased predictions across case-only passes', async () => {
+    runtime.predict = (ids, position) => ids[position] === 4 ? 1 : 0;
     const result = await analyzeText('hello.', {...options(), mode: 'model', maxPasses: 3});
     expect(applySuggestions(result.text, result.suggestions)).toBe('Hello.');
+    expect(result.modelRuns).toBe(1);
+    expect(runtime.runs).toBe(1);
+  });
+
+  it('stops deterministic correction cycles without undoing the accepted first pass', async () => {
+    runtime.predict = (ids, position) => ids[position] === 4 ? 6 : ids[position] === 6 ? 7 : 0;
+    const result = await analyzeText('hello.', {...options(), mode: 'model', maxPasses: 3});
+    expect(applySuggestions(result.text, result.suggestions)).toBe('world.');
     expect(result.modelRuns).toBe(2);
+    expect(runtime.runs).toBe(2);
   });
 
   it('keeps rules authoritative and skips inference in protected windows', async () => {

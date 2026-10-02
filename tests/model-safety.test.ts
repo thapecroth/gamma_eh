@@ -13,11 +13,14 @@ const labels = ['KEEP', 'REPLACE:am', 'REPLACE:is', 'REPLACE:are', 'REPLACE:was'
 const vocabulary = '[PAD]\n[UNK]\n[CLS]\n[SEP]\nam\nis\nare\nwas\nwere\nhas\nhave\ngo\ngoes\nread\nreads\nfreind\nbe\ntecnologies\ntheir\nspeling\na\nan\nbook\numbrella\napple\none\n';
 const ids = vocabulary.trim().split('\n');
 let predictions: Record<string, string>;
+let modelKey = 0;
+let modelBaseUrl: string;
 
 afterEach(() => vi.unstubAllGlobals());
 
 beforeEach(() => {
   predictions = {};
+  modelBaseUrl = `/safety-model-${modelKey++}/`;
   vi.stubGlobal('fetch', async (url: string) => {
     if (url.endsWith('manifest.json')) return new Response(JSON.stringify({confidenceThreshold: .85, maxSequenceLength: 8}));
     if (url.endsWith('labels.json')) return new Response(JSON.stringify(labels));
@@ -37,7 +40,7 @@ beforeEach(() => {
 });
 
 async function correct(text: string): Promise<string> {
-  const result = await analyzeModel(text, {preferWebGPU: false});
+  const result = await analyzeModel(text, {modelBaseUrl, preferWebGPU: false});
   expect(result.backend).toBe('wasm');
   return applySuggestions(text, result.suggestions);
 }
@@ -128,7 +131,7 @@ describe('model verb safety at high confidence', () => {
   it('preserves case and exact UTF-16 offsets for a supported model edit', async () => {
     const text = '😀. My cats IS hungry.';
     predictions.is = 'REPLACE:are';
-    const {suggestions} = await analyzeModel(text, {preferWebGPU: false});
+    const {suggestions} = await analyzeModel(text, {modelBaseUrl, preferWebGPU: false});
     expect(suggestions).toHaveLength(1);
     expect(suggestions[0]).toMatchObject({start: 12, end: 14, original: 'IS', replacement: 'ARE', source: 'model'});
     expect(applySuggestions(text, suggestions)).toBe('😀. My cats ARE hungry.');
@@ -137,6 +140,14 @@ describe('model verb safety at high confidence', () => {
   it('continues to allow spelling edits', async () => {
     predictions.freind = 'REPLACE:friend';
     expect(await correct('A freind called.')).toBe('A friend called.');
+  });
+
+  it.each(['A fReInD called.', 'A freind_called.'])('reevaluates legacy lexical guards on cached logits for %s', async text => {
+    predictions.freind = 'REPLACE:friend';
+    expect(await correct('A freind called.')).toBe('A friend called.');
+    const result = await analyzeModel(text, {modelBaseUrl, preferWebGPU: false});
+    expect(result.modelRuns).toBe(0);
+    expect(result.suggestions).toEqual([]);
   });
 
   it.each([
@@ -179,5 +190,13 @@ describe('model verb safety at high confidence', () => {
   it.each(['A book book.', 'A book book book.'])('keeps the first word when duplicate logits all request deletion in %s', async text => {
     predictions.book = 'DELETE';
     expect(await correct(text)).toBe('A book.');
+  });
+
+  it('reevaluates duplicate spacing on cached logits', async () => {
+    predictions.book = 'DELETE';
+    expect(await correct('A book book.')).toBe('A book.');
+    const result = await analyzeModel('A book\nbook.', {modelBaseUrl, preferWebGPU: false});
+    expect(result.modelRuns).toBe(0);
+    expect(result.suggestions).toEqual([]);
   });
 });
