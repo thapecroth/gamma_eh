@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "version": "teacher-recipes-v1",
+  "recipes": [
+    {
+      "id": "agreement_subject", "version": 1, "category": "agreement", "mutator": "agreement",
+      "instructions": "Write a grammatical declarative sentence with present/past be or have/has, or an explicit habitual action every morning/day/evening/night/week. Vary pronouns, ordinary subjects, and singular heads with plural modifiers, such as the box of cables. Avoid read, questions, collective-noun agreement, subjunctives and ambiguous tense choices.",
+      "constraints": ["Change agreement within the same tense and verb family only", "One explicit subject controls the edited verb", "Some modifier constructions intentionally exceed present decoder guards"],
+      "examples": ["She is ready for the workshop.", "The box of cables is beside the desk.", "They work at the library every morning."]
+    },
+    {
+      "id": "article_sound", "version": 1, "category": "articles", "mutator": "article_sound",
+      "instructions": "Write a grammatical sentence containing a or an immediately before one of: apple, orange, egg, umbrella, envelope, idea, hour, honest, honor, heir, book, pencil, bicycle, camera, notebook, ticket, friend, message, pen, project, library, university, user, unicorn, european, one. Use pronunciation exceptions naturally and vary the rest of the sentence.",
+      "constraints": ["Closed pronunciation classes", "Flip a/an only", "Unknown acronyms and pronunciation classes are not guessed"],
+      "examples": ["We waited for an hour outside the office.", "She received a university application yesterday."]
+    },
+    {
+      "id": "article_missing", "version": 1, "category": "articles", "mutator": "article_missing",
+      "instructions": "Write a grammatical possession sentence with has/have followed by a/an and a singular countable object, preferably at sentence end: book, pencil, bicycle, camera, notebook, ticket, message, pen, project, apple, orange, egg, umbrella, envelope, idea. Avoid noun compounds and mass nouns. Vary the subject and context.",
+      "constraints": ["Delete an existing verified indefinite article", "Closed countable nouns", "Reject noun compounds and modifiers that make noun-head status uncertain"],
+      "examples": ["Our new colleague has an umbrella.", "They have a ticket for the afternoon train."]
+    },
+    {
+      "id": "numeric_count", "version": 1, "category": "agreement", "mutator": "numeric_count",
+      "instructions": "Write a grammatical sentence with two/three/four/five/six/seven/eight/nine/ten followed by a regular plural head noun: books, pencils, bicycles, cameras, notebooks, tickets, messages, pens, projects, apples, oranges, eggs, umbrellas, envelopes, ideas, libraries. The noun must be a head, not a compound modifier, and should end the sentence or be followed by a prepositional phrase.",
+      "constraints": ["Explicit numeral and closed singular/plural mapping", "No attributive noun compounds", "One regular suffix mutation"],
+      "examples": ["We bought three tickets for the evening show.", "The neighborhood has two libraries."]
+    },
+    {
+      "id": "question_auxiliary", "version": 1, "category": "agreement", "mutator": "question_auxiliary",
+      "instructions": "Write a grammatical direct question beginning Do or Does followed immediately by I/you/we/they/he/she/it and a base-form verb. Vary the predicate and objects. Keep modal and indirect questions for clean controls, not this recipe.",
+      "constraints": ["Edit only the initial do/does auxiliary", "Preserve the already-correct lexical base form", "Explicit question mark and subject pronoun"],
+      "examples": ["Does she need another ticket for the trip?", "Do they know the meeting location?"]
+    },
+    {
+      "id": "perfect_participle", "version": 1, "category": "verb-tense", "mutator": "perfect_participle",
+      "instructions": "Write a grammatical perfect construction containing has/have/had immediately followed by eaten/taken/broken/chosen/written/gone/seen. Vary subjects, objects and context. Avoid dialect-dependent participles, adjective readings, and changes to tense or aspect.",
+      "constraints": ["Verified perfect auxiliary remains unchanged", "Closed irregular past/participle mapping", "Exclude alternative dialect forms"],
+      "examples": ["They have eaten lunch before the appointment.", "Mara had written the instructions before the workshop."]
+    },
+    {
+      "id": "mass_quantifier", "version": 1, "category": "agreement", "mutator": "mass_quantifier",
+      "instructions": "Write natural grammatical sentences using much before information/advice/equipment/furniture/homework/traffic, or many before books/tickets/messages/projects/pencils. Negative sentences and questions often make much natural. Avoid ambiguous count/mass nouns such as paper, chicken, experience, work, coffee and time.",
+      "constraints": ["Closed unambiguous mass/count noun sets", "Replace much/many only", "No intervening modifier or noun compound"],
+      "examples": ["We do not have much information about the event.", "The team received many messages after the announcement."]
+    },
+    {
+      "id": "governed_preposition", "version": 1, "category": "prepositions", "mutator": "governed_preposition",
+      "instructions": "Write a grammatical sentence using one lexical frame: rely/relies/relied on, depend/depends/depended on, interested in, responsible for, or similar to. Follow the preposition with an ordinary explicit object. Avoid quoted text, particles, location readings and dialect-disputed constructions.",
+      "constraints": ["Closed governor/preposition frames", "One locally governed preposition mutation", "Do not treat stylistic alternatives as errors"],
+      "examples": ["We rely on this map during the trip.", "She is interested in the new exhibition.", "The volunteer is responsible for the equipment."]
+    },
+    {
+      "id": "duplicate_function", "version": 1, "category": "mixed", "mutator": "duplicate_function",
+      "instructions": "Write a grammatical natural sentence with the, a, an, can, or because in an ordinary nonquoted use. Avoid deliberate emphatic repetition, dialogue hesitation, and metalinguistic examples.",
+      "constraints": ["Duplicate one approved function word", "Horizontal whitespace only", "Never mutate grammatical had had or that that"],
+      "examples": ["We can finish the report before lunch.", "The meeting starts after the demonstration."]
+    },
+    {
+      "id": "clean_general", "version": 1, "category": "clean", "mutator": "identity",
+      "instructions": "Write valid English that must remain unchanged. Include informal lowercase messages, questions with auxiliaries and modals, names, technical vocabulary, simple past read, grammatical had had/that that, subjunctives and mass nouns. Informal initial lowercase is intentional and must be preserved. Vary the wording rather than copying these examples.",
+      "constraints": ["Exact identity including case and whitespace", "Preserve valid register and dialect", "No normalization or stylistic rewriting"],
+      "examples": ["my dog is sleepy.", "Did Mara read the report yesterday?", "If she were here, she would help.", "The teacher had had a busy week.", "We agreed that that answer was correct."]
+    }
+  ]
+}
