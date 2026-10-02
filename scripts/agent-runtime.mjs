@@ -206,7 +206,7 @@ export function publicationAllowed(gates, changed) {
   return Boolean(changed && source && ['check', 'browser', 'agent'].every(name => gates[name]?.passed === true && gates[name].treeHash === source));
 }
 
-export const requiredScenarioIds = ['rules-and-popup', 'ai-opt-in', 'dismiss-preserves-text', 'protected-private', 'protected-payment', 'protected-optout', 'plain-editable', 'rich-preservation', 'utf16-offsets', 'stale-suggestion'];
+export const requiredScenarioIds = ['rules-and-popup', 'ai-toggle', 'ai-model-offsets-and-stale', 'dismiss-preserves-text', 'protected-private', 'protected-payment', 'protected-optout', 'plain-editable', 'rich-preservation', 'utf16-offsets', 'stale-suggestion', 'inline-interactions'];
 
 export function validateReceipt(evidence, {id, stamp, plan}) {
   const expected = [...requiredScenarioIds.map(name => `mandatory:${name}`), ...plan.scenarios.map(row => `luna:${row.id}`)].sort();

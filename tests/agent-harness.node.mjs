@@ -5,14 +5,25 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { acquireLock, changedProductPaths, git, hash, productScopeAllowed, publicationAllowed, requiredScenarioIds, runCommand, sourceStamp, validateReceipt, validateReview } from '../scripts/agent-runtime.mjs';
 import { parseOptions } from '../scripts/agent-harness.mjs';
-import { step, validatePlan } from '../scripts/extension-driver.mjs';
+import { mandatoryScenarios, step, validatePlan } from '../scripts/extension-driver.mjs';
+import { inlineScenarioId } from '../scripts/verify-inline.mjs';
 
 const plan = {reason: 'Protect clean fictional writing', scenarios: [{id: 'clean-text', steps: [step('fill', 'draft', 'A clean sentence.'), step('assertText', 'draft', null, 'A clean sentence.')]}]};
 const stamp = {commit: 'commit', treeHash: 'tree'};
+const emittedMandatoryIds = [...mandatoryScenarios.map(scenario => scenario.id), inlineScenarioId];
 function receipt() {
   return {runId: 'run', ...stamp, planHash: hash(plan), passed: true, popupEnableHandler: true, errors: [], blockedRequests: [], networkViolations: [],
-    scenarios: [...requiredScenarioIds.map(id => ({kind: 'mandatory', id, passed: true})), {kind: 'luna', id: 'clean-text', passed: true}]};
+    scenarios: [...emittedMandatoryIds.map(id => ({kind: 'mandatory', id, passed: true})), {kind: 'luna', id: 'clean-text', passed: true}]};
 }
+
+test('trusted receipt policy covers every mandatory scenario emitted by the browser driver', () => {
+  assert.deepEqual([...requiredScenarioIds].sort(), [...emittedMandatoryIds].sort());
+  for (const id of ['ai-toggle', 'ai-model-offsets-and-stale', inlineScenarioId]) {
+    const evidence = receipt();
+    evidence.scenarios = evidence.scenarios.filter(scenario => scenario.id !== id);
+    assert.throws(() => validateReceipt(evidence, {id: 'run', stamp, plan}), /Failed/u);
+  }
+});
 
 test('rejects arbitrary code/navigation, malformed operations and assertion-free plans', () => {
   assert.equal(validatePlan(plan), plan);

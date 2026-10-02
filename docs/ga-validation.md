@@ -17,10 +17,13 @@ fallback and local spelling/rules fallback without WebAssembly. Help, privacy,
 GA scope and the bundled model card now describe those defaults. Source
 attribution includes the new default/compatibility disclosure; changing that
 document invalidates reviewed stable evidence. The agent screenshot selector
-also follows the renamed `ai-toggle` scenario.
+also follows the renamed `ai-toggle` scenario. The trusted receipt policy now
+requires all 12 cases actually emitted by the driver, including model offsets/
+stale text and inline interactions. Its regression compares the driver definitions
+with the policy and rejects missing AI or inline cases.
 
 Fresh `npm run check` passed: 227 app tests, 29 release/readiness tests,
-11 harness tests, lint, strict typecheck and all builds. The 12 native editing
+12 harness tests, lint, strict typecheck and all builds. The 12 native editing
 checks passed. Rebuilt ZIP checksums verified; the extracted CPU/WebGPU
 playground, real browser/model/extension harness and all 12 extension scenarios
 passed. Fresh extension activation required no stored AI preference; the harness
