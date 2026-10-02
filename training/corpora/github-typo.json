@@ -1,0 +1,24 @@
+{
+  "id": "github-typo",
+  "training_split": "train",
+  "release_eligible": false,
+  "format": "github-dolt",
+  "license": "LicenseRef-Repository-Terms",
+  "license_scope": "Each source repository/commit retains its terms. Root-license proof does not resolve file-specific exceptions; candidate weights remain private pending source review.",
+  "supervision": "natural-revision-auto-typo-filter",
+  "source_url": "https://github.com/mhagiwara/github-typo-corpus",
+  "mirror_url": "https://www.dolthub.com/repositories/dolthub/github-typos",
+  "mirror_permission_url": "https://github.com/mhagiwara/github-typo-corpus/issues/1#issuecomment-561297197",
+  "api_url": "https://www.dolthub.com/api/v1alpha1/dolthub/github-typos/master",
+  "revision": "ohkqisf5r8i8ht82gtt0kafuhs7bokql",
+  "original_code_revision": "240c4c0716fde62934edc2445c326e0896d8d109",
+  "mirror_etl_revision": "b09bc04968d7a71c04182070c26125e00b6bcad9",
+  "repositories": [
+    "electron/electron",
+    "facebook/react",
+    "keras-team/keras",
+    "microsoft/TypeScript",
+    "tensorflow/tensorflow"
+  ],
+  "sampling_scope": "English automatically classified typo edits in md/rst/txt documentation of explicitly selected repositories; root license verified at original commit."
+}
