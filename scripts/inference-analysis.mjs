@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
+import {cpus, loadavg, platform} from 'node:os';
 
 export const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 export const policy = Object.freeze({version: 1, workloadVersion: 1, seed: 143271,
@@ -10,6 +12,61 @@ export const policy = Object.freeze({version: 1, workloadVersion: 1, seed: 14327
 export const frozenQuality = Object.freeze({revision: 'ee06ff806a208aba815ac45313f4e750a48330a5',
   dev: {rows: 754, sha256: 'b5581c7aa7dfcbacdf39b41256e3b01e13e85ace621baa766ac2b3868723f3a5'},
   test: {rows: 747, sha256: '22504390dc7921e1a4e85d77847b89953965ce385d22b428efec764e2abe6760'}});
+
+export async function hostSample() {
+  const result = {at: new Date().toISOString(), logicalCpus: cpus().length, load: loadavg(), pressure: {}, swap: {}};
+  if (platform() === 'linux') {
+    for (const name of ['cpu', 'memory', 'io']) {
+      const text = await readFile(`/proc/pressure/${name}`, 'utf8');
+      result.pressure[name] = Object.fromEntries(text.trim().split('\n').map(line => {
+        const [kind, ...fields] = line.split(' ');
+        return [kind, Object.fromEntries(fields.map(field => { const [key, value] = field.split('='); return [key, Number(value)]; }))];
+      }));
+    }
+    const vmstat = await readFile('/proc/vmstat', 'utf8');
+    result.swap = Object.fromEntries([...vmstat.matchAll(/^(pswpin|pswpout) (\d+)$/gmu)].map(match => [match[1], Number(match[2])]));
+    const meminfo = await readFile('/proc/meminfo', 'utf8');
+    result.writebackKiB = Object.fromEntries([...meminfo.matchAll(/^(Dirty|Writeback):\s+(\d+) kB$/gmu)]
+      .map(match => [match[1], Number(match[2])]));
+  }
+  result.underPressure = result.load[0] >= result.logicalCpus * policy.hostPressure.loadCpuFraction ||
+    (result.pressure.memory?.full?.avg10 ?? 0) > policy.hostPressure.memoryFullAvg10 ||
+    (result.pressure.io?.full?.avg10 ?? 0) > policy.hostPressure.ioFullAvg10;
+  return result;
+}
+
+export const swapAdvanced = (before, after) => Boolean(before && Object.entries(after.swap)
+  .some(([key, value]) => value > (before.swap[key] ?? value)));
+
+// Admit before measurements, never retry measured trials. Injectable clock and
+// sampling keep timeout, swapping and interruption tests deterministic.
+export async function waitForQuietHost({sample = hostSample, now = () => performance.now(),
+  wait = ms => new Promise(resolve => setTimeout(resolve, ms)), interrupted = () => false} = {}) {
+  const start = now(), admission = {quietMs: 10000, pollMs: 5000, deadlineMs: 180000, samples: [], waitedMs: 0, passed: false};
+  let quietAt;
+  try {
+    while (true) {
+      assert(!interrupted(), 'Host admission interrupted');
+      const observation = await sample();
+      assert(!interrupted(), 'Host admission interrupted');
+      admission.waitedMs = now() - start;
+      const quiet = !observation.underPressure && !swapAdvanced(admission.samples.at(-1), observation);
+      admission.samples.push(observation);
+      quietAt = quiet ? (quietAt ?? now()) : undefined;
+      assert(admission.waitedMs <= admission.deadlineMs, 'Quiet host admission timed out');
+      if (quiet && now() - quietAt >= admission.quietMs) { admission.passed = true; return admission; }
+      assert(admission.waitedMs < admission.deadlineMs, 'Quiet host admission timed out');
+      let remaining = Math.min(admission.pollMs, admission.deadlineMs - admission.waitedMs);
+      while (remaining > 0) {
+        assert(!interrupted(), 'Host admission interrupted');
+        const chunk = Math.min(1000, remaining);
+        await wait(chunk); remaining -= chunk;
+      }
+    }
+  } catch (error) {
+    admission.waitedMs = now() - start; error.admission = admission; throw error;
+  }
+}
 
 export function percentile(values, quantile) {
   assert(values.length && values.every(Number.isFinite), 'Invalid measurements');

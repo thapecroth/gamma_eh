@@ -110,6 +110,47 @@ jobs:
             docs/assets/webstore/*.png
           if-no-files-found: warn
           retention-days: 90
+  inference-promotion-e2e:
+    needs: [app, data]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Import pinned evaluation corpus locally
+        run: python3 training/import_jfleg.py --execute --output data/imported/jfleg-evaluation
+      - name: Verify actual promotion and rejection exits on CPU
+        env:
+          # Browser scratch writes must not compete with inference timings.
+          TMPDIR: /dev/shm
+        run: npm run test:inference-promotion
+      - name: Preserve aggregate promotion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inference-promotion-evidence
+          path: |
+            artifacts/inference-promotion-verification.json
+            artifacts/inference-promotion/*/positive/report.json
+            artifacts/inference-promotion/*/positive/report.html
+            artifacts/inference-promotion/*/positive/*.svg
+            artifacts/inference-promotion/*/positive/*.cpuprofile
+            artifacts/inference-promotion/*/positive/*.trace.json
+            artifacts/inference-promotion/*/negative/report.json
+            artifacts/inference-promotion/*/negative/report.html
+            artifacts/inference-promotion/*/negative/*.svg
+            artifacts/inference-promotion/*/negative/*.cpuprofile
+            artifacts/inference-promotion/*/negative/*.trace.json
+          if-no-files-found: warn
+          retention-days: 7
   pages-build:
     # Publish only a main-branch push whose app, data, and browser gates passed.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && (github.event.repository.private != true || vars.PAGES_ENABLED == 'true')

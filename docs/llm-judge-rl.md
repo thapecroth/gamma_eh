@@ -172,8 +172,8 @@ development-only trainer. It preserves both admission rules and dialog/seed
 provenance, keeps test inference disabled in development-only runs, and freezes
 the comparison's KEEP loss weight at 0.3. Recorded pilot hashes identify the
 original experimental code; changed trainer code requires a fresh frozen plan.
-The integrated public branch passed 198 Python tests and `npm run check`,
-including 227 app tests, 29 release tests, and 12 agent-harness tests.
+The integrated public branch passed 228 Python tests and `npm run check`,
+including 232 app tests, 29 release tests, and 12 agent-harness tests.
 
 Validation: 142 Python tests and `npm run check` passed, including 213 app tests,
 lint, typecheck, release/harness checks, and the app builds. Hosted browser checks

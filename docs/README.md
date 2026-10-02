@@ -9,7 +9,7 @@
 - [Support](support.md): installation, supported writing, troubleshooting and safe issue reports.
 - [JAX JS inference](jax-js-runtime.md): bundled WebGPU/WASM runtime, FP32 parity, GPU fallback, and release metadata.
 - [Inference performance](inference-performance.md): measured bottlenecks, bounded sentence reuse, compiled shape reuse, and reproducible browser benchmarks.
-- [Trusted inference analysis](inference-analysis.md): paired measurements, real CPU flamegraphs and elapsed traces, frozen quality parity, and bounded optimization gates.
+- [Trusted inference analysis](inference-analysis.md): paired measurements, real CPU flamegraphs and elapsed traces, frozen quality parity, bounded optimization gates, and promotion E2E controls.
 - [Research and architecture](research-and-architecture.md): current WebGPU stack, model choices, correction flow, extension boundaries.
 - [Grammar correction literature review](gec-literature-review.md): evidence for compact edit models and span generation, browser tradeoffs, and a controlled experiment plan.
 - [Natural correction datasets](gec-datasets.md): human and synthetic sources, access, licensing, and public model training choices.
@@ -38,3 +38,6 @@
 - [Model card](../models/MODEL_CARD.md): trained checkpoint scope and measured results.
 
 - [Firefox extension](firefox.md): installation and browser-specific background setup.
+
+- [Natural-corpus training](training-corpora.md) — source adapters, separate local research runs, and preserved release terms.
+- [Natural-corpus training results](training-corpora-results.md): five completed source pilots, their combined candidate, measured gates, source PRs and reproducible figures.

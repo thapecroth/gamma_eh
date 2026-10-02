@@ -113,14 +113,17 @@ def test_rule_pairs_reconstruct_and_keep_real_provenance():
         list(seed_pairs([{**seeds[0], "review_status": "human-reviewed"}]))
 
 
-def test_explicit_train_only_preserves_reviewed_training_without_fabricated_eval(tmp_path):
+@pytest.mark.parametrize("license_id,publication_allowed", [("MIT", True), ("CC-BY-NC-SA-4.0", False)])
+def test_explicit_train_only_preserves_reviewed_training_without_fabricated_eval(tmp_path, license_id, publication_allowed):
     source = tmp_path / "raw.jsonl"
     source.write_text(json.dumps({"source": "She have time.", "target": "She has time.",
-                                  "category": "agreement", "license": "MIT", "review_status": "human-reviewed"}) + "\n")
-    manifest = prepare([source], tmp_path / "prepared", schema=2, train_only=True)
+                                  "category": "agreement", "license": license_id, "review_status": "human-reviewed"}) + "\n")
+    manifest = prepare([source], tmp_path / "prepared", schema=2, train_only=True, allow_research=True)
     assert manifest["splits"]["train"]["accepted"] == 1
     assert not manifest["evaluation_ready"]
     assert manifest["evaluation"]["dev"]["rows"] == 0
+    assert manifest["publication_allowed"] is publication_allowed
+    assert manifest["training_purpose"] == "local-research"
     row = json.loads((tmp_path / "prepared/train.jsonl").read_text())
     assert row["review_status"] == "human-reviewed"
 
