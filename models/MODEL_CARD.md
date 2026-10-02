@@ -66,7 +66,8 @@ extraction, not official JFLEG GLEU, BEA scores, or universal grammar accuracy.
 No sentences were removed for vocabulary, alignment, or inference; no inference
 failed. JFLEG includes stylistic rewrites. Neural precision is based on only eight
 predictions (seven correct); its very low recall and small support do not qualify
-it as a broadly accurate model. The model remains an experimental opt-in baseline.
+it as a broadly accurate model. The model remains an experimental baseline that
+users can switch off.
 The independent
 benchmark was never added to training. See the [quality workflow](../docs/model-quality.md)
 for frozen population hashes, methodology, controlled candidates, and deployment
@@ -122,8 +123,9 @@ apply to the bundled schema-1 classifier; the richer schema-2 edit contract is p
 Rule/model overlap gives rules priority. Classifier
 metrics above do not include these runtime guards.
 
-Local AI is disabled by default and marked experimental; users can explicitly
-enable it. The finite vocabulary cannot perform general rewriting, arbitrary
+Local AI starts enabled and is marked experimental; users can switch it off,
+and saved extension opt-outs are preserved. If the model cannot run, local
+spelling and rules remain available. The finite vocabulary cannot perform general rewriting, arbitrary
 insertions, clause rearrangement, or style/tone explanations. Broad local spelling
 suggestions now come from the separate bundled dictionary. Long texts lose
 context across 64-token windows. Do not use the

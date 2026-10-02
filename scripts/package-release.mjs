@@ -10,6 +10,7 @@ import { firefoxManifest } from './firefox-manifest.mjs';
 import { buildPaths } from './paths.mjs';
 import { webBase } from './web-base.mjs';
 import { runtimeManifest, runtimeVersions } from './inference-runtime.mjs';
+import { releaseChannel } from './ga-readiness.mjs';
 
 const run = promisify(execFile);
 const extensionFiles = ['manifest.json', 'background.mjs', 'content.js', 'popup.js', 'popup.html', 'popup.css', 'offscreen.html', 'offscreen.mjs', 'inference-worker.mjs'];
@@ -97,6 +98,9 @@ async function publicModel(root) {
 }
 
 async function metadata(root, environment, tag) {
+  if (releaseChannel(environment.GAMMA_RELEASE_CHANNEL) === 'stable') {
+    throw new Error('Stable releases require reviewed promotion of existing prerelease archives; do not rebuild or replace them.');
+  }
   const paths = publicBuildPaths(root, environment);
   const pkg = await json(join(root, 'package.json'));
   const extension = await json(join(root, 'apps/extension/manifest.json'));

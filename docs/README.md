@@ -5,7 +5,8 @@
 - [Web playground](playground.md): standalone browser demo, red error underlines, default-enabled local AI, privacy, hosting, and extension-free verification.
 - [Windows WebGPU initialization](windows-webgpu.md): adapter options, runtime warnings, and rebuilding an unpacked extension.
 - [Chrome Web Store](chrome-web-store.md): unlisted submission material and automated approved updates.
-- [Extension privacy policy](privacy.md): local text processing, settings, site access, and controls.
+- [Privacy policy](privacy.md): web and extension text processing, clipboard, hosting, settings, site access, and controls.
+- [Support](support.md): installation, supported writing, troubleshooting and safe issue reports.
 - [JAX JS inference](jax-js-runtime.md): bundled WebGPU/WASM runtime, FP32 parity, GPU fallback, and release metadata.
 - [Inference performance](inference-performance.md): measured bottlenecks, bounded sentence reuse, compiled shape reuse, and reproducible browser benchmarks.
 - [Trusted inference analysis](inference-analysis.md): paired measurements, real CPU flamegraphs and elapsed traces, frozen quality parity, and bounded optimization gates.
@@ -28,6 +29,8 @@
 - [Agentic development](agentic-development.md): supervised local Codex coding loop, Luna-max extension scenarios, evidence and bounded repair.
 - [Frontend toolchain](toolchain.md): project-local Vite+, version alignment, and web/extension packaging.
 - [Releases](releases.md): ready-built Chrome/web ZIPs, checksums, installation, and gated publication.
+- [GA readiness](ga-readiness.md): pending launch gates, source-bound evidence, explicit stable promotion, pilot and support runbook.
+- [GA preparation validation](ga-validation.md): completed local checks, tested package hashes, fresh natural-writing scores and remaining launch blockers.
 - [Chrome extension](../apps/extension/README.md): unpacked installation, automatic site access, and per-site pauses.
 - [Inline suggestions](inline-suggestions.md): red underlines, hover cards, keyboard access, measurement and browser checks.
 - [Model card](../models/MODEL_CARD.md): trained checkpoint scope and measured results.

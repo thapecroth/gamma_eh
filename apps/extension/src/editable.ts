@@ -62,13 +62,15 @@ export function replaceText(field: Editable, originalText: string, suggestion: S
   if (!field.dispatchEvent(beforeInput)) return false;
   // Event handlers can update editor state; verify the snapshot again before mutation.
   if (!field.isConnected || !isEligible(field) || !isPlainEditable(field) || readText(field) !== originalText) return false;
+  // Direct value/Range mutations discard native Undo. insertText still provides
+  // an undoable browser edit for supported plain fields; refuse unsupported
+  // editing commands rather than falling back to a destructive assignment.
+  if (!document.queryCommandSupported('insertText')) return false;
+  field.focus({ preventScroll: true });
+  if (!field.isConnected || !isEligible(field) || !isPlainEditable(field) || readText(field) !== originalText) return false;
+  if (document.activeElement !== field && !field.contains(document.activeElement)) return false;
   if (field instanceof HTMLTextAreaElement) {
-    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
-    if (!setter) return false;
-    setter.call(field, originalText.slice(0, suggestion.start) + suggestion.replacement + originalText.slice(suggestion.end));
-    field.focus({ preventScroll: true });
-    const caret = suggestion.start + suggestion.replacement.length;
-    field.setSelectionRange(caret, caret);
+    field.setSelectionRange(suggestion.start, suggestion.end);
   } else {
     const start = boundaryAt(field, suggestion.start);
     const end = boundaryAt(field, suggestion.end);
@@ -76,16 +78,12 @@ export function replaceText(field: Editable, originalText: string, suggestion: S
     const range = document.createRange();
     range.setStart(start.node, start.offset);
     range.setEnd(end.node, end.offset);
-    range.deleteContents();
-    const replacement = document.createTextNode(suggestion.replacement);
-    range.insertNode(replacement);
-    range.setStartAfter(replacement);
-    range.collapse(true);
-    field.focus({ preventScroll: true });
     const selection = window.getSelection();
     selection?.removeAllRanges();
     selection?.addRange(range);
   }
-  field.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true, inputType: 'insertReplacementText', data: suggestion.replacement }));
-  return true;
+  if (!field.isConnected || !isEligible(field) || !isPlainEditable(field) || readText(field) !== originalText) return false;
+  if (document.activeElement !== field && !field.contains(document.activeElement)) return false;
+  // The browser dispatches input itself, including the website's own handlers.
+  return document.execCommand('insertText', false, suggestion.replacement);
 }

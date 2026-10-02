@@ -1,0 +1,21 @@
+{
+  "$schema": "./ga-readiness.schema.json",
+  "schema_version": 1,
+  "status": "pending",
+  "owner": "Project maintainer",
+  "approved_by": null,
+  "approved_at": null,
+  "scope": {"surfaces": ["chrome", "web"], "platforms": ["windows", "macos", "linux"], "local_ai": "experimental"},
+  "policy": {"approved": false, "max_evidence_age_days": 90, "min_edit_precision": 0.95, "max_clean_changed_rate": 0.02, "min_predicted_edits": 25},
+  "release": {"tag": null, "source_commit": null, "source_sha256": null, "model_manifest_sha256": null, "assets": {"chrome": null, "firefox": null, "web": null}},
+  "gates": {
+    "quality": {"status": "blocked", "owner": "Project maintainer", "evidence": null, "sha256": null},
+    "editing-safety": {"status": "pending", "owner": "Project maintainer", "evidence": null, "sha256": null},
+    "platforms": {"status": "pending", "owner": "Project maintainer", "evidence": null, "sha256": null},
+    "distribution": {"status": "pending", "owner": "Project maintainer", "evidence": null, "sha256": null},
+    "privacy": {"status": "pending", "owner": "Project maintainer", "evidence": null, "sha256": null},
+    "accessibility": {"status": "pending", "owner": "Project maintainer", "evidence": null, "sha256": null},
+    "pilot": {"status": "pending", "owner": "Project maintainer", "evidence": null, "sha256": null},
+    "operations": {"status": "pending", "owner": "Project maintainer", "evidence": null, "sha256": null}
+  }
+}

@@ -62,6 +62,10 @@ suggestions in the extension's closed shadow panel. Required checks cover local
 default-enabled AI, AI toggles, rule and AI corrections, dismiss without mutation, pause/resume,
 private/payment/opt-out fields, plain editable text, rich DOM preservation,
 UTF-16 emoji offsets, and a stale suggestion after text changes.
+The receipt validator requires the exact current mandatory scenario set,
+including the model-offset/stale and inline pointer/keyboard checks. A regression
+compares its required IDs with the driver definitions so renamed or added
+scenarios cannot break successful receipts; missing or failed cases still fail.
 
 Luna produces an allowlisted JSON action plan, limited to four scenarios and
 48 actions. The browser controller executes it; Luna then reviews JSON evidence

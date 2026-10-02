@@ -10,6 +10,12 @@ on:
         description: 'Existing version tag on main (for example v0.1.0)'
         required: true
         type: string
+      channel:
+        description: 'Experimental package/retry, or promote an existing reviewed prerelease to stable'
+        required: true
+        default: experimental
+        type: choice
+        options: [experimental, stable]
 
 permissions:
   contents: read
@@ -21,6 +27,7 @@ concurrency:
 
 jobs:
   prepare:
+    if: github.event_name != 'workflow_dispatch' || inputs.channel != 'stable'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -93,10 +100,13 @@ jobs:
           cache: npm
       - name: Require main source and version-only release metadata
         run: |
+          GAMMA_SNAPSHOT_CHECK=$(mktemp --suffix=.mjs)
+          trap 'rm -f "$GAMMA_SNAPSHOT_CHECK"' EXIT
+          git show origin/main:scripts/verify-release-snapshot.mjs > "$GAMMA_SNAPSHOT_CHECK"
           if ! git merge-base --is-ancestor HEAD origin/main; then
             # Automatic snapshot must have a main ancestor and version-only edits.
             git merge-base --is-ancestor HEAD^ origin/main
-            node scripts/verify-release-snapshot.mjs
+            node "$GAMMA_SNAPSHOT_CHECK"
           fi
           node --input-type=module -e 'import {readFileSync} from "node:fs"; import {releaseVersion} from "./scripts/package-release.mjs"; releaseVersion(JSON.parse(readFileSync("package.json")).version, JSON.parse(readFileSync("apps/extension/manifest.json")).version, process.env.GAMMA_RELEASE_TAG);'
       - uses: actions/setup-python@v5
@@ -126,14 +136,17 @@ jobs:
           unzip -q "artifacts/releases/$GAMMA_RELEASE_TAG/gamma-eh-chrome-$GAMMA_RELEASE_TAG.zip" -d dist/extension
           unzip -q "artifacts/releases/$GAMMA_RELEASE_TAG/gamma-eh-web-$GAMMA_RELEASE_TAG.zip" -d dist/web
           unzip -q "artifacts/releases/$GAMMA_RELEASE_TAG/gamma-eh-firefox-$GAMMA_RELEASE_TAG.zip" -d dist/firefox
+          GAMMA_TEST_WEBGPU=0 npm run test:playground
+          npm run test:playground
           npm run test:browser
+          npm run test:editing
           npm run test:extension
       - uses: actions/upload-artifact@v4
         with:
           name: release-assets
           path: artifacts/releases/${{ needs.prepare.outputs.tag }}/
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 90
       - name: Preserve browser evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -142,13 +155,81 @@ jobs:
           path: |
             artifacts/environment.json
             artifacts/browser-smoke.json
+            artifacts/editing-integrity.json
+            artifacts/playground-smoke*.json
+            artifacts/playground-desktop.png
+            artifacts/playground-mobile.png
             artifacts/editor-desktop.png
             artifacts/editor-mobile.png
             artifacts/agents/extension-*/browser.json
             artifacts/agents/extension-*/*.png
             artifacts/agents/extension-*/trace.zip
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 90
+
+  promote-stable:
+    # Main/tag pushes always remain experimental. Stable uses existing immutable
+    # assets, so native-store and physical-device receipts identify tested bytes.
+    if: github.event_name == 'workflow_dispatch' && inputs.channel == 'stable'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: stable-release
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      GAMMA_RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Require an existing main-source prerelease
+        run: |
+          if [[ ! "$GAMMA_RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo 'Expected a canonical vX.Y.Z tag.' >&2
+            exit 1
+          fi
+          # Never execute candidate-tag code while establishing its provenance.
+          GAMMA_SNAPSHOT_CHECK=$(mktemp --suffix=.mjs)
+          trap 'rm -f "$GAMMA_SNAPSHOT_CHECK"' EXIT
+          git show origin/main:scripts/verify-release-snapshot.mjs > "$GAMMA_SNAPSHOT_CHECK"
+          git checkout --detach "refs/tags/$GAMMA_RELEASE_TAG"
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            git merge-base --is-ancestor HEAD^ origin/main
+            node "$GAMMA_SNAPSHOT_CHECK"
+          fi
+          git checkout --detach origin/main
+          if [[ "$(gh release view "$GAMMA_RELEASE_TAG" --json isPrerelease --jq '.isPrerelease')" != 'true' ]]; then
+            echo 'Stable promotion requires an existing experimental prerelease.' >&2
+            exit 1
+          fi
+      - name: Download the previously tested immutable archives
+        run: gh release download "$GAMMA_RELEASE_TAG" --dir release-assets --pattern '*.zip' --pattern SHA256SUMS.txt
+      - name: Verify archive checksums
+        working-directory: release-assets
+        run: sha256sum --check SHA256SUMS.txt
+      - name: Require reviewed GA evidence for these exact assets
+        run: node scripts/ga-readiness.mjs verify "$GAMMA_RELEASE_TAG" release-assets > GA_APPROVAL.json
+      - name: Retain stable approval evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: stable-approval-${{ inputs.tag }}
+          path: |
+            GA_APPROVAL.json
+            docs/ga-readiness.json
+            docs/ga-evidence/*.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Promote the existing release without replacing downloads
+        run: |
+          node --input-type=module -e 'import {readFileSync,writeFileSync} from "node:fs"; const r=JSON.parse(readFileSync("docs/ga-readiness.json")); writeFileSync("STABLE_NOTES.md", `# Gamma EH ${r.release.tag}\n\nGeneral availability for Chrome and the web editor on ${r.scope.platforms.join(", ")}. Local AI remains ${r.scope.local_ai === "experimental" ? "an experimental baseline you can switch off" : "part of the reviewed GA scope"}. Review suggestions before applying them.\n\nThe downloads are the unchanged, previously tested release archives. Chrome ZIPs install in Developer mode; use the verified store link in the distribution receipt for consumer installation and automatic updates. Firefox packaging remains experimental.\n\nReviewed launch evidence and supported scope: docs/ga-readiness.md and docs/ga-readiness.json in the repository.\n`);'
+          gh release edit "$GAMMA_RELEASE_TAG" --prerelease=false --title "Gamma EH $GAMMA_RELEASE_TAG" --notes-file STABLE_NOTES.md
 
   publish:
     needs: [prepare, verify-and-package]
