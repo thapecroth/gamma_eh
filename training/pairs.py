@@ -17,8 +17,13 @@ def group_id(target):
 
 def evaluation_keys(rows):
     """Exclude both sides of every heldout pair from either training field."""
-    return {normalized(value).casefold() for row in rows
-            for value in [row["source"], *row.get("references", [row.get("target")]) ]}
+    result = set()
+    for row in rows:
+        values = [row["source"], *row.get("references", [])]
+        if row.get("target") is not None:
+            values.append(row["target"])
+        result.update(normalized(value).casefold() for value in values)
+    return result
 
 
 def pair_id(source, target):

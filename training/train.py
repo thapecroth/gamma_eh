@@ -3,6 +3,7 @@ import argparse
 import hashlib
 from importlib.metadata import version
 import json
+import math
 from pathlib import Path
 import random
 import re
@@ -20,6 +21,7 @@ from transformers import AutoModelForTokenClassification, AutoTokenizer, BertTok
 
 from evaluate import collect_proposals, evaluate_records, choose_calibration, choose_joint_calibration, load_evaluation, qualified
 from pairs import evaluation_keys, hash_file, normalized
+from rl_objective import anchored_loss, REWARDS, checkpoint_hashes, validate_coefficient, validate_checkpoint_labels
 
 BASE = "google/bert_uncased_L-2_H-128_A-2"
 REVISION = "30b0a37ccaaa32f332884b96992754e246e48c5f"
@@ -149,6 +151,17 @@ def evaluation_populations(args):
     return rows, hashes
 
 
+def score_origins(rows, records, threshold, disabled, scorer, category_thresholds):
+    """Separate original human utterances from added reference clean controls."""
+    origins = sorted({row.get("origin", "unspecified") for row in rows})
+    result = {}
+    for origin in origins:
+        indices = [index for index, row in enumerate(rows) if row.get("origin", "unspecified") == origin]
+        result[origin] = evaluate_records([rows[index] for index in indices], [records[index] for index in indices],
+                                         threshold, disabled, scorer=scorer, category_thresholds=category_thresholds)
+    return result
+
+
 class ExportModel(torch.nn.Module):
     def __init__(self, model):
         super().__init__()
@@ -159,8 +172,15 @@ class ExportModel(torch.nn.Module):
 
 
 def main(args):
-    if args.epochs < 1 or args.batch_size < 1 or args.inference_batch_size < 1 or args.min_dev_edits < 1 or not 4 <= args.max_length <= 512 or args.learning_rate <= 0:
+    if args.epochs < 1 or args.batch_size < 1 or args.inference_batch_size < 1 or args.min_dev_edits < 1 or not 4 <= args.max_length <= 512 or not math.isfinite(args.learning_rate) or args.learning_rate <= 0:
         raise ValueError("Positive epochs, batch size, learning rate, development support and max-length 4..512 are required")
+    objective = getattr(args, "objective", "supervised")
+    coefficient = getattr(args, "rl_coefficient", .05)
+    validate_coefficient(coefficient)
+    if objective not in {"supervised", "anchored-reinforce"}:
+        raise ValueError("Unknown training objective")
+    if objective == "supervised": coefficient = 0.
+    initial_checkpoint = getattr(args, "initial_checkpoint", None)
     if not 0 <= args.min_precision <= 1 or not 0 <= args.max_clean_fp <= 1:
         raise ValueError("Calibration constraints must be between zero and one")
     for path in [args.output, args.checkpoint]:
@@ -172,16 +192,25 @@ def main(args):
     np.random.seed(args.seed)
     random.seed(args.seed)
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
+    if device == "cuda" and not torch.cuda.is_available():
+        raise ValueError("Requested CUDA device is unavailable")
     print(f"device={device}", flush=True)
     labels = json.loads((args.data / "labels.json").read_text())
     dataset_manifest = json.loads((args.data / "manifest.json").read_text())
+    license_files = dataset_manifest.get("license_files", {})
+    for filename, expected in license_files.items():
+        if Path(filename).name != filename or hash_file(args.data / filename) != expected:
+            raise ValueError("Dataset license notice hash mismatch or unsafe filename")
     if not labels or labels[0] != "KEEP": raise ValueError("KEEP must be label zero")
+    initial_hashes = validate_checkpoint_labels(initial_checkpoint, labels) if initial_checkpoint else None
     rows, evaluation_hashes = evaluation_populations(args)
     label_to_id = {label: i for i, label in enumerate(labels)}
-    tokenizer = AutoTokenizer.from_pretrained(args.base_model, revision=args.base_revision, use_fast=True,
-                                             local_files_only=args.local_files_only)
+    source = str(initial_checkpoint) if initial_checkpoint else args.base_model
+    load_options = {"local_files_only": True} if initial_checkpoint else {
+        "revision": args.base_revision, "local_files_only": args.local_files_only}
+    tokenizer = AutoTokenizer.from_pretrained(source, use_fast=True, **load_options)
     model = AutoModelForTokenClassification.from_pretrained(
-        args.base_model, revision=args.base_revision, local_files_only=args.local_files_only,
+        source, **load_options,
         num_labels=len(labels), id2label=dict(enumerate(labels)), label2id=label_to_id,
         attn_implementation="eager").to(device)
     if not isinstance(tokenizer, BertTokenizerFast) or not tokenizer.do_lower_case or model.config.model_type != "bert":
@@ -204,23 +233,35 @@ def main(args):
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate, weight_decay=.01)
     weights = torch.ones(len(labels), device=device)
     weights[0] = .3
-    loss_fn = torch.nn.CrossEntropyLoss(weight=weights, ignore_index=-100)
+    sampling_generator = torch.Generator(device=device).manual_seed(args.seed)
     args.checkpoint.mkdir(parents=True, exist_ok=True)
     schema = dataset_manifest.get("edit_schema", 1)
     best_score = None
     history = []
+    updates, examples_seen, checkpoint_epoch = 0, 0, None
     started = time.monotonic()
     for epoch in range(args.epochs):
         model.train()
         total_loss = 0.
+        supervised_loss, policy_loss = 0., 0.
+        reward_sum, expected_reward_sum, sampled_tokens = 0., 0., 0
         for ids, mask, types, gold in loaders["train"]:
             optimizer.zero_grad(set_to_none=True)
             logits = model(input_ids=ids.to(device), attention_mask=mask.to(device), token_type_ids=types.to(device)).logits
-            loss = loss_fn(logits.reshape(-1, len(labels)), gold.to(device).reshape(-1))
+            loss, diagnostics = anchored_loss(logits, gold.to(device), weights, coefficient, sampling_generator)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.)
             optimizer.step()
             total_loss += loss.item()
+            supervised_loss += diagnostics["supervised_loss"]
+            policy_loss += diagnostics["policy_gradient_loss"]
+            if coefficient and diagnostics["valid_tokens"]:
+                count = diagnostics["valid_tokens"]
+                reward_sum += diagnostics["sampled_reward"] * count
+                expected_reward_sum += diagnostics["expected_reward"] * count
+                sampled_tokens += count
+            updates += 1
+            examples_seen += ids.shape[0]
         model.eval()
         records, inference = collect_proposals(rows["dev"], tokenizer, torch_infer(model, device), labels,
                                                args.max_length, schema, args.inference_batch_size)
@@ -230,13 +271,21 @@ def main(args):
         development = selected["selected"] if selected["constraints_met"] else selected["best_unconstrained"]
         score = (selected["constraints_met"], development["edit_f0_5"])
         history.append({"epoch": epoch + 1, "loss": total_loss / len(loaders["train"]),
+                        "supervised_loss": supervised_loss / len(loaders["train"]),
+                        "policy_gradient_loss": policy_loss / len(loaders["train"]),
+                        "sampled_reward": reward_sum / sampled_tokens if sampled_tokens else None,
+                        "expected_reward": expected_reward_sum / sampled_tokens if sampled_tokens else None,
                         "development": development, "constraints_met": selected["constraints_met"],
                         "inference": inference})
         print(json.dumps(history[-1]), flush=True)
         if best_score is None or score > best_score:
             best_score = score
+            checkpoint_epoch = epoch + 1
             model.save_pretrained(args.checkpoint)
             tokenizer.save_pretrained(args.checkpoint)
+            shutil.copyfile(args.data / "labels.json", args.checkpoint / "labels.json")
+            for filename in license_files:
+                shutil.copyfile(args.data / filename, args.checkpoint / filename)
     model = AutoModelForTokenClassification.from_pretrained(args.checkpoint, attn_implementation="eager",
                                                            local_files_only=True).to(device).eval()
     dev_records, dev_inference = collect_proposals(rows["dev"], tokenizer, torch_infer(model, device), labels,
@@ -263,6 +312,15 @@ def main(args):
               "device": device, "parameters": sum(p.numel() for p in model.parameters()),
               "schedule": {"epochs": args.epochs, "batch_size": args.batch_size, "learning_rate": args.learning_rate,
                            "max_length": args.max_length}, "training_seconds": round(time.monotonic() - started, 2),
+              "objective": {"name": objective, "rl_coefficient": coefficient, "keep_weight": .3,
+                            "rewards": REWARDS if objective == "anchored-reinforce" else None,
+                            "baseline": "Detached exact per-token expected reward" if coefficient else None,
+                            "scope": "Training edit-tag supervision; independent decoded development/test evaluation."},
+              "training_budget": {"optimizer_updates": updates, "examples_seen": examples_seen,
+                                  "rows_per_epoch": len(data["train"]), "selected_checkpoint_epoch": checkpoint_epoch,
+                                  "optimizer_state": "AdamW starts fresh; initial checkpoint supplies model weights only."},
+              "initialization": {"checkpoint": str(initial_checkpoint) if initial_checkpoint else None,
+                                 "files": initial_hashes, "sampling_seed": args.seed},
               "epochs": history, "calibration": calibrated, "test": complete_test,
               "diagnostic_unconstrained_test": {**diagnostic_test,
                   "deployment_policy": "Diagnostic only: threshold chosen on dev, without enforcing precision/clean-text constraints."},
@@ -276,18 +334,26 @@ def main(args):
                            "onnxruntime": ort.__version__, "transformers": version("transformers"),
                            "numpy": np.__version__}
     report["code_sha256"] = {name: hash_file(Path(__file__).with_name(name)) for name in
-                             ["train.py", "evaluate.py", "legacy_spelling.py", "edit_ops.py", "data.py", "prepare_pairs.py", "pairs.py"]}
+                             ["train.py", "rl_objective.py", "evaluate.py", "legacy_spelling.py", "edit_ops.py", "data.py", "prepare_pairs.py", "pairs.py"]}
     report["code_sha256"]["dictionary.generated.ts"] = hash_file(Path(__file__).resolve().parent.parent / "packages/engine/src/dictionary.generated.ts")
     report["code_sha256"]["spelling.ts"] = hash_file(Path(__file__).resolve().parent.parent / "packages/engine/src/spelling.ts")
     report["dataset_manifest_sha256"] = hash_file(args.data / "manifest.json")
+    report["training_data_sha256"] = hash_file(args.data / "train.jsonl")
+    report["labels_sha256"] = hash_file(args.data / "labels.json")
+    report["checkpoint_files"] = checkpoint_hashes(args.checkpoint)
     base_license = VERIFIED_BASE_LICENSES.get((args.base_model, args.base_revision), "unverified")
     report["base_license"] = base_license
     report["publication_allowed"] = report["publication_allowed"] and base_license != "unverified"
+    if initial_checkpoint:
+        report["publication_allowed"] = False
+        report["publication_restriction"] = "Local warm-start provenance is recorded but not independently qualified for weight publication."
     base_path = Path(args.base_model)
     if base_path.is_dir():
         report["local_base_files"] = {path.name: hash_file(path) for path in sorted(base_path.iterdir())
                                       if path.is_file() and path.name in {"config.json", "model.safetensors", "pytorch_model.bin", "vocab.txt"}}
     args.output.mkdir(parents=True, exist_ok=True)
+    for filename in license_files:
+        shutil.copyfile(args.data / filename, args.output / filename)
     model = model.cpu().eval()
     dummy = tokenizer("She have a book.", return_tensors="pt")
     input_names = ["input_ids", "attention_mask", "token_type_ids"]
@@ -339,6 +405,8 @@ def main(args):
     report["calibration"] = deployed_calibration
     report["quantized_development_inference"] = quantized_dev_inference
     report["fp32_development_inference"] = float_dev_inference
+    report["development_by_origin"] = score_origins(rows["dev"], float_dev, threshold, disabled,
+                                                    args.scorer, category_thresholds)
     report["pytorch_checkpoint_test"] = report["test"]
     report["pytorch_diagnostic_unconstrained_test"] = report["diagnostic_unconstrained_test"]
     report["pytorch_supported_tagged_subset"] = report.pop("supported_tagged_subset")
@@ -361,6 +429,8 @@ def main(args):
                 parity["argmax_tokens"] += valid.sum().item()
         exports[filename] = {"metrics": evaluate_records(rows["test"], records, threshold, disabled,
                                                          scorer=args.scorer, category_thresholds=category_thresholds),
+                             "by_origin": score_origins(rows["test"], records, threshold, disabled,
+                                                        args.scorer, category_thresholds),
                              "diagnostic_metrics": evaluate_records(rows["test"], records,
                                 deployed_calibration["best_unconstrained"]["threshold"], scorer=args.scorer),
                              "inference": inference, "max_logit_difference": parity["max_logit_difference"],
@@ -368,6 +438,7 @@ def main(args):
     report["exports"] = exports
     report["deployed_weights"] = "model.onnx"
     report["test"] = exports["model.onnx"]["metrics"]
+    report["test_by_origin"] = exports["model.onnx"]["by_origin"]
     report["diagnostic_unconstrained_test"] = {**exports["model.onnx"]["diagnostic_metrics"],
         "deployment_policy": "Diagnostic only: shared threshold chosen on dev without safety constraints; never used to enable edits."}
     manifest = {"schema": 1, "name": f"gamma-eh-edit-v{schema}", "editSchema": schema, "maxPasses": 1,
@@ -382,6 +453,12 @@ def main(args):
             manifest["files"][path.name] = {"bytes": path.stat().st_size, "sha256": hash_file(path)}
     (args.output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     (args.output / "evaluation.json").write_text(json.dumps(report, indent=2) + "\n")
+    (args.checkpoint / "receipt.json").write_text(json.dumps({
+        "base_model": args.base_model, "base_revision": args.base_revision,
+        "labels_sha256": report["labels_sha256"], "training_data_sha256": report["training_data_sha256"],
+        "dataset_manifest_sha256": report["dataset_manifest_sha256"], "code_sha256": report["code_sha256"],
+        "publication_allowed": report["publication_allowed"], "objective": report["objective"],
+        "training_budget": report["training_budget"], "files": report["checkpoint_files"]}, indent=2) + "\n")
     print(json.dumps({"test": report["test"], "exports": exports}), flush=True)
 
 
@@ -396,6 +473,11 @@ def parser():
     result.add_argument("--max-length", type=int, default=64)
     result.add_argument("--learning-rate", type=float, default=5e-4)
     result.add_argument("--seed", type=int, default=42)
+    result.add_argument("--objective", choices=["supervised", "anchored-reinforce"], default="supervised")
+    result.add_argument("--rl-coefficient", type=float, default=.05,
+                        help="Nonnegative finite REINFORCE weight; supervised weighted CE always remains active")
+    result.add_argument("--initial-checkpoint", type=Path,
+                        help="Local matching edit classifier warm start; experimental nonpublishable weights")
     result.add_argument("--base-model", default=BASE)
     result.add_argument("--base-revision", default=REVISION)
     result.add_argument("--local-files-only", action="store_true")

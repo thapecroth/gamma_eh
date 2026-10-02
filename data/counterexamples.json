@@ -1,0 +1,709 @@
+{
+  "schema": 1,
+  "origin": "agent-authored-counterexamples-v1",
+  "review_status": "unreviewed",
+  "license": "CC0-1.0",
+  "scope": "Agent-authored diagnostic regression set; not human-reviewed natural-writing accuracy.",
+  "cases": [
+    {
+      "id": "counterexample-001",
+      "source": "She's already finished the puzzle.",
+      "target": "She's already finished the puzzle.",
+      "category": "contractions",
+      "reason": "The contraction means she has; expanding or changing it is unnecessary."
+    },
+    {
+      "id": "counterexample-002",
+      "source": "They've left a note on the refrigerator.",
+      "target": "They've left a note on the refrigerator.",
+      "category": "contractions",
+      "reason": "The contracted auxiliary is grammatical."
+    },
+    {
+      "id": "counterexample-003",
+      "source": "He'd rather wait until morning.",
+      "target": "He'd rather wait until morning.",
+      "category": "contractions",
+      "reason": "The contraction means he would in this construction."
+    },
+    {
+      "id": "counterexample-004",
+      "source": "I'd packed my bag before the taxi arrived.",
+      "target": "I'd packed my bag before the taxi arrived.",
+      "category": "contractions",
+      "reason": "The contraction means I had in this past-perfect construction."
+    },
+    {
+      "id": "counterexample-005",
+      "source": "We aren't ready to choose a date.",
+      "target": "We aren't ready to choose a date.",
+      "category": "contractions",
+      "reason": "The negative auxiliary agrees with the plural subject."
+    },
+    {
+      "id": "counterexample-006",
+      "source": "Don't change the label on that box.",
+      "target": "Don't change the label on that box.",
+      "category": "contractions",
+      "reason": "The imperative contraction is grammatical."
+    },
+    {
+      "id": "counterexample-007",
+      "source": "She had had enough time to prepare.",
+      "target": "She had had enough time to prepare.",
+      "category": "legitimate_repetition",
+      "reason": "Had had is the correct past-perfect form of have."
+    },
+    {
+      "id": "counterexample-008",
+      "source": "The meal he had had earlier was excellent.",
+      "target": "The meal he had had earlier was excellent.",
+      "category": "legitimate_repetition",
+      "reason": "Both occurrences of had are required for this past-perfect clause."
+    },
+    {
+      "id": "counterexample-009",
+      "source": "I knew that that explanation would confuse the class.",
+      "target": "I knew that that explanation would confuse the class.",
+      "category": "legitimate_repetition",
+      "reason": "The conjunction that and demonstrative that serve different roles."
+    },
+    {
+      "id": "counterexample-010",
+      "source": "The editor said that that paragraph needed another example.",
+      "target": "The editor said that that paragraph needed another example.",
+      "category": "legitimate_repetition",
+      "reason": "Adjacent instances of that are grammatical here."
+    },
+    {
+      "id": "counterexample-011",
+      "source": "What you do do is more useful than what you promise.",
+      "target": "What you do do is more useful than what you promise.",
+      "category": "legitimate_repetition",
+      "reason": "The first do is an emphatic auxiliary and the second is the main verb."
+    },
+    {
+      "id": "counterexample-012",
+      "source": "The sign displayed the words \"very very small\".",
+      "target": "The sign displayed the words \"very very small\".",
+      "category": "legitimate_repetition",
+      "reason": "The quoted repetition is deliberate content and must be preserved."
+    },
+    {
+      "id": "counterexample-013",
+      "source": "The committee requested that Ravi be present.",
+      "target": "The committee requested that Ravi be present.",
+      "category": "subjunctive",
+      "reason": "The mandative subjunctive uses be after a singular subject."
+    },
+    {
+      "id": "counterexample-014",
+      "source": "If I were taller, I could reach that shelf.",
+      "target": "If I were taller, I could reach that shelf.",
+      "category": "subjunctive",
+      "reason": "Were is grammatical in a counterfactual conditional."
+    },
+    {
+      "id": "counterexample-015",
+      "source": "It is essential that every participant have a badge.",
+      "target": "It is essential that every participant have a badge.",
+      "category": "subjunctive",
+      "reason": "The mandative subjunctive uses have rather than has."
+    },
+    {
+      "id": "counterexample-016",
+      "source": "I suggest that she write a short introduction.",
+      "target": "I suggest that she write a short introduction.",
+      "category": "subjunctive",
+      "reason": "Write is grammatical in a mandative subjunctive."
+    },
+    {
+      "id": "counterexample-017",
+      "source": "The gardener can carry both pots.",
+      "target": "The gardener can carry both pots.",
+      "category": "modal",
+      "reason": "A modal is followed by a bare verb."
+    },
+    {
+      "id": "counterexample-018",
+      "source": "The twins must be at school by eight.",
+      "target": "The twins must be at school by eight.",
+      "category": "modal",
+      "reason": "Be remains in its bare form after must."
+    },
+    {
+      "id": "counterexample-019",
+      "source": "She might have forgotten the spare battery.",
+      "target": "She might have forgotten the spare battery.",
+      "category": "modal",
+      "reason": "Might have is grammatical with a singular subject."
+    },
+    {
+      "id": "counterexample-020",
+      "source": "The nurse should check the temperature again.",
+      "target": "The nurse should check the temperature again.",
+      "category": "modal",
+      "reason": "A modal does not require a third-person verb ending."
+    },
+    {
+      "id": "counterexample-021",
+      "source": "Does the pianist have another concert tonight?",
+      "target": "Does the pianist have another concert tonight?",
+      "category": "questions",
+      "reason": "Do-support requires the bare main verb have."
+    },
+    {
+      "id": "counterexample-022",
+      "source": "Did the mechanic repair the broken hinge?",
+      "target": "Did the mechanic repair the broken hinge?",
+      "category": "questions",
+      "reason": "Did requires the bare main verb repair."
+    },
+    {
+      "id": "counterexample-023",
+      "source": "Who knows where the missing envelope is?",
+      "target": "Who knows where the missing envelope is?",
+      "category": "questions",
+      "reason": "This subject question correctly uses knows."
+    },
+    {
+      "id": "counterexample-024",
+      "source": "Are the shoes by the stairs yours?",
+      "target": "Are the shoes by the stairs yours?",
+      "category": "questions",
+      "reason": "The subject is plural even with a following prepositional phrase."
+    },
+    {
+      "id": "counterexample-025",
+      "source": "Which of these keys opens the storage room?",
+      "target": "Which of these keys opens the storage room?",
+      "category": "questions",
+      "reason": "Which of these keys can have a singular head in this question."
+    },
+    {
+      "id": "counterexample-026",
+      "source": "I read the journal on the balcony.",
+      "target": "I read the journal on the balcony.",
+      "category": "tense_ambiguity",
+      "reason": "Read can be present or past; the sentence provides no reason to alter it."
+    },
+    {
+      "id": "counterexample-027",
+      "source": "They read the instructions carefully.",
+      "target": "They read the instructions carefully.",
+      "category": "tense_ambiguity",
+      "reason": "Written read is compatible with present or past tense."
+    },
+    {
+      "id": "counterexample-028",
+      "source": "You put the parcel near the gate.",
+      "target": "You put the parcel near the gate.",
+      "category": "tense_ambiguity",
+      "reason": "Put has the same written form in present and past tense."
+    },
+    {
+      "id": "counterexample-029",
+      "source": "The news is difficult to explain.",
+      "target": "The news is difficult to explain.",
+      "category": "irregular_number",
+      "reason": "News is grammatically singular in this use."
+    },
+    {
+      "id": "counterexample-030",
+      "source": "These children have a different timetable.",
+      "target": "These children have a different timetable.",
+      "category": "irregular_number",
+      "reason": "Children is plural despite lacking a final s."
+    },
+    {
+      "id": "counterexample-031",
+      "source": "The people in the lobby are waiting quietly.",
+      "target": "The people in the lobby are waiting quietly.",
+      "category": "irregular_number",
+      "reason": "People is plural in this context."
+    },
+    {
+      "id": "counterexample-032",
+      "source": "The sheep near the barn are asleep.",
+      "target": "The sheep near the barn are asleep.",
+      "category": "irregular_number",
+      "reason": "The form sheep can be plural; the sentence specifies a plural verb."
+    },
+    {
+      "id": "counterexample-033",
+      "source": "Mathematics is her strongest subject.",
+      "target": "Mathematics is her strongest subject.",
+      "category": "irregular_number",
+      "reason": "The academic subject mathematics takes singular agreement."
+    },
+    {
+      "id": "counterexample-034",
+      "source": "Those women know the shortest route.",
+      "target": "Those women know the shortest route.",
+      "category": "irregular_number",
+      "reason": "Women is an irregular plural."
+    },
+    {
+      "id": "counterexample-035",
+      "source": "A lamp and a clock stand on the mantelpiece.",
+      "target": "A lamp and a clock stand on the mantelpiece.",
+      "category": "compound_subject",
+      "reason": "The coordinated subject is plural."
+    },
+    {
+      "id": "counterexample-036",
+      "source": "Both the captain and the navigator have maps.",
+      "target": "Both the captain and the navigator have maps.",
+      "category": "compound_subject",
+      "reason": "Both coordinated subjects require plural agreement."
+    },
+    {
+      "id": "counterexample-037",
+      "source": "Neither the teacher nor the pupils are absent.",
+      "target": "Neither the teacher nor the pupils are absent.",
+      "category": "compound_subject",
+      "reason": "Agreement with the nearer plural subject is grammatical."
+    },
+    {
+      "id": "counterexample-038",
+      "source": "Either the assistants or the director is available.",
+      "target": "Either the assistants or the director is available.",
+      "category": "compound_subject",
+      "reason": "Agreement with the nearer singular subject is grammatical."
+    },
+    {
+      "id": "counterexample-039",
+      "source": "The basket of oranges is beside the sink.",
+      "target": "The basket of oranges is beside the sink.",
+      "category": "embedded_subject",
+      "reason": "The singular head basket controls agreement."
+    },
+    {
+      "id": "counterexample-040",
+      "source": "The keys to the cabinet are in my pocket.",
+      "target": "The keys to the cabinet are in my pocket.",
+      "category": "embedded_subject",
+      "reason": "The plural head keys controls agreement."
+    },
+    {
+      "id": "counterexample-041",
+      "source": "The author who writes these stories has a new book.",
+      "target": "The author who writes these stories has a new book.",
+      "category": "embedded_subject",
+      "reason": "The relative clause does not change agreement with author."
+    },
+    {
+      "id": "counterexample-042",
+      "source": "The employees whom the manager trusts have access.",
+      "target": "The employees whom the manager trusts have access.",
+      "category": "embedded_subject",
+      "reason": "The embedded singular manager is not the main subject."
+    },
+    {
+      "id": "counterexample-043",
+      "source": "One of the paintings is missing a frame.",
+      "target": "One of the paintings is missing a frame.",
+      "category": "embedded_subject",
+      "reason": "One is the singular head of the subject."
+    },
+    {
+      "id": "counterexample-044",
+      "source": "Every one of the participants has a seat.",
+      "target": "Every one of the participants has a seat.",
+      "category": "embedded_subject",
+      "reason": "Every one takes singular agreement."
+    },
+    {
+      "id": "counterexample-045",
+      "source": "The box that contains the old letters is fragile.",
+      "target": "The box that contains the old letters is fragile.",
+      "category": "embedded_subject",
+      "reason": "The main subject box remains singular across a relative clause."
+    },
+    {
+      "id": "counterexample-046",
+      "source": "James has a collection of antique coins.",
+      "target": "James has a collection of antique coins.",
+      "category": "proper_names",
+      "reason": "The final s in a name does not make the subject plural."
+    },
+    {
+      "id": "counterexample-047",
+      "source": "Chris is waiting near the ticket office.",
+      "target": "Chris is waiting near the ticket office.",
+      "category": "proper_names",
+      "reason": "A name ending in s can be a singular subject."
+    },
+    {
+      "id": "counterexample-048",
+      "source": "The Netherlands is on our itinerary.",
+      "target": "The Netherlands is on our itinerary.",
+      "category": "proper_names",
+      "reason": "The country name takes singular agreement here."
+    },
+    {
+      "id": "counterexample-049",
+      "source": "Alice and Luis are preparing dinner.",
+      "target": "Alice and Luis are preparing dinner.",
+      "category": "proper_names",
+      "reason": "Two named people form a plural subject."
+    },
+    {
+      "id": "counterexample-050",
+      "source": "The student quoted \"he go home\" as an example of an error.",
+      "target": "The student quoted \"he go home\" as an example of an error.",
+      "category": "quotation",
+      "reason": "The embedded error is explicitly quoted and should remain unchanged."
+    },
+    {
+      "id": "counterexample-051",
+      "source": "The password hint says \"two blue birds\".",
+      "target": "The password hint says \"two blue birds\".",
+      "category": "quotation",
+      "reason": "Quoted hint text must be preserved."
+    },
+    {
+      "id": "counterexample-052",
+      "source": "The review included the phrase \"a unusual choice\".",
+      "target": "The review included the phrase \"a unusual choice\".",
+      "category": "quotation",
+      "reason": "The quoted phrase is content, even though its article is nonstandard."
+    },
+    {
+      "id": "counterexample-053",
+      "source": "She asked, \"Does he know the answer?\"",
+      "target": "She asked, \"Does he know the answer?\"",
+      "category": "quotation",
+      "reason": "The quoted question is grammatical and must preserve punctuation."
+    },
+    {
+      "id": "counterexample-054",
+      "source": "Visit https://example.org/has/have for the reference.",
+      "target": "Visit https://example.org/has/have for the reference.",
+      "category": "url_and_code",
+      "reason": "Words inside a URL path are not editable English tokens."
+    },
+    {
+      "id": "counterexample-055",
+      "source": "The variable name is user_has_access.",
+      "target": "The variable name is user_has_access.",
+      "category": "url_and_code",
+      "reason": "An identifier is code content and must be preserved."
+    },
+    {
+      "id": "counterexample-056",
+      "source": "Set `items.length` to zero in the example.",
+      "target": "Set `items.length` to zero in the example.",
+      "category": "url_and_code",
+      "reason": "Inline code is content that must retain its exact spelling."
+    },
+    {
+      "id": "counterexample-057",
+      "source": "Run `echo \"she have\"` to reproduce the sample output.",
+      "target": "Run `echo \"she have\"` to reproduce the sample output.",
+      "category": "url_and_code",
+      "reason": "The apparent grammar error is inside a command and should remain unchanged."
+    },
+    {
+      "id": "counterexample-058",
+      "source": "Zoë has invited André to the exhibition.",
+      "target": "Zoë has invited André to the exhibition.",
+      "category": "unicode",
+      "reason": "Accented names are valid Unicode text."
+    },
+    {
+      "id": "counterexample-059",
+      "source": "“We have enough time,” said Ana.",
+      "target": "“We have enough time,” said Ana.",
+      "category": "unicode",
+      "reason": "Curly quotation marks and the grammatical quoted text must be preserved."
+    },
+    {
+      "id": "counterexample-060",
+      "source": "The café is open until six.",
+      "target": "The café is open until six.",
+      "category": "unicode",
+      "reason": "An accented loanword does not require correction."
+    },
+    {
+      "id": "counterexample-061",
+      "source": "Our team’s notes are saved in the shared folder.",
+      "target": "Our team’s notes are saved in the shared folder.",
+      "category": "unicode",
+      "reason": "The curly possessive apostrophe is valid."
+    },
+    {
+      "id": "counterexample-062",
+      "source": "The price is €20, and the receipt is ready.",
+      "target": "The price is €20, and the receipt is ready.",
+      "category": "unicode",
+      "reason": "A currency symbol must not shift or corrupt nearby text."
+    },
+    {
+      "id": "counterexample-063",
+      "source": "I added a reminder: bring snacks 😊.",
+      "target": "I added a reminder: bring snacks 😊.",
+      "category": "unicode",
+      "reason": "The emoji is intentional content that must be preserved."
+    },
+    {
+      "id": "counterexample-064",
+      "source": "An hour is enough for the tour.",
+      "target": "An hour is enough for the tour.",
+      "category": "article_sound",
+      "reason": "Hour begins with a vowel sound despite its initial h."
+    },
+    {
+      "id": "counterexample-065",
+      "source": "A university opened a campus nearby.",
+      "target": "A university opened a campus nearby.",
+      "category": "article_sound",
+      "reason": "University begins with a consonant sound."
+    },
+    {
+      "id": "counterexample-066",
+      "source": "She made an honest attempt to help.",
+      "target": "She made an honest attempt to help.",
+      "category": "article_sound",
+      "reason": "Honest begins with a vowel sound."
+    },
+    {
+      "id": "counterexample-067",
+      "source": "We bought a one-way ticket.",
+      "target": "We bought a one-way ticket.",
+      "category": "article_sound",
+      "reason": "One-way begins with a consonant sound."
+    },
+    {
+      "id": "counterexample-068",
+      "source": "An MRI scan was scheduled for Monday.",
+      "target": "An MRI scan was scheduled for Monday.",
+      "category": "article_sound",
+      "reason": "The spoken initial letter of MRI begins with a vowel sound."
+    },
+    {
+      "id": "counterexample-069",
+      "source": "A USB cable connects the two devices.",
+      "target": "A USB cable connects the two devices.",
+      "category": "article_sound",
+      "reason": "The spoken initial letter of USB begins with a consonant sound."
+    },
+    {
+      "id": "counterexample-070",
+      "source": "An unusual pattern appeared in the results.",
+      "target": "An unusual pattern appeared in the results.",
+      "category": "article_sound",
+      "reason": "Unusual begins with a vowel sound."
+    },
+    {
+      "id": "counterexample-071",
+      "source": "The visitors have been waiting for an hour.",
+      "target": "The visitors have been waiting for an hour.",
+      "category": "valid_aspect",
+      "reason": "The present-perfect progressive uses have been with a plural subject."
+    },
+    {
+      "id": "counterexample-072",
+      "source": "The actress has been rehearsing all afternoon.",
+      "target": "The actress has been rehearsing all afternoon.",
+      "category": "valid_aspect",
+      "reason": "The present-perfect progressive agrees with the singular subject."
+    },
+    {
+      "id": "counterexample-073",
+      "source": "By noon, the crew had repaired the ladder.",
+      "target": "By noon, the crew had repaired the ladder.",
+      "category": "valid_aspect",
+      "reason": "Past-perfect had does not vary by subject number."
+    },
+    {
+      "id": "counterexample-074",
+      "source": "The maps were printed before the exhibition opened.",
+      "target": "The maps were printed before the exhibition opened.",
+      "category": "valid_aspect",
+      "reason": "The passive verb agrees with the plural subject."
+    },
+    {
+      "id": "counterexample-075",
+      "source": "Please send the catalogue when you have time.",
+      "target": "Please send the catalogue when you have time.",
+      "category": "register_and_variant",
+      "reason": "Catalogue is a valid spelling variant."
+    },
+    {
+      "id": "counterexample-076",
+      "source": "The colour of the wall matches the carpet.",
+      "target": "The colour of the wall matches the carpet.",
+      "category": "register_and_variant",
+      "reason": "Colour is a valid spelling variant."
+    },
+    {
+      "id": "counterexample-077",
+      "source": "I have got two tickets for the play.",
+      "target": "I have got two tickets for the play.",
+      "category": "register_and_variant",
+      "reason": "Have got is a grammatical possession construction."
+    },
+    {
+      "id": "counterexample-078",
+      "source": "We need to practise before the performance.",
+      "target": "We need to practise before the performance.",
+      "category": "register_and_variant",
+      "reason": "Practise is a valid verb spelling in British English."
+    },
+    {
+      "id": "counterexample-079",
+      "source": "No problem.",
+      "target": "No problem.",
+      "category": "intentional_style",
+      "reason": "A conventional fragment is acceptable and need not be expanded."
+    },
+    {
+      "id": "counterexample-080",
+      "source": "Thanks for the quick reply!",
+      "target": "Thanks for the quick reply!",
+      "category": "intentional_style",
+      "reason": "A conversational fragment is acceptable in a message."
+    },
+    {
+      "id": "counterexample-081",
+      "source": "Ready when you are.",
+      "target": "Ready when you are.",
+      "category": "intentional_style",
+      "reason": "A conventional conversational fragment should be preserved."
+    },
+    {
+      "id": "counterexample-082",
+      "source": "The cooks work near the bakery.",
+      "target": "The cooks work near the bakery.",
+      "category": "noun_and_verb_roles",
+      "reason": "Cooks is the plural subject and work is the main verb."
+    },
+    {
+      "id": "counterexample-083",
+      "source": "Our plans work well in small rooms.",
+      "target": "Our plans work well in small rooms.",
+      "category": "noun_and_verb_roles",
+      "reason": "Plans is a plural noun and work is the verb."
+    },
+    {
+      "id": "counterexample-084",
+      "source": "The watch is in the drawer.",
+      "target": "The watch is in the drawer.",
+      "category": "noun_and_verb_roles",
+      "reason": "Watch is a singular noun here."
+    },
+    {
+      "id": "counterexample-085",
+      "source": "The librarian have a spare key.",
+      "target": "The librarian has a spare key.",
+      "category": "clear_agreement",
+      "reason": "The singular subject librarian requires has."
+    },
+    {
+      "id": "counterexample-086",
+      "source": "The hikers has enough water.",
+      "target": "The hikers have enough water.",
+      "category": "clear_agreement",
+      "reason": "The plural subject hikers requires have."
+    },
+    {
+      "id": "counterexample-087",
+      "source": "This envelope are empty.",
+      "target": "This envelope is empty.",
+      "category": "clear_agreement",
+      "reason": "The singular subject envelope requires is."
+    },
+    {
+      "id": "counterexample-088",
+      "source": "Those windows is dusty.",
+      "target": "Those windows are dusty.",
+      "category": "clear_agreement",
+      "reason": "The plural subject windows requires are."
+    },
+    {
+      "id": "counterexample-089",
+      "source": "My brother walk to the bakery every Saturday.",
+      "target": "My brother walks to the bakery every Saturday.",
+      "category": "clear_agreement",
+      "reason": "The recurring present-tense action requires singular walks."
+    },
+    {
+      "id": "counterexample-090",
+      "source": "The actors performs here every winter.",
+      "target": "The actors perform here every winter.",
+      "category": "clear_agreement",
+      "reason": "The plural subject actors requires perform."
+    },
+    {
+      "id": "counterexample-091",
+      "source": "The driver can opens the gate.",
+      "target": "The driver can open the gate.",
+      "category": "clear_modal",
+      "reason": "Can requires a bare main verb."
+    },
+    {
+      "id": "counterexample-092",
+      "source": "We should checks the receipt.",
+      "target": "We should check the receipt.",
+      "category": "clear_modal",
+      "reason": "Should requires a bare main verb."
+    },
+    {
+      "id": "counterexample-093",
+      "source": "Does the baker has more flour?",
+      "target": "Does the baker have more flour?",
+      "category": "clear_question",
+      "reason": "Does requires the bare main verb have."
+    },
+    {
+      "id": "counterexample-094",
+      "source": "Did she finished the mural?",
+      "target": "Did she finish the mural?",
+      "category": "clear_question",
+      "reason": "Did requires the bare main verb finish."
+    },
+    {
+      "id": "counterexample-095",
+      "source": "We saw a elephant near the pond.",
+      "target": "We saw an elephant near the pond.",
+      "category": "clear_article",
+      "reason": "Elephant starts with a vowel sound and requires an."
+    },
+    {
+      "id": "counterexample-096",
+      "source": "He packed an suitcase for the trip.",
+      "target": "He packed a suitcase for the trip.",
+      "category": "clear_article",
+      "reason": "Suitcase starts with a consonant sound and requires a."
+    },
+    {
+      "id": "counterexample-097",
+      "source": "Please close the the wooden gate.",
+      "target": "Please close the wooden gate.",
+      "category": "clear_duplicate",
+      "reason": "The doubled determiner is an accidental repetition in unquoted prose."
+    },
+    {
+      "id": "counterexample-098",
+      "source": "The parcel arrived on on Tuesday.",
+      "target": "The parcel arrived on Tuesday.",
+      "category": "clear_duplicate",
+      "reason": "The doubled preposition is an accidental repetition in unquoted prose."
+    },
+    {
+      "id": "counterexample-099",
+      "source": "The visitor left a mesage at reception.",
+      "target": "The visitor left a message at reception.",
+      "category": "clear_spelling",
+      "reason": "Mesage is a clear misspelling of message."
+    },
+    {
+      "id": "counterexample-100",
+      "source": "We will meet after brekfast.",
+      "target": "We will meet after breakfast.",
+      "category": "clear_spelling",
+      "reason": "Brekfast is a clear misspelling of breakfast."
+    }
+  ]
+}

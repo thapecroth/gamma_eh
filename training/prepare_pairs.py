@@ -14,7 +14,7 @@ LICENSES = {"CC0-1.0", "CC-BY-4.0", "Apache-2.0", "MIT"}
 
 
 def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_labels=4096,
-            allow_unverified_teacher_terms=False, schema=1):
+            allow_unverified_teacher_terms=False, schema=1, train_only=False):
     if teacher_license is not None and teacher_license not in LICENSES:
         raise ValueError("Unsupported teacher output license")
     if max_labels < 2: raise ValueError("max-labels must be at least2")
@@ -54,7 +54,12 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
                                     "source_url": raw.get("source_url"),
                                     "original_source_url": raw.get("original_source_url"),
                                     "prompt_sha256": raw.get("prompt_sha256")})
+                        for name in ("dialog_id", "seed_id", "seed_origin", "family", "rule"):
+                            if name in raw:
+                                row[name] = raw[name]
                         source_metadata = {name: row.get(name) for name in ["origin", "license", "source_revision", "source_url", "original_source_url", "model", "prompt_sha256"]}
+                        if "seed_origin" in row:
+                            source_metadata["seed_origin"] = row["seed_origin"]
                         if row["origin"] == "martinsr/c4_200m":
                             source_metadata.update({"attribution": "Stahlberg and Kumar (2021), Google C4_200M; parquet conversion by martinsr",
                                                     "license_scope": "Corruption edits CC-BY-4.0; source-corpus notices also apply."})
@@ -119,7 +124,7 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
             for value, reviewed, reviewed_group in db.execute(query):
                 row = json.loads(value)
                 bucket = int(row["clean_group"][:8], 16) % 100
-                split = "train" if not reviewed_group or bucket < 80 else "dev" if bucket < 90 else "test"
+                split = "train" if train_only or not reviewed_group or bucket < 80 else "dev" if bucket < 90 else "test"
                 if split != "train" and not reviewed:
                     counts["weak_heldout_group_dropped"] += 1
                     continue
@@ -167,6 +172,7 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
                     "source_provenance": [provenance[key] for key in sorted(provenance)],
                     "counts": dict(counts), "origins_before_vocabulary_filter": dict(origins),
                     "licenses": dict(license_counts), "weak_labels_train_only": True,
+                    "train_only_inputs": train_only,
                     "publication_allowed": "provider-terms-unverified" not in license_counts,
                     "label_count": len(labels), "splits": coverage,
                     "coverage_by_category": categories,
@@ -192,6 +198,8 @@ if __name__ == "__main__":
                         help="Local experiments only: retain unverified terms and block publication; requires --allow-weak-train")
     parser.add_argument("--max-labels", type=int, default=4096)
     parser.add_argument("--schema", type=int, choices=[1, 2], default=1)
+    parser.add_argument("--train-only", action="store_true",
+                        help="Keep reviewed training inputs in train; supply independent evaluation separately")
     args = parser.parse_args()
     prepare(args.input, args.output, args.allow_weak_train, args.teacher_license, args.max_labels,
-            args.allow_unverified_teacher_terms, args.schema)
+            args.allow_unverified_teacher_terms, args.schema, args.train_only)
