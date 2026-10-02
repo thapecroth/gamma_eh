@@ -4,6 +4,7 @@ from collections import Counter
 import hashlib
 import heapq
 import json
+import math
 from pathlib import Path
 import shutil
 import subprocess
@@ -12,6 +13,7 @@ import sys
 from data import edit_tags
 from pairs import evaluation_keys, group_id, hash_file, normalized, validate_pair
 from prepare_pairs import prepare
+from verified_teacher import read_exclusions
 
 TINY = ("google/bert_uncased_L-2_H-128_A-2", "30b0a37ccaaa32f332884b96992754e246e48c5f")
 LARGER = ("google/bert_uncased_L-4_H-256_A-4", "387825ce42dbb39b87911cdf8e383ee3b25184f8")
@@ -119,16 +121,38 @@ def common_training_population(datasets, manifests, token_count, budget, seed):
             "limitation": "All training rows fit the common budget; longer context comparison measures inference context, without long-context training examples."}
 
 
+def share_label_inventory(datasets, manifests, maximum):
+    # These inventories come exclusively from prepared training tags, before
+    # downsampling. Preserve that superset so existing tagged diagnostics remain
+    # representable, without consulting heldout tags to add classes.
+    labels = ["KEEP"] + sorted({label for name in manifests
+                                for label in json.loads((datasets / name / "labels.json").read_text())} - {"KEEP"})
+    if len(labels) > maximum: raise ValueError("Shared train-derived inventory exceeds max-labels")
+    for name, manifest in manifests.items():
+        path = datasets / name / "labels.json"
+        path.write_text(json.dumps(labels, indent=2) + "\n")
+        manifest.update({"label_count": len(labels), "labels_sha256": hash_file(path),
+                         "label_inventory": "Shared union of prepared training inventories before downsampling; no heldout-derived classes."})
+        (datasets / name / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    return {"count": len(labels), "sha256": hash_file(datasets / next(iter(manifests)) / "labels.json"),
+            "scope": "Shared train-derived union before downsampling; classes can have zero positive examples in one arm."}
+
+
 def build(args, token_count=None):
     args.output = args.output.resolve()
     if args.output.exists(): raise ValueError("Experiment directory already exists; choose a fresh directory")
     if args.rows < 4 or not args.weak or args.max_scanned < args.rows or args.epochs < 1 or args.batch_size < 1:
         raise ValueError("Positive bounded schedule, weak inputs, rows>=4 and max-scanned>=rows are required")
+    keep_weight = getattr(args, "keep_weight", .3)
+    if not math.isfinite(keep_weight) or keep_weight <= 0: raise ValueError("KEEP weight must be finite and positive")
     excluded_sources, excluded_targets = excluded_evaluation(args.evaluation_dir)
     # Retain template heldout separation even when selection uses natural dev.
     extra_sources, extra_targets = excluded_evaluation(args.template)
     excluded_sources |= extra_sources
     excluded_targets |= extra_targets
+    keys, exclusion_files = read_exclusions(getattr(args, "exclude", []))
+    excluded_sources |= keys
+    excluded_targets |= {group_id(value) for value in keys}
     template_rows, template_counts = select_rows(args.template / "train.jsonl", args.rows, args.max_scanned,
                                                   args.seed, excluded_sources, excluded_targets, templates=True)
     weak_sets, weak_counts = [], []
@@ -152,6 +176,7 @@ def build(args, token_count=None):
     datasets.mkdir()
     manifests = {"template": assemble_dataset(datasets / "template", baseline, args.template, args.evaluation_dir, args.max_labels),
                  "mixed": assemble_dataset(datasets / "mixed", mixed, args.template, args.evaluation_dir, args.max_labels)}
+    shared_labels = share_label_inventory(datasets, manifests, args.max_labels) if getattr(args, "shared_label_inventory", False) else None
     controlled = None
     common_budget = getattr(args, "common_token_budget", 0)
     if common_budget:
@@ -166,6 +191,10 @@ def build(args, token_count=None):
         controlled = common_training_population(datasets, manifests, token_count, common_budget, args.seed)
     arms = [("template-tiny64", "template", TINY, 64), ("mixed-tiny64", "mixed", TINY, 64),
             ("mixed-tiny128", "mixed", TINY, 128), ("mixed-larger128", "mixed", LARGER, 128)]
+    requested_arms = getattr(args, "arm", None)
+    if requested_arms:
+        if set(requested_arms) - {arm[0] for arm in arms}: raise ValueError("Unknown experiment arm")
+        arms = [arm for arm in arms if arm[0] in requested_arms]
     commands = []
     for name, dataset, base, context in arms:
         command = [sys.executable, str(Path(__file__).resolve().with_name("train.py")),
@@ -174,9 +203,11 @@ def build(args, token_count=None):
                    "--base-model", base[0], "--base-revision", base[1], "--max-length", str(context),
                    "--epochs", str(args.epochs), "--batch-size", str(args.batch_size),
                    "--learning-rate", str(args.learning_rate), "--seed", str(args.seed),
+                   "--keep-weight", str(keep_weight),
                    "--scorer", getattr(args, "scorer", "approximate"),
                    "--min-dev-edits", str(getattr(args, "min_dev_edits", 25))]
         if args.local_files_only: command.append("--local-files-only")
+        if getattr(args, "development_only", False): command.append("--development-only")
         if args.device: command.extend(["--device", args.device])
         commands.append({"name": name, "command": command})
     plan = {"schema": 1, "requested_raw_rows": args.rows, "effective_raw_rows_per_arm": effective,
@@ -184,6 +215,11 @@ def build(args, token_count=None):
             "selection": "Smallest SHA256(seed:pair_id) from bounded scanned population; retained source order is not population-representative.",
             "selection_counts": {"template": template_counts, "weak": weak_counts},
             "evaluation_hashes": {split: hash_file(args.evaluation_dir / f"{split}.jsonl") for split in ["dev", "test"]},
+            "exclusion_files": exclusion_files,
+            "code_files": [{"path": str(path.resolve()), "sha256": hash_file(path)}
+                           for path in sorted(Path(__file__).parent.glob("*.py"))],
+            "shared_label_inventory": shared_labels,
+            "training_controls": {"keep_weight": keep_weight, "development_only": getattr(args, "development_only", False)},
             "dataset_manifests": {key: {"raw_train_rows": value["raw_train_rows"],
                                          "supported_train_rows": value["splits"]["train"]["accepted"],
                                          "publication_allowed": value["publication_allowed"]} for key, value in manifests.items()},
@@ -193,6 +229,11 @@ def build(args, token_count=None):
             "arms": commands}
     if controlled:
         plan["comparison_limit"] = "Supported training counts are equal after a shared WordPiece budget and deterministic downsampling; all mixed arms train identical rows. Classifier label inventories remain train-derived and may differ by dataset."
+    if shared_labels:
+        plan["comparison_limit"] = plan["comparison_limit"].replace(
+            "Classifier label inventories remain train-derived and may differ by dataset.",
+            "All arms use the same training-derived classifier label inventory.")
+        if not controlled: plan["comparison_limit"] += " All arms use the same training-derived classifier label inventory."
     (args.output / "plan.json").write_text(json.dumps(plan, indent=2) + "\n")
     return plan
 
@@ -200,6 +241,12 @@ def build(args, token_count=None):
 def run(plan):
     # Deliberately foreground and sequential; never launch another arm on failure.
     for arm in plan["arms"]:
+        for record in plan.get("code_files", []):
+            if hash_file(Path(record["path"])) != record["sha256"]:
+                raise ValueError("Training code changed after planning")
+        for record in plan.get("exclusion_files", []):
+            if hash_file(Path(record["path"])) != record["sha256"]:
+                raise ValueError("Exclusion snapshot changed after planning")
         command = arm["command"]
         evaluation = Path(command[command.index("--evaluation-dir") + 1])
         dataset = Path(command[command.index("--data") + 1])
@@ -212,6 +259,10 @@ def run(plan):
             raise ValueError("Training population changed after planning")
         if hash_file(dataset / "labels.json") != manifest["labels_sha256"]:
             raise ValueError("Training edit vocabulary changed after planning")
+        tagged_splits = ["dev"] if "--development-only" in command else ["dev", "test"]
+        for split in tagged_splits:
+            if hash_file(dataset / f"{split}.jsonl") != manifest["splits"][split]["sha256"]:
+                raise ValueError("Tagged diagnostic population changed after planning")
         subprocess.run(command, check=True)
 
 
@@ -236,6 +287,11 @@ if __name__ == "__main__":
     parser.add_argument("--device", choices=["cpu", "cuda"])
     parser.add_argument("--scorer", choices=["approximate", "errant"], default="approximate")
     parser.add_argument("--min-dev-edits", type=int, default=25)
+    parser.add_argument("--keep-weight", type=float, default=.3)
+    parser.add_argument("--development-only", action="store_true", help="Defer test inference and keep provisional exports disabled")
+    parser.add_argument("--shared-label-inventory", action="store_true", help="Use a shared union of training-derived classifier classes")
+    parser.add_argument("--exclude", type=Path, action="append", default=[], help="Additional local JSONL regression/heldout exclusions")
+    parser.add_argument("--arm", action="append", choices=["template-tiny64", "mixed-tiny64", "mixed-tiny128", "mixed-larger128"])
     parser.add_argument("--prepare", action="store_true")
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--run-plan", type=Path, help="Execute an already prepared immutable plan")
