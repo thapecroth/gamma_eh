@@ -61,6 +61,9 @@ strings are explicitly untrusted data.
 They cover no-op corrections, unresolved errors, over-editing, meaning changes,
 literal content, Unicode, and prompt injection. Their expectations are unreviewed,
 not human gold. Both sources and candidates are reserved from training.
+Direct training and comparison planning reject normalized, case-insensitive
+overlap with every training source, target, and reference, including human CE
+rows outside the synthetic reward subset.
 
 Calibration runs two independent live rounds in separate caches. Qualification
 requires at least 95% flag agreement in each round, 98% repeat agreement, zero

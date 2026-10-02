@@ -24,7 +24,7 @@ def prepared(tmp_path, monkeypatch):
     fixture = tmp_path / "fixture.json"
     fixture.write_text(json.dumps({"schema": 1, "license": "CC0-1.0", "origin": "agent-authored-judge-calibration-v1",
         "review_status": "unreviewed", "selection_use": False, "scope": "Diagnostic fixture.",
-        "cases": [{"id": "one", "source": "The hedgehog rests beside a fern.",
+        "cases": [{"id": "one", "source": "The hedgehog rest beside a fern.",
                    "candidate": "The hedgehog rests beside a fern.", "expected": {name: True for name in FLAGS}}]}))
     monkeypatch.setattr(calibrate_judge, "Judge", lambda *args, **kwargs: Judge(*args, transport=transport, **kwargs))
     output = tmp_path / "calibration"
@@ -88,13 +88,21 @@ def test_calibration_rejects_copied_rounds_even_with_updated_hashes(tmp_path, mo
         validate_calibration(calibration, judge_spec(), fixture)
 
 
-def test_plan_rejects_oversized_live_budget_and_calibration_text_leakage(tmp_path, monkeypatch):
+def test_plan_rejects_oversized_live_budget(tmp_path, monkeypatch):
     data, evaluation, fixture, calibration = prepared(tmp_path, monkeypatch)
     with pytest.raises(ValueError, match="finite budget"):
         plan(data, evaluation, tmp_path / "output", calibration, fixture=fixture, max_pairs=1)
+
+
+@pytest.mark.parametrize("fixture_field", ["source", "candidate"])
+@pytest.mark.parametrize("training_field", ["source", "target", "references"])
+def test_plan_rejects_calibration_text_in_every_training_field(tmp_path, monkeypatch, fixture_field, training_field):
+    data, evaluation, fixture, calibration = prepared(tmp_path, monkeypatch)
     path = data / "train.jsonl"
     row = json.loads(path.read_text())
-    row["target"] = json.loads(fixture.read_text())["cases"][0]["candidate"]
+    text = json.loads(fixture.read_text())["cases"][0][fixture_field]
+    text = "  ".join(text.upper().split())
+    row[training_field] = [text] if training_field == "references" else text
     path.write_text(json.dumps(row) + "\n")
     manifest = json.loads((data / "manifest.json").read_text())
     manifest["splits"]["train"]["sha256"] = hash_file(path)

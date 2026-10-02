@@ -113,6 +113,18 @@ def validate_calibration(path, spec, fixture=None):
     return receipt
 
 
+def validate_calibration_training(rows, fixture):
+    """Reserve both calibration texts from all CE rows, before reward subset selection."""
+    from calibrate_judge import load_fixture
+    from pairs import normalized
+    _, cases = load_fixture(fixture)
+    reserved = {normalized(row[field]).casefold() for row in cases for field in ("source", "candidate")}
+    for row in rows:
+        if any(normalized(value).casefold() in reserved
+               for value in [row["source"], row["target"], *row.get("references", [])]):
+            raise ValueError("Judge calibration source/candidate overlaps training")
+
+
 def endpoint(base_url):
     parsed = urlsplit(base_url)
     if (parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.scheme not in {"http", "https"}

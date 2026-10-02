@@ -9,9 +9,10 @@ import subprocess
 
 from compare_rl import (BASE, REVISION, ROOT, command as base_command, completed, diagnose,
                         plan as base_plan, read_rows, verify_inputs)
-from judge import canonical, digest, endpoint, judge_spec, spec_hash, validate_calibration
+from judge import (canonical, digest, endpoint, judge_spec, spec_hash,
+                   validate_calibration, validate_calibration_training)
 from judge_objective import select_rows, subset_spec
-from pairs import hash_file, normalized
+from pairs import hash_file
 from rl_objective import checkpoint_hashes, validate_checkpoint_labels
 
 
@@ -28,20 +29,17 @@ def plan(data, evaluation_dir, output, calibration, initial_checkpoint=None, fix
     if not 1 <= max_requests <= 256 or not 1 <= max_pairs <= 8192 or not 1 <= timeout <= 60:
         raise ValueError("Judge request/pair/time limits exceed bounded budgets")
     data = Path(spec["data"])
-    selected = select_rows(read_rows(data / "train.jsonl"), rl_rows, seed)
+    calibration, fixture = Path(calibration).resolve(), Path(fixture).resolve()
+    training_rows = read_rows(data / "train.jsonl")
+    validate_calibration_training(training_rows, fixture)
+    selected = select_rows(training_rows, rl_rows, seed)
     worst_pairs = 2 * epochs * len(selected)
     worst_requests = epochs * sum(math.ceil(2 * len(selected[start:start + rl_batch_size]) / judge_batch_size)
                                   for start in range(0, len(selected), rl_batch_size))
     if worst_pairs > max_pairs or worst_requests > max_requests:
         raise ValueError("Worst-case sampled/baseline judgments exceed the finite budget")
     judge = judge_spec(judge_model, judge_provider, judge_auth, judge_provider_header, judge_auth_header)
-    calibration, fixture = Path(calibration).resolve(), Path(fixture).resolve()
     validate_calibration(calibration, judge, fixture)
-    fixture_rows = json.loads(fixture.read_text())["cases"]
-    reserved = {normalized(row[field]).casefold() for row in fixture_rows for field in ("source", "candidate")}
-    for row in read_rows(data / "train.jsonl"):
-        if any(normalized(value).casefold() in reserved for value in [row["source"], row["target"], *row.get("references", [])]):
-            raise ValueError("Judge calibration source/candidate overlaps training")
     spec["input_hashes"].update({str(path): hash_file(path) for path in (calibration, fixture)})
     spec["input_hashes"][str(ROOT / "training/calibrate_judge.py")] = hash_file(ROOT / "training/calibrate_judge.py")
     for name in ("compare_judge_rl.py", "judge.py", "judge_objective.py"):

@@ -207,6 +207,11 @@ def main(args):
     if not labels or labels[0] != "KEEP": raise ValueError("KEEP must be label zero")
     initial_hashes = validate_checkpoint_labels(initial_checkpoint, labels) if initial_checkpoint else None
     rows, evaluation_hashes = evaluation_populations(args)
+    judge_training_rows = None
+    if objective == "llm-judge-reinforce" and coefficient:
+        from judge import validate_calibration_training
+        judge_training_rows = [json.loads(line) for line in (args.data / "train.jsonl").read_text().splitlines()]
+        validate_calibration_training(judge_training_rows, args.judge_calibration_fixture)
     label_to_id = {label: i for i, label in enumerate(labels)}
     source = str(initial_checkpoint) if initial_checkpoint else args.base_model
     load_options = {"local_files_only": True} if initial_checkpoint else {
@@ -250,8 +255,7 @@ def main(args):
         if args.judge_calibration is None:
             raise ValueError("LLM judge RL requires a passing exact-spec calibration receipt")
         validate_calibration(args.judge_calibration, spec, args.judge_calibration_fixture)
-        judge_rows = select_rows([json.loads(line) for line in (args.data / "train.jsonl").read_text().splitlines()],
-                                 args.judge_rl_rows, args.seed)
+        judge_rows = select_rows(judge_training_rows, args.judge_rl_rows, args.seed)
         subset = subset_spec(judge_rows)
         if args.judge_subset_sha256 and args.judge_subset_sha256 != digest(canonical(subset)):
             raise ValueError("Frozen synthetic judge subset changed")
