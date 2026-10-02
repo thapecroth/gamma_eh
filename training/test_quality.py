@@ -19,6 +19,95 @@ def write_rows(path, rows):
     path.write_text("".join(json.dumps(row) + "\n" for row in rows))
 
 
+def screened_pair(**overrides):
+    from teacher_recipes import lexical_family
+    from verified_teacher import CRITIC_FIELDS, blind_id, critic_id
+    target = "She is ready for the workshop."
+    row = {"source": "She are ready for the workshop.", "target": target, "category": "agreement",
+           "origin": "glm-recipe-machine-screened", "model": "glm-5.3",
+           "license": "provider-terms-unverified", "status": "screened", "admission_status": "screened",
+           "review_status": "machine-verified", "split": "train", "human_reviewed": False,
+           "weak_supervision": True, "family_id": lexical_family(target), "recipe_id": "agreement_subject",
+           "recipe_version": 1, "run_fingerprint": "a" * 64, "row_id": "family-00000000:variant",
+           "guard_coverage": {"alignment": True, "guarded": True}}
+    row["blind_review"] = {"id": blind_id(row, row["run_fingerprint"]), "corrected": target, "source_is_grammatical": False}
+    row["pair_review"] = {"id": row["row_id"], **dict.fromkeys(CRITIC_FIELDS, True)}
+    row["critic_request_id"] = critic_id(row, row["run_fingerprint"])
+    return {**row, **overrides}
+
+
+def test_preparation_retains_machine_provenance_without_promoting_review_or_license(tmp_path):
+    source = tmp_path / "pairs.jsonl"
+    write_rows(source, [screened_pair()])
+    output = tmp_path / "prepared"
+    manifest = prepare([source], output, allow_weak_train=True, allow_unverified_teacher_terms=True, schema=2)
+    row = json.loads((output / "train.jsonl").read_text())
+    assert row["review_status"] == "weak-supervision" and row["human_reviewed"] is False
+    assert row["recipe_version"] == 1 and row["run_fingerprint"] == "a" * 64
+    assert row["clean_group"] == screened_pair()["family_id"]
+    assert row["blind_review"] == screened_pair()["blind_review"]
+    assert row["critic_request_id"] == screened_pair()["critic_request_id"]
+    assert manifest["publication_allowed"] is False
+    assert manifest["evaluation"]["dev"]["rows"] == manifest["evaluation"]["test"]["rows"] == 0
+
+
+@pytest.mark.parametrize("overrides,reason", [
+    ({"admission_status": "quarantined", "status": "screened"}, "not_admitted"),
+    ({"split": "dev"}, "teacher_heldout"),
+    ({"split": "test"}, "teacher_heldout"),
+    ({"blind_review": None}, "teacher_evidence_missing"),
+    ({"human_reviewed": True}, "teacher_evidence_missing"),
+    ({"pair_review": {"target_is_grammatical": True}}, "teacher_evidence_missing"),
+    ({"critic_request_id": "wrong-wire-id"}, "teacher_evidence_missing"),
+])
+def test_preparation_rejects_revocations_heldout_teacher_families_and_missing_evidence(tmp_path, overrides, reason):
+    source = tmp_path / "pairs.jsonl"
+    write_rows(source, [screened_pair(**overrides)])
+    output = tmp_path / "prepared"
+    manifest = prepare([source], output, allow_weak_train=True, allow_unverified_teacher_terms=True, schema=2)
+    assert not (output / "train.jsonl").read_text()
+    assert manifest["counts"]["rejected:" + reason] == 1
+
+
+@pytest.mark.parametrize("field,value", [("meaning_preserved", False), ("minimal_edit", "true"), ("id", "wrong-row")])
+def test_preparation_rechecks_explicit_successful_critic_verdicts(tmp_path, field, value):
+    row = screened_pair()
+    row["pair_review"][field] = value
+    source = tmp_path / "pairs.jsonl"
+    write_rows(source, [row])
+    manifest = prepare([source], tmp_path / "prepared", allow_weak_train=True, allow_unverified_teacher_terms=True, schema=2)
+    assert manifest["splits"]["train"]["accepted"] == 0
+    assert manifest["counts"]["rejected:teacher_evidence_missing"] == 1
+
+
+def test_preparation_rechecks_exact_blind_repair_target(tmp_path):
+    row = screened_pair()
+    row["blind_review"]["corrected"] = "She was ready for the workshop."
+    source = tmp_path / "pairs.jsonl"
+    write_rows(source, [row])
+    manifest = prepare([source], tmp_path / "prepared", allow_weak_train=True, allow_unverified_teacher_terms=True, schema=2)
+    assert manifest["splits"]["train"]["accepted"] == 0
+
+
+@pytest.mark.parametrize("text", ["We use --help to inspect the CLI.", "Mira arrived—then the meeting began.",
+                                  "The folder  is ready for review."])
+def test_preparation_retains_exact_clean_keep_controls_and_original_text(tmp_path, text):
+    from teacher_recipes import lexical_family
+    row = screened_pair(source=text, target=text, category="clean", family_id=lexical_family(text))
+    row["blind_review"].update(corrected=text, source_is_grammatical=True)
+    row["pair_review"].update(source_has_error=False, correction_is_necessary=False)
+    source = tmp_path / "pairs.jsonl"
+    write_rows(source, [row])
+    output = tmp_path / "prepared"
+    manifest = prepare([source], output, allow_weak_train=True, allow_unverified_teacher_terms=True, schema=2)
+    prepared = json.loads((output / "train.jsonl").read_text())
+    assert prepared["source"] == prepared["target"] == text
+    assert prepared["tags"] and set(prepared["tags"]) == {"KEEP"}
+    assert prepared["review_status"] == "weak-supervision" and prepared["human_reviewed"] is False
+    assert manifest["splits"]["train"]["accepted"] == 1
+    assert manifest["counts"].get("rejected", 0) == 0
+
+
 def words(text):
     from edit_ops import TOKEN_RE
     return [{"text": match.group(), "start": match.start(), "end": match.end()} for match in TOKEN_RE.finditer(text)]
@@ -217,13 +306,14 @@ def test_cross_role_evaluation_strings_are_excluded_from_either_training_field(t
     assert len(selected) == 1
 
 
-def test_controlled_experiments_cap_equal_raw_counts_and_keep_eval_hashes(tmp_path):
+@pytest.mark.parametrize("new_controls", [False, True])
+def test_controlled_experiments_cap_equal_raw_counts_and_keep_eval_hashes(tmp_path, monkeypatch, new_controls):
     template, evaluation = tmp_path / "template", tmp_path / "evaluation"
     template.mkdir(); evaluation.mkdir()
     train = [{"source": f"He have a book for task {index}.", "target": f"He has a book for task {index}."} for index in range(8)]
     write_rows(template / "train.jsonl", train)
     for split in ["dev", "test"]:
-        write_rows(template / f"{split}.jsonl", [{"source": f"We have a {split} book.", "target": f"We have a {split} book."}])
+        write_rows(template / f"{split}.jsonl", [{"source": f"She eat a {split} sandwich.", "target": f"She ate a {split} sandwich."}])
         write_rows(evaluation / f"{split}.jsonl", [{"source": f"She has a {split} pen.", "references": [f"She has a {split} pen."]}])
     weak = tmp_path / "weak.jsonl"
     write_rows(weak, [{"source": f"They has a pen for task {index}.", "target": f"They have a pen for task {index}.",
@@ -231,13 +321,64 @@ def test_controlled_experiments_cap_equal_raw_counts_and_keep_eval_hashes(tmp_pa
     args = Namespace(output=tmp_path / "run", rows=8, weak=[weak], max_scanned=20, epochs=2,
                      batch_size=2, evaluation_dir=evaluation, template=template, seed=42,
                      max_labels=100, learning_rate=.0005, local_files_only=True, device="cpu")
+    if new_controls:
+        excluded = tmp_path / "regression.jsonl"
+        write_rows(excluded, [{"source": "I read the local checklist.", "target": train[0]["source"],
+                               "references": ["I checked the local checklist."]}])
+        args.exclude = [excluded]
+        args.development_only = True
+        args.keep_weight = 1.0
+        args.shared_label_inventory = True
+        args.arm = ["template-tiny64", "mixed-tiny64"]
     plan = build(args)
     assert plan["effective_raw_rows_per_arm"] == 4
-    assert len(plan["arms"]) == 4
+    assert len(plan["arms"]) == (2 if new_controls else 4)
     assert {value["raw_train_rows"] for value in plan["dataset_manifests"].values()} == {4}
     for arm in plan["arms"]:
         assert arm["command"][arm["command"].index("--evaluation-dir") + 1] == str(evaluation.resolve())
+        if new_controls:
+            assert "--development-only" in arm["command"]
+            assert arm["command"][arm["command"].index("--keep-weight") + 1] == "1.0"
+    if new_controls:
+        from pairs import hash_file
+        inventories = [json.loads((args.output / "datasets" / name / "labels.json").read_text()) for name in ("template", "mixed")]
+        assert inventories[0] == inventories[1]
+        assert plan["shared_label_inventory"]["count"] == len(inventories[0])
+        heldout_tags = set(edit_tags("She eat a sandwich.", "She ate a sandwich.", 2)[1]) - {"KEEP"}
+        assert not heldout_tags.intersection(inventories[0])
+        for name in ("template", "mixed"):
+            raw = [json.loads(line) for line in (args.output / "datasets" / f"{name}-raw.jsonl").read_text().splitlines()]
+            assert not any(row["source"] == train[0]["source"] for row in raw)
+            manifest = json.loads((args.output / "datasets" / name / "manifest.json").read_text())
+            assert manifest["labels_sha256"] == hash_file(args.output / "datasets" / name / "labels.json")
+    from experiments import run
+    started = []
+    monkeypatch.setattr("experiments.subprocess.run", lambda command, **kwargs: started.append(command))
+    if new_controls:
+        # Deferred tagged test inputs cannot affect development-only runs.
+        (args.output / "datasets/template/test.jsonl").write_text("unused changed tagged test\n")
+        run(plan)
+        assert len(started) == 2
+        started.clear()
+    changed_split = "dev" if new_controls else "test"
+    (args.output / "datasets/template" / f"{changed_split}.jsonl").write_text("changed scored diagnostic\n")
+    with pytest.raises(ValueError, match="Tagged diagnostic population changed"):
+        run(plan)
+    assert not started
     with pytest.raises(ValueError, match="already exists"): build(args)
+
+
+def test_experiment_runner_rejects_code_drift_before_starting_training(tmp_path, monkeypatch):
+    from experiments import run
+    from pairs import hash_file
+    source = tmp_path / "train.py"
+    source.write_text("original frozen training code\n")
+    plan = {"arms": [{"command": ["never-start-this"]}],
+            "code_files": [{"path": str(source), "sha256": hash_file(source)}]}
+    source.write_text("changed training code\n")
+    monkeypatch.setattr("experiments.subprocess.run", lambda *args, **kwargs: pytest.fail("Training started after code drift"))
+    with pytest.raises(ValueError, match="Training code changed"):
+        run(plan)
 
 
 def test_common_budget_equalizes_supported_rows_without_trimming_evaluation(tmp_path):
