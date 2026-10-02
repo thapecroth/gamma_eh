@@ -34,7 +34,7 @@ Nothing changes until you accept a suggestion.
 > Early, experimental software. The shipped model is trained on original synthetic
 > templates, not a representative real-world grammar corpus. It proves the training
 > and local-inference pipeline; it is not yet a general Grammarly replacement.
-> Rules are on by default. **Local AI is opt-in.** Read the [model card](models/MODEL_CARD.md).
+> **Local AI is on by default**, with local CPU inference or rules as a fallback when needed. Read the [model card](models/MODEL_CARD.md).
 
 ## Public benchmark
 
@@ -77,8 +77,8 @@ Read the [methods and results](docs/public-benchmark.md),
 
 ![Gamma EH editor showing a fictional draft and spelling suggestions](docs/assets/editor-desktop.png)
 
-This preview shows the default rules mode. Enable **Local AI** to try the
-transformer; the interface reports the active WebGPU or WASM backend.
+This earlier preview shows rules mode. Local AI now starts automatically;
+the interface reports the active WebGPU, WASM CPU, or rules backend.
 
 </details>
 
@@ -108,13 +108,13 @@ at commit `6ef90a1`:
 can try it in a browser without installing anything.
 
 Try Gamma EH without installing the Chrome extension. The web playground includes
-example drafts, live spelling and grammar suggestions, optional local AI,
+example drafts, live spelling and grammar suggestions, default-enabled local AI,
 accept/dismiss, undo, reset, clear, and copy. All checks run on your device;
 drafts stay in the tab and are discarded on reload.
 
 To develop locally, install dependencies, run `npm run dev`, and open the printed localhost
-URL. No extension build is required. Choose **Try local AI** to enable the
-experimental model, or use the Local AI switch. For static hosting and
+URL. No extension build is required. Local AI starts automatically; use its
+switch to turn the experimental model off or back on. For static hosting and
 extension-free browser verification, see [the playground guide](docs/playground.md).
 Deployment and updates are documented in [the GitHub Pages guide](docs/github-pages.md).
 

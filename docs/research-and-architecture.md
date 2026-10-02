@@ -92,8 +92,10 @@ guard and describe the neural classifier alone, not the complete engine.
 The runtime also restricts deletion tags to adjacent duplicates and skips model
 inference in sentence windows containing protected code/URLs or a rule-driven
 deletion. Natural-text smoke tests exposed out-of-domain false suggestions, so
-Local AI is an explicit experimental toggle, disabled by default until broader
-training and independent evaluation justify enabling it automatically.
+Local AI remains experimental and starts enabled by default. Actual runtime
+initialization and inference select WebGPU or local WASM CPU execution; model
+failures retain spelling and rule suggestions. Users can turn AI off, and saved
+opt-outs are respected. See [local AI defaults](local-ai-defaults.md).
 
 ## Extension boundaries
 
@@ -108,7 +110,8 @@ which owns a dedicated Worker and outlives popup closure. Manifest-declared
 content scripts run automatically on HTTP and HTTPS pages in the top frame.
 The popup stores per-site pauses locally and can pause suggestions everywhere;
 the content script and service worker both enforce those preferences. Settings
-changes invalidate pending suggestions in existing tabs. Local AI stays opt-in.
+changes invalidate pending suggestions in existing tabs. Local AI starts enabled
+unless the user has saved an opt-out.
 Updates remove the older persisted per-site script registrations; existing tabs
 need one reload after the extension is updated. Chrome's native site-access
 controls still apply. The checker handles ordinary textarea and plain

@@ -1,6 +1,7 @@
 # Project documentation
 
 - [GitHub Pages](github-pages.md): public playground URL, checked deployment, repository-path assets, live verification, and rollback.
+- [Local AI defaults](local-ai-defaults.md): automatic local inference, browser/device fallback, and saved opt-outs.
 - [Web playground](playground.md): standalone browser demo, red error underlines, default-enabled local AI, privacy, hosting, and extension-free verification.
 - [Windows WebGPU initialization](windows-webgpu.md): adapter options, runtime warnings, and rebuilding an unpacked extension.
 - [Chrome Web Store](chrome-web-store.md): unlisted submission material and automated approved updates.
