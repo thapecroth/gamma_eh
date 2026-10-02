@@ -2,19 +2,19 @@
   "schema": 1,
   "source_receipt": "public-benchmark-results.json",
   "source_sha256": "6f3e69b29d4e477192be6d9c593f4c799ca833ff1188eb1a6f2b888bb7eb00b3",
-  "renderer_sha256": "a75b5c10427227b6fbeac1af94fd998337252c712b168ce0e5bb79f04780a362",
+  "renderer_sha256": "961da816a37b1b869ef0b9f2eec07055785a1624c790398e23b986165f17849c",
   "versions": {
     "matplotlib": "3.10.7",
     "numpy": "2.2.6"
   },
   "files": {
     "benchmark-overview.png": {
-      "bytes": 274318,
-      "sha256": "4eec4c128a290440ca7845113d967a5dd0f379090f853008c0e31c59ca9647bb"
+      "bytes": 273321,
+      "sha256": "7c92ca8abacf5355c1d50884e76ef199a53526e5a4eea5a7e496b88eb6e16945"
     },
     "benchmark-overview.svg": {
-      "bytes": 20687,
-      "sha256": "3472d02ef35970680baac71808b9e37be742a7da4cd9ed98fbb5859c40547a9c"
+      "bytes": 20460,
+      "sha256": "a00451425ad653622902a7c9a8473709f402f359dc18e61ca09bf66bb7b7e13e"
     }
   }
 }

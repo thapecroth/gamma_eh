@@ -276,18 +276,15 @@
     <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #625e58" x="141.12" y="510.355663" transform="rotate(-0 141.12 510.355663)">Combined engine · 448 proposed edits</text>
    </g>
    <g id="text_32">
-    <text style="font-weight: 700; font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #ffffff" x="150.28875" y="559.701191" transform="rotate(-0 150.28875 559.701191)">25</text>
-   </g>
-   <g id="text_33">
     <text style="font-weight: 700; font-size: 15px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #ffffff" x="314.59275" y="560.804941" transform="rotate(-0 314.59275 560.804941)">423 unmatched</text>
    </g>
-   <g id="text_34">
-    <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #778b6b" x="141.12" y="594.05922" transform="rotate(-0 141.12 594.05922)">25 matched human edits</text>
+   <g id="text_33">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #36312e" x="141.12" y="594.05922" transform="rotate(-0 141.12 594.05922)">25 matched human edits</text>
    </g>
-   <g id="text_35">
+   <g id="text_34">
     <text style="font-weight: 700; font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #36312e" x="141.12" y="624.980637" transform="rotate(-0 141.12 624.980637)">94.4% of proposed edits were unmatched</text>
    </g>
-   <g id="text_36">
+   <g id="text_35">
     <text style="font-weight: 700; font-size: 15px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #36312e" x="141.12" y="482.463564" transform="rotate(-0 141.12 482.463564)">Most web edits miss the reference</text>
    </g>
   </g>
@@ -298,39 +295,39 @@
    <g id="patch_17">
     <path d="M 651.633007 572.84569  L 962.64 572.84569  L 962.64 540.486067  L 651.633007 540.486067  z " clip-path="url(#pb1a8dae56c)" style="fill: #e3dfd7" />
    </g>
-   <g id="text_37">
+   <g id="text_36">
     <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #625e58" x="634.032" y="510.355663" transform="rotate(-0 634.032 510.355663)">CWEB sources accepted by a human reference</text>
    </g>
-   <g id="text_38">
+   <g id="text_37">
     <text style="font-weight: 700; font-size: 22px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #36312e" x="634.032" y="597.654734" transform="rotate(-0 634.032 597.654734)">5.36% changed</text>
    </g>
-   <g id="text_39">
+   <g id="text_38">
     <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #625e58" x="634.032" y="627.137946" transform="rotate(-0 634.032 627.137946)">315 of 5,881 reference-accepted sources</text>
    </g>
-   <g id="text_40">
+   <g id="text_39">
     <text style="font-weight: 700; font-size: 15px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #36312e" x="634.032" y="482.463564" transform="rotate(-0 634.032 482.463564)">Accepted text gets changed</text>
    </g>
   </g>
-  <g id="text_41">
+  <g id="text_40">
    <text style="font-weight: 700; font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #76609b" x="65.52" y="35.64" transform="rotate(-0 65.52 35.64)">GAMMA EH  /  PUBLIC BENCHMARK</text>
   </g>
-  <g id="text_42">
+  <g id="text_41">
    <text style="font-weight: 700; font-size: 28px; font-family: 'DejaVu Sans'; fill: #36312e" transform="translate(65.52 92.555625)">The neural model adds little.</text>
    <text style="font-weight: 700; font-size: 28px; font-family: 'DejaVu Sans'; fill: #36312e" transform="translate(65.52 124.973281)">The checker still overcorrects.</text>
   </g>
-  <g id="text_43">
+  <g id="text_42">
    <text style="font-size: 13px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #625e58" x="65.52" y="158.4" transform="rotate(-0 65.52 158.4)">7,592 natural test sentences · actual browser · fixed shipped policy</text>
   </g>
-  <g id="text_44">
+  <g id="text_43">
    <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #36312e" x="65.52" y="696.96" transform="rotate(-0 65.52 696.96)">Neural support is tiny: 8 JFLEG sentences changed; 2 CWEB edits proposed.</text>
   </g>
-  <g id="text_45">
+  <g id="text_44">
    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #625e58" x="65.52" y="726.264" transform="rotate(-0 65.52 726.264)">Different metrics: do not compare the two score panels. Scores are not grammar accuracy.</text>
   </g>
-  <g id="text_46">
+  <g id="text_45">
    <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #625e58" x="65.52" y="748.44" transform="rotate(-0 65.52 748.44)">Unmatched edits and changes to reference-accepted text are evaluation proxies; valid alternatives may be missed.</text>
   </g>
-  <g id="text_47">
+  <g id="text_46">
    <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #625e58" x="65.52" y="769.032" transform="rotate(-0 65.52 769.032)">Source: public-benchmark-results.json · engine 6883aaa · 2026-10-01 (Pacific) · JFLEG / CWEB: CC BY-NC-SA 4.0</text>
   </g>
  </g>
