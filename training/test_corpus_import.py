@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent))
-from corpus_import import archive_m2, canonical, exclusions, materialize, m2_pairs, wdiff_pair
+from corpus_import import archive_m2, canonical, dolt_rows, exclusions, materialize, m2_pairs, repository_slug, wdiff_pair
 from prepare_pairs import prepare
 from pairs import hash_file
 from corpus_training import verify_completed
@@ -144,3 +144,28 @@ def test_real_gzip_tar_stream_does_not_require_seekable_members(tmp_path):
         archive.addfile(member, io.BytesIO(content))
     rows = list(archive_m2(path, ["corpus/train.m2"]))
     assert rows[0]["target"] == "He has a small book ."
+
+
+def test_author_mirror_repository_urls_preserve_correct_commit_provenance():
+    assert repository_slug("https://github.com/facebook/react") == "facebook/react"
+    assert repository_slug("https://github.com/facebook/react.git") == "facebook/react"
+    with pytest.raises(ValueError):
+        repository_slug("https://example.org/facebook/react")
+
+
+def test_dolt_repository_queries_share_one_total_bound(monkeypatch):
+    from urllib.parse import parse_qs, urlsplit
+    queries = []
+    def request(url, timeout):
+        query = parse_qs(urlsplit(url).query)["q"][0]
+        queries.append(query)
+        repo = "a/one" if "github.com/a/one" in query else "b/two"
+        return io.BytesIO(json.dumps({"query_execution_status": "Success", "rows": [
+            {"repo": "https://github.com/" + repo, "commit_hash": "a" * 40}]}).encode())
+    monkeypatch.setattr("corpus_import.urlopen", request)
+    rows = list(dolt_rows({"revision": "a" * 32, "repositories": ["c/three", "b/two", "a/one"],
+                           "api_url": "https://example.org/query"}, 2))
+    assert [row["repo"] for row in rows] == ["a/one", "b/two"]
+    assert len(queries) == 2
+    assert "LIMIT 2 OFFSET 0" in queries[0]
+    assert "LIMIT 1 OFFSET 0" in queries[1]
