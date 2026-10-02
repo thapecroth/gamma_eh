@@ -62,6 +62,13 @@ def public_summary(report):
                                          "code_sha256", "dataset_manifest_sha256", "evaluation_hashes")}
 
 
+def selected_arms(corpora, combined, requested):
+    available = list(corpora) + (["combined"] if combined else [])
+    if requested and (len(set(requested)) != len(requested) or not set(requested) <= set(available)):
+        raise ValueError("Selected arms must be unique and present in the corpus/combined plan")
+    return [name for name in available if not requested or name in requested]
+
+
 def plan(args):
     corpora = {}
     for item in args.corpus:
@@ -86,6 +93,7 @@ def plan(args):
                           ["torch", "transformers", "onnx", "onnxruntime", "numpy"] +
                           (["errant", "spacy", "en-core-web-sm"] if args.scorer == "errant" else [])}},
             "combined": args.combined,
+            "selected_arms": selected_arms(corpora, args.combined, getattr(args, "only_arm", [])),
             "code": {name: hash_file(Path(__file__).with_name(name)) for name in
                      ("corpus_training.py", "corpus_import.py", "prepare_pairs.py", "train.py", "evaluate.py",
                       "edit_ops.py", "data.py", "pairs.py", "legacy_spelling.py")}}
@@ -125,6 +133,7 @@ def run(args):
         inputs = {name: [Path(value["path"])] for name, value in run_plan["corpora"].items()}
         if args.combined:
             inputs["combined"] = [Path(value["path"]) for value in run_plan["corpora"].values()]
+        inputs = {name: paths for name, paths in inputs.items() if name in run_plan["selected_arms"]}
         results = {}
         for name, paths in inputs.items():
             arm = args.output / name
@@ -181,5 +190,6 @@ if __name__ == "__main__":
     p.add_argument("--scorer", choices=("approximate", "errant"), default="errant")
     p.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     p.add_argument("--combined", action="store_true")
+    p.add_argument("--only-arm", action="append", default=[], help="Train selected arms only; all corpus inputs remain pinned")
     p.add_argument("--execute", action="store_true")
     run(p.parse_args())
