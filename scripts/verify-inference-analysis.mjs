@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {access, mkdir, readFile} from 'node:fs/promises';
+import {access, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {git, jsonFile, runCommand, runId} from './agent-runtime.mjs';
@@ -57,34 +57,67 @@ try {
     assert(failed, `${name} must exit invalid`);
   }
   const lock = join(resolve(root, await git(root, 'rev-parse', '--git-common-dir')), 'gamma-agent.lock');
-  const interruptionLog = join(directory, 'interruption.private.log');
-  let signaled = false;
-  const poll = setInterval(async () => {
-    if (signaled) return;
-    try {
-      const text = await readFile(interruptionLog, 'utf8');
-      if (text.includes('unprofiled-timing')) {
+  async function verifyInterruption(name, phase, preload) {
+    const log = join(directory, `${name}.private.log`);
+    let signaled = false;
+    const poll = setInterval(async () => {
+      if (signaled) return;
+      try {
+        const text = await readFile(log, 'utf8');
+        const markerLine = text.split('\n').find(line => line.includes(`"phase":"${phase}"`));
+        if (!markerLine) return;
+        const marker = JSON.parse(markerLine);
         const started = JSON.parse(text.split('\n').find(line => line.includes('"phase":"analysis-start"')));
         const owner = JSON.parse(await readFile(join(lock, 'owner.json'), 'utf8'));
-        if (signaled || owner.pid !== started.pid) return;
-        signaled = true; process.kill(started.pid, 'SIGTERM');
-      }
-    } catch { /* wait for the owned analysis to acquire its lock and start */ }
-  }, 100);
-  try {
-    let code = 0;
-    try { await runCommand(process.execPath, [join(root, 'scripts/analyze-inference.mjs'), '--baseline', root,
-      '--iterations', '5', '--profile-ms', '500', '--output', join(directory, 'interruption')],
-    {cwd: root, timeoutMs: 60000, log: interruptionLog}); }
-    catch (error) { if (error.result?.code !== 1 || error.result.timedOut || error.result.interrupted) throw error; code = 1; }
-    assert(signaled && code === 1, 'Interruption must invalidate the run');
-    const interrupted = JSON.parse(await readFile(join(directory, 'interruption/report.json'), 'utf8'));
-    assert.equal(interrupted.decision.status, 'invalid');
-    await assert.rejects(access(lock), {code: 'ENOENT'});
-  } finally { clearInterval(poll); }
+        if (signaled || owner.pid !== started.pid || (preload && marker.pid !== started.pid)) return;
+        process.kill(started.pid, 'SIGTERM'); signaled = true;
+      } catch { /* wait for the owned analysis to acquire its lock and reach the marker */ }
+    }, 100);
+    try {
+      let code = 0;
+      try { await runCommand(process.execPath, [...(preload ? ['--import', preload] : []),
+        join(root, 'scripts/analyze-inference.mjs'), '--baseline', root,
+        '--iterations', '5', '--profile-ms', '500', '--output', join(directory, name)],
+      {cwd: root, timeoutMs: preload ? 600000 : 60000, log}); }
+      catch (error) { if (error.result?.code !== 1 || error.result.timedOut || error.result.interrupted) throw error; code = 1; }
+      assert(signaled && code === 1, 'Interruption must invalidate the run');
+      const interrupted = JSON.parse(await readFile(join(directory, name, 'report.json'), 'utf8'));
+      assert.equal(interrupted.decision.status, 'invalid');
+      if (preload) assert.equal(interrupted.decision.reason, 'analysis-interrupted');
+      await assert.rejects(access(lock), {code: 'ENOENT'});
+    } finally { clearInterval(poll); }
+  }
+  await verifyInterruption('interruption', 'unprofiled-timing');
   evidence.checks = {realBrowser: true, correctCacheWorkloads: true, exactOutputParity: true,
     realCpuSamples: true, flamegraphs: true, wallTraces: true, incompleteQualityCannotPromote: true,
-    invalidOptionsRejected: true, alternateModelsRejected: true, interruptionInvalidatesAndReleasesLock: true};
+    invalidOptionsRejected: true, alternateModelsRejected: true, interruptionInvalidatesAndReleasesLock: true,
+    cleanupInterrupted: false};
+  // Pause only the first browser.close(), reached by final analysis cleanup.
+  // Context closes stay untouched, and a repeated close from onSignal delegates.
+  const preload = join(directory, 'cleanup.preload.mjs');
+  await writeFile(preload, `import {chromium} from '@playwright/test';
+const launch = chromium.launch;
+chromium.launch = async function (...args) {
+  const browser = await launch.apply(this, args);
+  const close = browser.close.bind(browser);
+  let first = true;
+  browser.close = async function (...args) {
+    if (first) {
+      first = false;
+      await new Promise(resolve => {
+        const finish = () => { clearTimeout(timer); process.off('SIGTERM', finish); resolve(); };
+        const timer = setTimeout(finish, 5000);
+        process.once('SIGTERM', finish);
+        console.log(JSON.stringify({phase: 'browser-cleanup-await', pid: process.pid}));
+      });
+    }
+    return close(...args);
+  };
+  return browser;
+};
+`, {mode: 0o600});
+  await verifyInterruption('cleanup-interruption', 'browser-cleanup-await', preload);
+  evidence.checks.cleanupInterrupted = true;
   evidence.report = relative(root, join(output, 'report.json'));
   evidence.passed = true;
 } catch {

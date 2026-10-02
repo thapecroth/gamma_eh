@@ -9,7 +9,8 @@ Run `npm run test:inference-analysis` to verify the infrastructure itself in rea
 Chromium with fictional inputs. CI verifies profiles, flamegraphs, elapsed traces,
 cache counters, output parity and refusal to promote without the frozen corpus.
 It also rejects invalid options and alternate-model variables, and verifies that
-interrupting an active analysis invalidates its receipt and releases the lock.
+interruptions during analysis or browser shutdown invalidate the receipt and
+release the lock.
 CI preserves fictional aggregate reports and profiles; private corpus outputs,
 exception logs and model bundles are excluded from uploaded evidence.
 
@@ -110,6 +111,14 @@ execution or other process/worker CPU. A narrow CPU graph beside a long
 time and must not be described as device CPU time. Profile overhead never decides
 acceptance; only the earlier unprofiled trials do.
 The raw profiles follow the [CDP Profiler protocol](https://chromedevtools.github.io/devtools-protocol/tot/Profiler/).
+Raw `.cpuprofile` evidence remains unchanged. For rendering, signed deltas are
+accumulated into timestamps, validated against the capture bounds, then stably
+sorted together with their sample IDs, following [DevTools' timestamp and sample
+ordering](https://github.com/ChromeDevTools/devtools-frontend/blob/main/front_end/models/cpu_profile/CPUProfileDataModel.ts).
+Elapsed intervals come from those sorted timestamps; negative deltas are never
+clamped. Sampling metadata records `negativeDeltaSamples` and `reorderedSamples`
+(the number of samples whose positions moved). Invalid timestamps, IDs and trees
+still fail analysis.
 
 Node, Chromium, Playwright, esbuild/runtime versions, actual model/bundle/input
 hashes, commits, dirty scopes, adapter/software evidence, host load, Linux PSI and

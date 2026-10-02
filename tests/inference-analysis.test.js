@@ -15,6 +15,9 @@ describe('trusted inference analysis', () => {
     const tree = profileTree(profile());
     expect(tree.root.value).toBe(3000);
     expect(tree.excluded.idleUs).toBe(3000);
+    expect(tree.sampledUs).toBe(6000);
+    expect(tree.negativeDeltaSamples).toBe(0);
+    expect(tree.reorderedSamples).toBe(0);
     expect(tree.root.children.values().next().value.children.size).toBe(1);
     const svg = flamegraphSvg(tree, '<script>alert("title")</script>');
     expect(svg).toContain('&lt;script&gt;');
@@ -25,9 +28,38 @@ describe('trusted inference analysis', () => {
   it('rejects dangling IDs, cyclic parents, invalid deltas and truncated profiles', () => {
     for (const malformed of [profile({samples: [99], timeDeltas: [1]}), profile({timeDeltas: [1]}),
       profile({timeDeltas: [-1, 1, 1]}), profile({timeDeltas: [NaN, 1, 1]}),
+      profile({timeDeltas: [3000, -4000, 3000]}), profile({timeDeltas: [7000, -6000, 1000]}),
       profile({nodes: [frame(1, '(root)'), frame(2, 'a', [3]), frame(3, 'b', [2])]}),
       profile({nodes: [frame(1, '(root)', [2, 3]), frame(2, 'a', [3]), frame(3, 'b')]}),
       profile({timeDeltas: [100000, 1, 1]})]) expect(() => profileTree(malformed)).toThrow();
+  });
+  it('sorts timestamp/sample pairs without changing raw evidence or total elapsed time', () => {
+    const capture = profile({nodes: [frame(1, '(root)', [2, 3, 4]), frame(2, 'a'), frame(3, 'b'), frame(4, '(idle)')],
+      startTime: 100, endTime: 120, samples: [2, 3, 4], timeDeltas: [10, -1, 5]});
+    const raw = structuredClone(capture), tree = profileTree(capture);
+    const frames = new Map([...tree.root.children.values()].map(node => [node.name, node.self]));
+    expect(capture).toEqual(raw);
+    expect(tree.negativeDeltaSamples).toBe(1);
+    expect(tree.reorderedSamples).toBe(2);
+    expect(frames.get('a')).toBe(1);
+    expect(frames.get('b')).toBe(9);
+    expect(tree.excluded.idleUs).toBe(4);
+    expect(tree.sampledUs).toBe(capture.timeDeltas.reduce((sum, delta) => sum + delta, 0));
+    expect(tree.root.value + tree.excluded.idleUs).toBe(tree.sampledUs);
+  });
+  it('preserves the observed -1 microsecond inversion and stable equal-time ordering', () => {
+    const nodes = [frame(1, '(root)', [2, 3]), frame(2, 'a'), frame(3, 'b')];
+    const tree = profileTree(profile({nodes, samples: [2, 3, 2, 2, 3], timeDeltas: [7, 8, -1, 9, 17]}));
+    const frames = new Map([...tree.root.children.values()].map(node => [node.name, node.self]));
+    expect(tree.negativeDeltaSamples).toBe(1);
+    expect(tree.reorderedSamples).toBe(2);
+    expect(tree.sampledUs).toBe(40);
+    expect(tree.root.value).toBe(40);
+    expect(frames.get('a')).toBe(22);
+    expect(frames.get('b')).toBe(18);
+    const equal = profileTree(profile({nodes, samples: [2, 3, 2], timeDeltas: [10, 0, 5]}));
+    expect(equal.reorderedSamples).toBe(0);
+    expect([...equal.root.children.values()].map(node => [node.name, node.self])).toEqual([['a', 15], ['b', 0]]);
   });
   it('accounts for zero deltas, empty samples and all-idle profiles without invented CPU', () => {
     expect(profileTree(profile({timeDeltas: [0, 3000, 2000]})).root.value).toBe(2000);

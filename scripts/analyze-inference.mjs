@@ -350,6 +350,9 @@ async function main() {
     if (browser) await browser.close().catch(() => { report.decision = {status: 'invalid', exitCode: 1, reason: 'browser-cleanup-failed'}; });
     for (const lock of locks.reverse()) await lock.release().catch(() => { report.decision = {status: 'invalid', exitCode: 1, reason: 'lock-cleanup-failed'}; });
     for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.off(signal, onSignal);
+    // Cleanup awaits can receive a signal after the timing decision is made.
+    // Seal interruption status before writing any receipt.
+    if (interrupted) report.decision = {status: 'invalid', exitCode: 1, reason: 'analysis-interrupted'};
     if (config) {
       report.finishedAt = new Date().toISOString();
       // Never reuse an output directory. If mkdir failed, emit a fresh failure

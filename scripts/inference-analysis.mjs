@@ -186,13 +186,26 @@ export function profileTree(profile, resolveSource = sourceResolver(null)) {
     const seen = new Set(); let id = node.id;
     while (id !== undefined) { assert(!seen.has(id), 'CPU profile parent cycle'); seen.add(id); id = parents.get(id); }
   }
+  // Chromium can deliver samples out of timestamp order. Reconstruct and sort
+  // timestamp/sample pairs as DevTools does; keep the raw profile unchanged.
+  let timestamp = profile.startTime, negativeDeltaSamples = 0;
+  const samples = profile.samples.map((id, index) => {
+    const delta = profile.timeDeltas[index];
+    assert(nodes.has(id) && Number.isFinite(delta), 'Malformed CPU sample delta');
+    timestamp += delta;
+    assert(Number.isFinite(timestamp) && timestamp >= profile.startTime && timestamp <= profile.endTime, 'CPU sample timestamp outside capture');
+    if (delta < 0) negativeDeltaSamples++;
+    return {id, index, timestamp};
+  }).sort((a, b) => a.timestamp - b.timestamp || a.index - b.index);
+  const reorderedSamples = samples.filter((sample, index) => sample.index !== index).length;
   const root = {name: 'Sampled renderer CPU (including GC)', value: 0, self: 0, children: new Map()};
   const excluded = {idleUs: 0, programUs: 0, rootUs: 0};
   const excludedCategories = new Map([['(idle)', 'idleUs'], ['(program)', 'programUs'], ['(root)', 'rootUs']]);
   let sampledUs = 0, activeSamples = 0, garbageCollectionUs = 0;
-  profile.samples.forEach((id, index) => {
-    const delta = profile.timeDeltas[index];
-    assert(nodes.has(id) && Number.isFinite(delta) && delta >= 0, 'Malformed CPU sample delta');
+  timestamp = profile.startTime;
+  samples.forEach(sample => {
+    const {id} = sample, delta = sample.timestamp - timestamp;
+    timestamp = sample.timestamp;
     sampledUs += delta;
     const stack = []; let current = id;
     while (current !== undefined) { stack.unshift(nodes.get(current)); current = parents.get(current); }
@@ -211,7 +224,8 @@ export function profileTree(profile, resolveSource = sourceResolver(null)) {
     branch.self += delta;
   });
   assert(sampledUs <= (profile.endTime - profile.startTime) * 1.1 + 10000, 'CPU samples exceed capture duration');
-  return {root, excluded, garbageCollectionUs, sampledUs, activeSamples, hotspotsReliable: activeSamples >= policy.minimumProfileSamples, samples: profile.samples.length,
+  return {root, excluded, garbageCollectionUs, sampledUs, activeSamples, negativeDeltaSamples, reorderedSamples,
+    hotspotsReliable: activeSamples >= policy.minimumProfileSamples, samples: profile.samples.length,
     wallUs: profile.endTime - profile.startTime, unaccountedUs: Math.max(0, profile.endTime - profile.startTime - sampledUs)};
 }
 
