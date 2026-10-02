@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from corpus_import import archive_m2, canonical, dolt_rows, exclusions, materialize, m2_pairs, repository_slug, wdiff_pair
 from prepare_pairs import prepare
 from pairs import hash_file
-from corpus_training import verify_completed
+from corpus_training import selected_arms, verify_completed
 
 
 def spec(license_id="LicenseRef-Cambridge-WI"):
@@ -169,3 +169,13 @@ def test_dolt_repository_queries_share_one_total_bound(monkeypatch):
     assert len(queries) == 2
     assert "LIMIT 2 OFFSET 0" in queries[0]
     assert "LIMIT 1 OFFSET 0" in queries[1]
+
+
+def test_device_recovery_can_select_only_unfinished_arms():
+    assert selected_arms({"wi": {}, "github-typo": {}, "wiked": {}}, True,
+                         ["github-typo", "wiked", "combined"]) == ["github-typo", "wiked", "combined"]
+    assert selected_arms({"wi": {}}, False, []) == ["wi"]
+    with pytest.raises(ValueError):
+        selected_arms({"wi": {}}, False, ["combined"])
+    with pytest.raises(ValueError):
+        selected_arms({"wi": {}}, False, ["wi", "wi"])
