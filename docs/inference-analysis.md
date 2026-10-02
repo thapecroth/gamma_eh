@@ -14,6 +14,31 @@ release the lock.
 CI preserves fictional aggregate reports and profiles; private corpus outputs,
 exception logs and model bundles are excluded from uploaded evidence.
 
+`npm run test:inference-promotion -- --quality-dir /absolute/jfleg-evaluation`
+additionally verifies the promotion CLI on a dedicated CPU Chromium runner. It
+creates disposable exact-HEAD worktrees and adds 5 ms waits to `analyzeText` and
+`JaxSession.run` in the slow fixture only. Shipping source remains unchanged. The
+fast-versus-slow comparison must actually exit `0` with an accepted receipt; the
+reverse comparison must exit `2` with a rejected receipt. Both require all 754
+development sentences in four conditions (3,016 comparisons per baseline/anchor),
+matching assets/source hashes and real CPU profiles. The holdout is untouched.
+These deliberate delays test validation plumbing and demonstrate no real
+optimization speedup. Pressure, swapping or an inconclusive result fails this
+verification; the harness policy is never relaxed or retried to select a lucky run.
+CI waits 30 seconds after Chromium/corpus installation so installer I/O pressure
+can decay before any trial. The real pressure gates still apply to the full run.
+
+The same serial campaign rejects baseline-only corrupted weights, a development
+corpus with one row removed, reused output directories and a source change after
+timing begins.
+It proves the old receipt hash differs after that source change, then removes its
+owned worktrees and releases its parent lock. It implements no production promoter.
+Only aggregate verification and fictional positive/negative reports/profiles are
+uploaded by CI; corpus outputs, logs, bundles, maps and fixture trees remain private
+in ignored artifact directories. `artifacts/inference-promotion-verification.json`
+records the result. Hosted acceptance controls complement the local verifier and
+do not establish general model accuracy, hardware performance or deployment.
+
 ## Start with a trusted harness
 
 Keep a clean, committed checkout of this infrastructure separate from the candidate
@@ -172,7 +197,8 @@ and one measured hypothesis. For each bounded iteration:
 1. Change only the candidate's permitted performance code. Preserve weights,
    correction policy, source offsets, stale-text checks and local-only inference.
 2. Invoke the trusted harness against the incumbent **and the immutable anchor**.
-   Trust only a fresh exact-source `accepted` receipt; invalid, rejected and
+   Require actual successful child termination (exit `0`) and a fresh exact-source
+   `accepted` receipt; invalid, rejected and
    inconclusive results do not advance the incumbent.
 3. Inspect the CPU and elapsed graphs and per-workload counters. Record the
    hypothesis, patch, report path/hash and decision in a campaign log. Retain
