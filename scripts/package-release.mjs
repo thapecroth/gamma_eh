@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { firefoxManifest } from './firefox-manifest.mjs';
 import { buildPaths } from './paths.mjs';
+import { webBase } from './web-base.mjs';
 import { runtimeManifest, runtimeVersions } from './inference-runtime.mjs';
 
 const run = promisify(execFile);
@@ -42,6 +43,9 @@ export function releaseVersion(packageVersion, extensionVersion, tag = `v${packa
 
 export function publicBuildPaths(root, environment = {}) {
   const paths = buildPaths(root, environment);
+  if (webBase(environment) !== '/') {
+    throw new Error('Release archives must use the root web path; repository paths belong in the Pages build.');
+  }
   if (environment.GAMMA_BUILD_PROFILE || paths.modelDirectory !== join(root, 'models/browser')) {
     throw new Error('Releases must use the default public model, never an experimental build profile.');
   }

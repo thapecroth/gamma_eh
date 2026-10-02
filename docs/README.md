@@ -1,5 +1,6 @@
 # Project documentation
 
+- [GitHub Pages](github-pages.md): public playground URL, checked deployment, repository-path assets, live verification, and rollback.
 - [Web playground](playground.md): standalone browser demo, example drafts, local AI, privacy, hosting, and extension-free verification.
 - [Windows WebGPU initialization](windows-webgpu.md): adapter options, runtime warnings, and rebuilding an unpacked extension.
 - [Chrome Web Store](chrome-web-store.md): unlisted submission material and automated approved updates.

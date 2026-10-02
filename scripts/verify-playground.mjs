@@ -6,11 +6,13 @@ import { chromium } from '@playwright/test';
 import { preview } from 'vite';
 import { browserArguments, findChromium } from './browser-environment.mjs';
 import { buildPaths } from './paths.mjs';
+import { webBase } from './web-base.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const { webOutput, artifactDir } = buildPaths(root);
 const gpuRequired = process.env.GAMMA_TEST_WEBGPU === '1';
-const evidence = { extensionLoaded: false, checks: {}, externalRequests: [], uploads: [], errors: [] };
+const base = webBase();
+const evidence = { basePath: base, extensionLoaded: false, checks: {}, externalRequests: [], outsideBaseRequests: [], uploads: [], errors: [] };
 await mkdir(artifactDir, { recursive: true });
 let server;
 let browser;
@@ -20,9 +22,17 @@ async function ready(page) {
 }
 
 try {
-  server = await preview({ configFile: join(root, 'apps/web/vite.config.ts'),
-    build: { outDir: webOutput }, preview: { host: '127.0.0.1', port: 0, open: false } });
-  const origin = `http://127.0.0.1:${server.httpServer.address().port}`;
+  let siteUrl = process.env.GAMMA_PLAYGROUND_URL;
+  if (!siteUrl) {
+    server = await preview({ configFile: join(root, 'apps/web/vite.config.ts'),
+      build: { outDir: webOutput }, preview: { host: '127.0.0.1', port: 0, open: false } });
+    siteUrl = `http://127.0.0.1:${server.httpServer.address().port}${base}`;
+  }
+  const site = new URL(siteUrl);
+  assert(['http:', 'https:'].includes(site.protocol) && !site.username && !site.password && !site.search && !site.hash, 'Use an HTTP(S) site URL without credentials, query, or fragment');
+  assert.equal(site.pathname, base, 'The site URL must match GAMMA_WEB_BASE');
+  const origin = site.origin;
+  evidence.siteUrl = site.href;
   browser = await chromium.launch({ executablePath: await findChromium(), headless: true,
     args: ['--disable-extensions', ...browserArguments(), ...(!gpuRequired ? ['--disable-webgpu'] : [])] });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1050 } });
@@ -31,22 +41,26 @@ try {
   context.on('request', request => {
     const url = request.url();
     requests.push(url);
-    if (['http:', 'https:'].includes(new URL(url).protocol) && new URL(url).origin !== origin) evidence.externalRequests.push(url);
+    const parsed = new URL(url);
+    if (['http:', 'https:'].includes(parsed.protocol)) {
+      if (parsed.origin !== origin) evidence.externalRequests.push(url);
+      else if (!parsed.pathname.startsWith(base)) evidence.outsideBaseRequests.push(url);
+    }
     if (!['GET', 'HEAD'].includes(request.method()) || request.postData() !== null) evidence.uploads.push(request.method());
   });
   await context.route('**/*', route => {
     const url = new URL(route.request().url());
-    return ['http:', 'https:'].includes(url.protocol) && url.origin !== origin ? route.abort() : route.continue();
+    return ['http:', 'https:'].includes(url.protocol) && (url.origin !== origin || !url.pathname.startsWith(base)) ? route.abort() : route.continue();
   });
   const page = await context.newPage();
   page.on('pageerror', error => evidence.errors.push(error.message));
-  await page.goto(origin);
+  await page.goto(site.href);
   await ready(page);
   const editor = page.getByLabel('Your writing', { exact: true });
   const acceptAll = page.getByRole('button', { name: 'Accept all suggestions', exact: true });
   const undo = page.getByRole('button', { name: 'Undo correction', exact: true });
   assert.equal(await page.getByRole('checkbox').isChecked(), false);
-  assert.equal(requests.some(url => new URL(url).pathname.startsWith('/models/')), false, 'Rules must not download the model before opt-in');
+  assert.equal(requests.some(url => new URL(url).pathname.startsWith(`${base}models/`)), false, 'Rules must not download the model before opt-in');
   assert.equal(context.serviceWorkers().length, 0);
   assert.equal(await page.evaluate(() => Boolean(globalThis.chrome?.runtime?.id)), false);
   evidence.checks.noExtensionOrModelRequired = true;
@@ -116,7 +130,7 @@ try {
   });
   assert.equal(await page.locator('.model-warning').count(), 0);
   assert((await page.locator('.suggestion-origin').allTextContents()).includes('LOCAL MODEL'), 'AI example must exercise an actual model-origin correction');
-  assert(requests.some(url => new URL(url).pathname === '/models/model.onnx'));
+  assert(requests.some(url => new URL(url).pathname === `${base}models/model.onnx`));
   await acceptAll.click();
   assert.match(await editor.inputValue(), /^The students have a notebook\./u);
   evidence.checks.actualLocalModel = true;
@@ -168,7 +182,7 @@ try {
       }
     };
   });
-  await stale.goto(origin);
+  await stale.goto(site.href);
   await ready(stale);
   await stale.getByLabel('Your writing', { exact: true }).fill('She have a freind.');
   await stale.waitForFunction(() => window.delayedReplyReady === true);
@@ -187,7 +201,7 @@ try {
   const fallback = await context.newPage();
   fallback.on('pageerror', error => evidence.errors.push(error.message));
   await fallback.route('**/models/**', route => route.fulfill({ status: 503, body: 'Unavailable' }));
-  await fallback.goto(origin);
+  await fallback.goto(site.href);
   await ready(fallback);
   await fallback.getByRole('button', { name: 'Try local AI', exact: true }).click();
   await ready(fallback);
@@ -214,6 +228,7 @@ try {
   assert.equal(await editor.inputValue(), sample, 'Private drafts must not persist across a reload');
   assert.equal(await page.getByRole('checkbox').isChecked(), false);
   assert.deepEqual(evidence.externalRequests, []);
+  assert.deepEqual(evidence.outsideBaseRequests, []);
   assert.deepEqual(evidence.uploads, []);
   assert.deepEqual(evidence.errors, []);
   evidence.checks.ephemeralDraftAndLocalRequests = true;
