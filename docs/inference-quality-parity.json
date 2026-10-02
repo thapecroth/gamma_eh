@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "measuredAt": "2026-10-02T02:07:14.487Z",
+  "measuredAt": "2026-10-02T02:30:03.625176+00:00",
   "scope": "Fresh before/after output parity, not a claim of universal grammar accuracy",
-  "baselineCommit": "310f10a3a19d314d87d32503dce73a2540e0ae9e",
-  "integrationBaseCommit": "0b0378c",
+  "baselineCommit": "d74c400b6df6b6ccbfb649cbde453d6d315b43f5",
+  "integrationBaseCommit": "d74c400b6df6b6ccbfb649cbde453d6d315b43f5",
   "baselineEngineMatchesIntegrationBase": true,
   "corpus": {
     "rows": 1501,
@@ -33,10 +33,10 @@
       "sentences": 1501,
       "inputSha256": "c2fac335ac55e8e774edc86fffb6dc46f14da0f2c17b910cb8581eb07db949e5",
       "modelSha256": "cb3280db7b33a7273ae75e87c8c5d432c63f9bdac89101d93dda72c776b38266",
-      "baselineEngineBundleSha256": "2e78c46a7d49c1dc4219a2323199385f4f184230193693f42c4ac3f80eafc1ae",
-      "optimizedEngineBundleSha256": "1de043321c23b96ebc9ac0cd56ca23840ba0f19f6d0eccc22b8378694f70e3c9",
-      "baselineReportSha256": "d7acfbde08200f37c21193c544ddb08ad50901822c1d75006bd09390e6784703",
-      "optimizedReportSha256": "956f7d5a76de5b27b6b2f3ce1d871f0a4f124896bb675d5138ede86da43f4e72",
+      "baselineEngineBundleSha256": "8b9153bd87de0d94aad2e453f219e5cb2bfda6f6d3780abc5d8cf04937dc07cd",
+      "optimizedEngineBundleSha256": "a75c6c5b9610796b13125b3d5b72f45e202ef7bd9005b0ee416eb88776c6ff05",
+      "baselineReportSha256": "c7689fc5257db8a0ee732fd55fcdea4a31023e276e42e03cd938e6d7e53f36af",
+      "optimizedReportSha256": "df5f496a5d7507795387429b3ccb331e0d70ed9b01d64a8f5555f1d757791682",
       "conditions": [
         {
           "mode": "model",
@@ -44,9 +44,9 @@
           "comparisons": 1501,
           "correctedDifferences": 0,
           "editDifferences": 0,
-          "maximumConfidenceDifference": 5.102251400268543e-7,
-          "baselineExactMatches": 352,
-          "optimizedExactMatches": 352,
+          "maximumConfidenceDifference": 2.0292287283840693e-07,
+          "baselineExactMatches": 399,
+          "optimizedExactMatches": 399,
           "failures": 0
         },
         {
@@ -55,9 +55,9 @@
           "comparisons": 1501,
           "correctedDifferences": 0,
           "editDifferences": 0,
-          "maximumConfidenceDifference": 5.102251400268543e-7,
-          "baselineExactMatches": 352,
-          "optimizedExactMatches": 352,
+          "maximumConfidenceDifference": 2.0292287283840693e-07,
+          "baselineExactMatches": 399,
+          "optimizedExactMatches": 399,
           "failures": 0
         },
         {
@@ -66,9 +66,9 @@
           "comparisons": 1501,
           "correctedDifferences": 0,
           "editDifferences": 0,
-          "maximumConfidenceDifference": 5.102251400268543e-7,
-          "baselineExactMatches": 385,
-          "optimizedExactMatches": 385,
+          "maximumConfidenceDifference": 4.3322900822317933e-11,
+          "baselineExactMatches": 433,
+          "optimizedExactMatches": 433,
           "failures": 0
         },
         {
@@ -77,9 +77,9 @@
           "comparisons": 1501,
           "correctedDifferences": 0,
           "editDifferences": 0,
-          "maximumConfidenceDifference": 5.102251400268543e-7,
-          "baselineExactMatches": 385,
-          "optimizedExactMatches": 385,
+          "maximumConfidenceDifference": 4.3322900822317933e-11,
+          "baselineExactMatches": 433,
+          "optimizedExactMatches": 433,
           "failures": 0
         }
       ],
@@ -91,10 +91,10 @@
       "sentences": 1501,
       "inputSha256": "c2fac335ac55e8e774edc86fffb6dc46f14da0f2c17b910cb8581eb07db949e5",
       "modelSha256": "cb3280db7b33a7273ae75e87c8c5d432c63f9bdac89101d93dda72c776b38266",
-      "baselineEngineBundleSha256": "2e78c46a7d49c1dc4219a2323199385f4f184230193693f42c4ac3f80eafc1ae",
-      "optimizedEngineBundleSha256": "1de043321c23b96ebc9ac0cd56ca23840ba0f19f6d0eccc22b8378694f70e3c9",
-      "baselineReportSha256": "2f2906fe9becfe7016c5157d06cc0f4d3eb08878b02b21db7e73e9daec885caa",
-      "optimizedReportSha256": "be0f44367f25c823779a4756132187d749a9d1691d99e315d388cf36828fb396",
+      "baselineEngineBundleSha256": "8b9153bd87de0d94aad2e453f219e5cb2bfda6f6d3780abc5d8cf04937dc07cd",
+      "optimizedEngineBundleSha256": "a75c6c5b9610796b13125b3d5b72f45e202ef7bd9005b0ee416eb88776c6ff05",
+      "baselineReportSha256": "529beb5445666bb94b4d9084fe6b3a5e5e90d80b769fbe056622896f7f438e72",
+      "optimizedReportSha256": "1c548adfca0e53127f5d21eafd61b2016af988f0aba061bd7178107d6b64d976",
       "conditions": [
         {
           "mode": "model",
@@ -102,9 +102,9 @@
           "comparisons": 1501,
           "correctedDifferences": 0,
           "editDifferences": 0,
-          "maximumConfidenceDifference": 3.516310901341413e-7,
-          "baselineExactMatches": 352,
-          "optimizedExactMatches": 352,
+          "maximumConfidenceDifference": 5.451763263053522e-08,
+          "baselineExactMatches": 399,
+          "optimizedExactMatches": 399,
           "failures": 0
         },
         {
@@ -113,9 +113,9 @@
           "comparisons": 1501,
           "correctedDifferences": 0,
           "editDifferences": 0,
-          "maximumConfidenceDifference": 3.516310901341413e-7,
-          "baselineExactMatches": 352,
-          "optimizedExactMatches": 352,
+          "maximumConfidenceDifference": 5.451763263053522e-08,
+          "baselineExactMatches": 399,
+          "optimizedExactMatches": 399,
           "failures": 0
         },
         {
@@ -124,9 +124,9 @@
           "comparisons": 1501,
           "correctedDifferences": 0,
           "editDifferences": 0,
-          "maximumConfidenceDifference": 3.516310901341413e-7,
-          "baselineExactMatches": 385,
-          "optimizedExactMatches": 385,
+          "maximumConfidenceDifference": 0,
+          "baselineExactMatches": 433,
+          "optimizedExactMatches": 433,
           "failures": 0
         },
         {
@@ -135,13 +135,14 @@
           "comparisons": 1501,
           "correctedDifferences": 0,
           "editDifferences": 0,
-          "maximumConfidenceDifference": 3.516310901341413e-7,
-          "baselineExactMatches": 385,
-          "optimizedExactMatches": 385,
+          "maximumConfidenceDifference": 0,
+          "baselineExactMatches": 433,
+          "optimizedExactMatches": 433,
           "failures": 0
         }
       ],
       "passed": true
     }
-  ]
+  ],
+  "optimizedEngineCommit": "867c2a3c439a5dabcea145d885d3f0cdf70f253a"
 }

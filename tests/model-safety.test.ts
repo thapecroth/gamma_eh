@@ -142,6 +142,14 @@ describe('model verb safety at high confidence', () => {
     expect(await correct('A freind called.')).toBe('A friend called.');
   });
 
+  it.each(['A fReInD called.', 'A freind_called.'])('reevaluates legacy lexical guards on cached logits for %s', async text => {
+    predictions.freind = 'REPLACE:friend';
+    expect(await correct('A freind called.')).toBe('A friend called.');
+    const result = await analyzeModel(text, {modelBaseUrl, preferWebGPU: false});
+    expect(result.modelRuns).toBe(0);
+    expect(result.suggestions).toEqual([]);
+  });
+
   it.each([
     ['We develop tecnologies.', 'tecnologies', 'the'],
     ['It will be useful.', 'be', 'because'],
@@ -182,5 +190,13 @@ describe('model verb safety at high confidence', () => {
   it.each(['A book book.', 'A book book book.'])('keeps the first word when duplicate logits all request deletion in %s', async text => {
     predictions.book = 'DELETE';
     expect(await correct(text)).toBe('A book.');
+  });
+
+  it('reevaluates duplicate spacing on cached logits', async () => {
+    predictions.book = 'DELETE';
+    expect(await correct('A book book.')).toBe('A book.');
+    const result = await analyzeModel('A book\nbook.', {modelBaseUrl, preferWebGPU: false});
+    expect(result.modelRuns).toBe(0);
+    expect(result.suggestions).toEqual([]);
   });
 });

@@ -74,15 +74,16 @@ The [expanded parity results](inference-quality-parity.json) compare the active
 bundled model before and after this optimization on all 754 JFLEG development
 and 747 test sentences. Each sentence ran in model-only and combined modes with
 one and two correction passes on both WASM and WebGPU: 12,008 paired comparisons.
-The baseline engine matches integration base `0b0378c`; subsequent playground
-and GitHub Pages integration changed no engine code, decoding, or weights.
+The comparison uses main `d74c400` as the baseline, including its new legacy
+lexical safety guards, and the optimized engine integrated with that same base.
+The optimization preserves those guards and the active bundled weights.
 Frozen input, model, engine bundle,
 and private prediction-report hashes accompany the aggregate evidence. Raw
 sentences, references, and predictions remain in ignored local artifacts.
 
 Every compared corrected text and edit matched, with zero inference failures
 and unchanged exact-reference match counts in every condition. The largest
-confidence difference was 0.000000511 on WASM and 0.000000352 on software WebGPU.
+confidence difference was 0.000000203 on WASM and 0.000000055 on software WebGPU.
 This establishes no observed correction-quality regression on this fixed
 population with the current policy. FP32 logits are not bit-for-bit identical;
 decisions exactly at a confidence boundary remain sensitive to numerical drift.
@@ -90,7 +91,7 @@ decisions exactly at a confidence boundary remain sensitive to numerical drift.
 This natural-text run checks quality and is distinct from the incremental-draft
 speed benchmark above. Padding adds computation for fresh windows. In this run,
 the combined single-pass median for a new sentence was 1.4 to 1.5 ms on WASM and
-16.1 to 21.5 ms on software WebGPU. The speed gains above apply to reusing
+16.7 to 21.8 ms on software WebGPU. The speed gains above apply to reusing
 unchanged windows and avoiding repeated shape compilation. These sequential
 single-host timings do not isolate padding from runtime or host variability.
 
