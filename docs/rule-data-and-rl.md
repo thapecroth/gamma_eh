@@ -136,6 +136,11 @@ Full aggregate receipts and hashes are in [pilot results](rule-data-and-rl-resul
 the ignored `artifacts/rules-rl-v1` and `artifacts/rules-rl-v2` directories retain detailed
 reports, frozen plans, stage receipts, checkpoints and FP32/INT8 candidates.
 
+The follow-up [binary-rubric LLM judge RL pilot](llm-judge-rl.md) uses the same
+mixture and warmup. It also found no consistent improvement: joint ErAConD test
+F0.5 was 61.39 supervised versus 61.07 judge RL, with separately reserved public
+benchmarks reported in that page.
+
 Validation: 119 Python tests passed, followed by 28 focused data/comparison tests
 including the new metadata-tampering checks. `npm run check` passed lint, typecheck,
 213 app tests, release and agent-harness tests, and both app builds. No browser automation

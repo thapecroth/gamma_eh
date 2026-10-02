@@ -67,6 +67,8 @@ requires at least 95% flag agreement in each round, 98% repeat agreement, zero
 unsafe positive rewards, and zero false-positive critical meaning/protection
 flags. Validation hashes the independent ledgers and recomputes the metrics from
 the exact cached pairs; editing a `passed` field cannot qualify the judge.
+The prompt was tuned using these same cases. This is development calibration,
+not untouched judge validation or independently reviewed human agreement.
 
 Configure `GAMMA_JUDGE_BASE_URL`, `GAMMA_JUDGE_API_KEY`, and, when the local proxy
 requires it, `GAMMA_JUDGE_ATTRIBUTION_TOKEN` in the process environment. The
@@ -100,12 +102,74 @@ hashes. The comparison freezes code, data, rubric, selected sources, calibration
 and checkpoint identities. Completion receipts also freeze policy, evaluation,
 and judge ledger hashes. Exact completed invocations can resume without training
 or new judge calls. Failed partial training requires fresh output directories.
+Repeated diagnostics can have different wall times; resume compares their
+metrics and inference failures while preserving the original timing receipt.
 
 The eight-epoch pilot permits at most 2,048 sampled/baseline pair judgments and
 128 requests before cache reuse. Hash-only append logs retain model, provider,
 authentication mode, request identity, token usage, and flags. Remote model aliases
 can change; cached verdicts preserve the actual run, while new runs are not
 guaranteed to reproduce its remote judgments.
+
+## Measured pilot, 2026-10-02
+
+The live `gpt-6-luna` judge returned five booleans per pair through the verified
+Codex subscription route. The final two calibration rounds achieved 98.4% and
+97.6% flag agreement, with 99.2% repeat agreement and no critical false-positive
+meaning/protection flags. The phonetic-article case `calib13` remained misjudged.
+Passing this authored fixture does not establish reliability on real writing.
+
+Both continuations reused the same eight-epoch supervised warmup, then received
+eight more epochs over 3,993 training rows: 504 updates and 31,944 CE examples
+per arm, seed 42. Only 128 original synthetic sources received judge rewards.
+Human development selected continuation epoch 2 and a shared FP32/INT8 confidence
+threshold of 0.6 for both arms. Test data and judge rewards did not select weights.
+
+| Evaluation population | Supervised F0.5 | LLM judge RL F0.5 | RL minus supervised |
+| --- | ---: | ---: | ---: |
+| ErAConD: 188 human utterances + 191 reference controls | 61.39 | 61.07 | -0.32 |
+| ErAConD: original 188 human utterances only | 61.70 | 61.38 | -0.32 |
+| Reserved JFLEG test: 747 sentences | 3.52 | 3.83 | +0.31 |
+| Reserved CWEB test: 6,845 sentences | 5.55 | 5.54 | -0.01 |
+
+These are project ERRANT 3.0.2 token-span F0.5 scores on a 0–100 scale, choosing
+the best supplied reference by sentence F0.5. The JFLEG numbers are not official
+GLEU; the CWEB numbers are not standard corpus M2 evaluation. The public tests
+used the frozen ErAConD-development policy and FP32 neural proposals with the
+existing guards, in one pass. They do not measure the full rule/model engine
+or browser behavior. Public datasets retain their CC BY-NC-SA 4.0 provenance
+and remain evaluation-only; see [source attribution](gec-datasets.md).
+
+ErAConD test precision was 87.39% supervised and 87.27% RL, below the 95% target.
+Each arm changed 2 of 223 clean sentences. JFLEG recall was 0.74% and 0.81%;
+CWEB recall was 1.90% in both arms, with precision only 10.68% and 10.64%.
+Both arms missed all 16 requested corrections in the 100 agent counterexamples
+and changed 1 of 84 valid sentences. The small JFLEG rise does not establish
+broad correction quality.
+
+The RL arm used 52 live requests for 208 unique pairs and 1,840 cache hits across
+2,048 sampled/baseline reward uses. `training_seconds` was 14.04 supervised and
+573.65 RL, about 40.9 times longer; this includes pre-export selection/evaluation
+and judge waits, and excludes subsequent export checks. Training reward rose
+on some epochs, but it is not an independent quality measure or evidence that
+RL caused the increase.
+
+**No consistent improvement was observed in this single-seed pilot.** New weights
+remain experimental and nonpublishable. The next useful experiment needs reviewed
+judge calibration, better correction coverage, multiple seeds, and a fresh human
+test population. Keep this result as a measured negative finding rather than
+tuning repeatedly against the reported tests.
+
+[Aggregate results and artifact hashes](llm-judge-rl-results.json) retain the
+original `artifacts/judge-rl-v1` training identities and public evaluation receipts.
+After fixing diagnostic timing in resume, verified completed stages were copied
+under a new frozen driver plan in `artifacts/judge-rl-v2` and replayed twice without
+training or judge calls. Original v1 receipts remain unchanged. Raw corpora,
+candidate weights, and detailed local receipts remain Git-ignored.
+
+Validation: 142 Python tests and `npm run check` passed, including 213 app tests,
+lint, typecheck, release/harness checks, and the app builds. Hosted browser checks
+cover the shipped weights; the new candidates were evaluated in PyTorch and ONNX.
 
 ## Interpretation
 
