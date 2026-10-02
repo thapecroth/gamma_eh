@@ -1,5 +1,11 @@
 # Public natural-writing benchmark
 
+![Benchmark overview: little neural benefit, identical rules and combined scores, 423 unmatched CWEB edits, and 5.36 percent of reference-accepted web sources changed.](assets/benchmark-overview.png)
+
+[Download PNG](assets/benchmark-overview.png) ·
+[Download scalable SVG](assets/benchmark-overview.svg) ·
+[Figure provenance](assets/benchmark-figures.json)
+
 Measured on 2026-10-01 (America/Los_Angeles; receipt timestamps are UTC), using
 engine snapshot `6883aaa87a0fa7d1151a829875ff1d95d1872f86` and the existing
 `gamma-eh-tiny-edit-v1` weights. **The model remains experimental.** It adds no
@@ -150,6 +156,17 @@ Dataset pins: JFLEG `ee06ff806a208aba815ac45313f4e750a48330a5`, CWEB
 `08d1da0ff2b78885b1f060b4fa11460a98eb9218`. CWEB credits Simon Flachs, Ophélie
 Lacroix, Helen Yannakoudakis, Marek Rei and Anders Søgaard (2020). JFLEG credits
 Courtney Napoles, Keisuke Sakaguchi and Joel Tetreault (2017).
+
+The figure is generated from the aggregate receipt, with no hand-entered scores:
+
+```sh
+uv pip install --python .venv-benchmark/bin/python -r training/requirements-plots.txt
+MPLCONFIGDIR=artifacts/matplotlib .venv-benchmark/bin/python training/plot_benchmark.py
+```
+
+Both PNG and scalable SVG exports are published. The SVG retains readable text
+and an accessible description. The figure manifest records input, renderer and
+export hashes; timestamps are excluded from the image bytes for reproducibility.
 
 Before proposing a new model, improve licensed human supervision and independent
 development controls, then qualify both neural and combined behavior. Continue
