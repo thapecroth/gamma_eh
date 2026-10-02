@@ -1,6 +1,7 @@
 """Pinned, bounded natural-corpus adapters. No corpus text is committed or relabeled."""
 import argparse
 from collections import Counter
+import codecs
 import gzip
 import hashlib
 import heapq
@@ -150,8 +151,8 @@ def archive_m2(path, members):
             if not member.isfile() or member.size > 250_000_000:
                 raise ValueError("Invalid M2 member")
             found.add(member.name)
-            with io.TextIOWrapper(archive.extractfile(member), encoding="utf-8") as stream:
-                yield from m2_pairs(stream, member.name)
+            with archive.extractfile(member) as stream:
+                yield from m2_pairs(codecs.getreader("utf-8")(stream), member.name)
     if found != wanted:
         raise ValueError("Required official training member missing")
 
@@ -177,7 +178,8 @@ def wiked_pairs(path, spec, max_scanned, cache):
                 raise ValueError("Invalid WikEd member")
             p = cache / Path(member.name).name
             count = 0
-            with io.TextIOWrapper(archive.extractfile(member), encoding="utf-8") as stream, p.open("w") as out:
+            with archive.extractfile(member) as raw, p.open("w") as out:
+                stream = codecs.getreader("utf-8")(raw)
                 for line in stream:
                     if len(line) > 1_000_000:
                         raise ValueError("Oversized WikEd line")

@@ -1,12 +1,13 @@
 import io
 import json
 import sys
+import tarfile
 from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent))
-from corpus_import import canonical, exclusions, materialize, m2_pairs, wdiff_pair
+from corpus_import import archive_m2, canonical, exclusions, materialize, m2_pairs, wdiff_pair
 from prepare_pairs import prepare
 from pairs import hash_file
 from corpus_training import verify_completed
@@ -132,3 +133,14 @@ def test_bounded_import_never_reads_after_its_scheduled_prefix(tmp_path):
         raise EOFError("unread tail of bounded gzip prefix")
     result = materialize(spec(), rows(), tmp_path / "out", set(), 1, 1)
     assert result["counts"]["scanned"] == 1
+
+
+def test_real_gzip_tar_stream_does_not_require_seekable_members(tmp_path):
+    content = b"S He have a small book .\nA 1 2|||R:VERB:SVA|||has|||-REQUIRED-|||NONE|||0\n"
+    path = tmp_path / "source.tar.gz"
+    with tarfile.open(path, "w:gz") as archive:
+        member = tarfile.TarInfo("corpus/train.m2")
+        member.size = len(content)
+        archive.addfile(member, io.BytesIO(content))
+    rows = list(archive_m2(path, ["corpus/train.m2"]))
+    assert rows[0]["target"] == "He has a small book ."
