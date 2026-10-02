@@ -147,7 +147,7 @@ async function main() {
     report.harness = {root, ...await snapshot(root), hashes: {}};
     for (const path of protectedHarness) report.harness.hashes[path] = digest(await readFile(join(root, path)));
     report.harness.sha256 = digest(JSON.stringify(report.harness.hashes));
-    report.environment.host.push(await hostSample());
+    report.environment.host.push({...await hostSample(), phase: 'setup'});
     const assets = new Map([['/', Buffer.from('<!doctype html><title>Local inference analysis</title>')],
       ['/probe.mjs', await readFile(join(root, 'scripts/inference-probe.mjs'))]]);
     for (const [name, tree] of Object.entries(trees)) {
@@ -176,12 +176,14 @@ async function main() {
       {id: 'workload-edit', source: paragraph(0).replace('24 notebooks', '30000 notebooks')}];
     report.regressionSha256 = digest(regressionBytes);
     const qualityOutputs = {}, smokeOutputs = {}, logits = {}, trialOutputs = {}, profileSources = new Set();
+    report.environment.host.push({...await hostSample(), phase: 'compiled'});
     await withLocalHttp(async origin => {
       assert(!interrupted, 'ANALYSIS_INTERRUPTED');
       browser = await chromium.launch({executablePath: await findChromium(), headless: true,
         handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false,
         args: browserArguments({...process.env, GAMMA_TEST_WEBGPU: config.webgpu ? '1' : '0'})});
       report.environment.chromium = browser.version();
+      report.environment.host.push({...await hostSample(), phase: 'browser-started'});
       report.environment.playwright = JSON.parse(await readFile(join(root, 'node_modules/@playwright/test/package.json'), 'utf8')).version;
       async function withPage(name, operation, coldCapture = false) {
         assert(!interrupted, 'ANALYSIS_INTERRUPTED');
@@ -228,7 +230,7 @@ async function main() {
       for (let trial = 0; trial < config.trials; trial++) {
         const names = Object.keys(trees);
         if (trial % 2) names.reverse();
-        report.environment.host.push(await hostSample());
+        report.environment.host.push({...await hostSample(), phase: `trial-${trial + 1}-before`});
         for (const name of names) await withPage(name, async (page, initialization) => {
           const measurements = {trial, order: names, coldMs: initialization.coldMs, coldRuntimeCalls: initialization.coldRuntimeCalls};
           report.trees[name].probe = initialization;
@@ -241,7 +243,7 @@ async function main() {
           }
           report.trials[name].push(measurements);
         });
-        report.environment.host.push(await hostSample());
+        report.environment.host.push({...await hostSample(), phase: `trial-${trial + 1}-after`});
         console.log(JSON.stringify({phase: 'unprofiled-timing', completedTrials: trial + 1, totalTrials: config.trials}));
       }
       for (const name of Object.keys(trees)) {
@@ -304,7 +306,7 @@ async function main() {
     }
     assert.deepEqual(await snapshot(root), Object.fromEntries(Object.entries(report.harness).filter(([key]) => !['root', 'hashes', 'sha256'].includes(key))), 'Trusted harness changed during analysis');
     for (const [path, hash] of Object.entries(report.harness.hashes)) assert.equal(digest(await readFile(join(root, path))), hash, 'Protected harness input changed');
-    report.environment.host.push(await hostSample());
+    report.environment.host.push({...await hostSample(), phase: 'complete'});
     const hosts = report.environment.host;
     const swapChanged = hosts.some((row, index) => index > 0 && swapAdvanced(hosts[index - 1], row));
     report.environment.underPressure = hosts.some(row => row.underPressure) || swapChanged;

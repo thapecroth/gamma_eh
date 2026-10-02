@@ -64,11 +64,12 @@ async function analyze(name, args, expectedCode, output = join(directory, name),
   assert(result, 'Child must produce a machine receipt');
   const bytes = await readFile(result.report), report = JSON.parse(bytes.toString('utf8'));
   evidence.observed = {phase, code, status: report.decision.status, reason: report.decision.reason};
+  // Index refused receipts too, before checking the expected control result.
+  evidence.reports[name] = {path: relative(root, result.report), sha256: digest(bytes), exitCode: code, status: report.decision.status};
   assert.equal(code, expectedCode, 'Unexpected actual child exit code; pressure cannot be waived');
   assert.equal(result.exitCode, code);
   assert.equal(report.decision.exitCode, code);
   assert.equal(report.decision.status, {0: 'accepted', 1: 'invalid', 2: 'rejected'}[code]);
-  evidence.reports[name] = {path: relative(root, result.report), sha256: digest(bytes), exitCode: code, status: report.decision.status};
   reports[name] = report;
   console.log(JSON.stringify({phase: 'promotion-control', name, code, status: report.decision.status}));
   return report;
@@ -139,6 +140,19 @@ try {
     assert.equal((await readFile(join(slow, path), 'utf8')).replace(delay, ''), original);
   }
   assert.deepEqual((await changedProductPaths(slow)).sort(), edits.map(edit => edit.path).sort(), 'Only declared delay fixtures may change');
+  phase = 'browser-preparation';
+  const preparationLog = join(directory, 'browser-preparation.private.log');
+  evidence.browserPreparation = {before: await hostSample()};
+  assert(!interrupted, 'Promotion verification interrupted');
+  // Prepare Chromium's executable/renderer first-use outside all timing. The
+  // actual CLI still launches its own browser and fresh model/session contexts.
+  await runCommand(process.execPath, ['--input-type=module', '-e',
+    "import {probeChromium} from './scripts/browser-environment.mjs'; console.log(JSON.stringify(await probeChromium({...process.env, GAMMA_TEST_WEBGPU: '0'})));"],
+  {cwd: root, timeoutMs: 60000, log: preparationLog});
+  evidence.browserPreparation.capability = JSON.parse((await readFile(preparationLog, 'utf8')).trim());
+  assert.equal(evidence.browserPreparation.capability.status, 'passed');
+  evidence.browserPreparation.after = await hostSample();
+  evidence.checks.browserPreparedWithoutMeasurements = true;
   const positiveTrees = {candidate: fast, baseline: slow, anchor: slow};
   const negativeTrees = {candidate: slow, baseline: fast, anchor: fast};
   const args = trees => Object.entries(trees).flatMap(([name, tree]) => [`--${name}`, tree]);
