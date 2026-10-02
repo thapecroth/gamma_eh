@@ -34,6 +34,7 @@ topic range also limits generalization.
 
 | Dataset | Type and size | Decision for a public model |
 | --- | --- | --- |
+| [ErAConD](https://github.com/yuanxun-yx/eracond) | 186 human-annotated dialogs; pinned aligned text has 1,732 utterance lines, sometimes several sentences per line. | MIT data repository; retain copyright/permission notice and use dialog-heldout splits. The [rule/RL pilot](rule-data-and-rl.md) imports it without mixing benchmark gold into training. |
 | [W&I training](https://www.cl.cam.ac.uk/research/nl/bea2019st/#data) | 34,308 professionally annotated learner sentences. No native LOCNESS training split. | Strong research fine-tuning source; noncommercial restrictions require separate review before unrestricted weight release. |
 | [FCE](https://www.cl.cam.ac.uk/research/nl/bea2019st/#data) | 28,350 training sentences from real exam writing. | Human supervision, with the same noncommercial caution. Preserve separate dev/test splits. |
 | [NUCLE](https://www.comp.nus.edu.sg/~nlp/corpora.html) | 57,151 sentences from approximately 1,400 essays, corrected by instructors. | Access requires an agreement/request. [License](https://www.comp.nus.edu.sg/~nlp/conll14st/nucle_license.pdf) restricts use to noncommercial research/trials. |

@@ -1,0 +1,1010 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "scope": "Exploratory one-seed matched LLM-judge RL pilot. Neural one-pass proposals with guards; no full-engine or browser accuracy claim, no new weights promoted. ErAConD test was reused from earlier exploratory studies.",
+  "score_units": "Metrics use 0-1 proportions; prose tables multiply F0.5 by 100. These are not grammar accuracy rates.",
+  "scorer": "Actual ERRANT 3.0.2 token-span edits; best supplied reference selected by sentence F0.5. Not official ErAConD, JFLEG GLEU, or corpus CWEB M2 evaluation.",
+  "implementation_revision": "db808bf",
+  "original_plan_sha256": "4a1cae25cd1272cf1f3521240d857fc2b83b948cb76b15c503471adcb3e4be79",
+  "original_comparison_sha256": "6e6ac076a5d133e15cdafe878116ab0963f73cf6c36f0e90765ebda97667e561",
+  "training_code_sha256": {
+    "compare_rl.py": "2e59452d46073e38cbed42cc831f2a453bbc4be609c885ea6323bd67d122d466",
+    "train.py": "7dfb0a2e3fd90a103c08460d4a7d914f46be5af7d1c1306e5fdca695851513ed",
+    "rl_objective.py": "ae2f53005c5ced9fee2ce79ea7bc197d3bb622b61339731f0a1d485cdcd89ffc",
+    "evaluate.py": "cfd7dbd6de0979a03a7d9bac160959153b74f14463d1cf0c1037911b721912e1",
+    "legacy_spelling.py": "a89c6ab78a32ed0e032c923696b30bbf2d4ac0e9b9af7da7f62abf8177399201",
+    "edit_ops.py": "e3ca994b2517f6b4693ed3bed5b5b89753139ab4e740b10928d33ea1b07f3b8b",
+    "data.py": "14af8b3a4add0a3202ec3077b453aa1abb61255a98da68f4a4a6e481ad526250",
+    "prepare_pairs.py": "5d61dcabd45ed1e27573d71b7689fa16e44151d0404d0d533da49c8f4b339da8",
+    "pairs.py": "9afa37880b7da7bd6c12adf5faae24341149fdcd597aa4b3ac4a72e692bd34bd",
+    "dictionary.generated.ts": "d7e966b6f78e36d549c8fc9109f73ce48fd18c951970d57110d41004ae0594f3",
+    "spelling.ts": "efc5713f9a0a216c247bb91a509692a9c99fdf98cb07b19327d79535ccf666bd",
+    "compare_judge_rl.py": "216df15788f47b1918d0dd712e6abf6e87e25ba89dc38b2ca56442faf15e173e",
+    "judge.py": "149c5f1332b590ba59a24233dbf49cbe49cb950d66c7c052539277615e7a3b49",
+    "judge_objective.py": "4bc68814b1bdc8b34f7e6c54e08f89dcd94fbef84859d8f181f54dd159ab3e25"
+  },
+  "input_sha256": {
+    "data/prepared/rules-human-v1/prepared/manifest.json": "1bf26319213a0b550cc234dd3d8da738b8c5a678e8b2cbbd9d7077dbe9814f2b",
+    "data/prepared/rules-human-v1/prepared/labels.json": "9a67218909a0c1afff1feb208118f004397fa48b31383147c328a7dbcdfcf34c",
+    "data/prepared/rules-human-v1/prepared/train.jsonl": "492333256a1e81698ce68c1d342f97703a9c81733d6b1240cbfc8f8ccb2ba2dc",
+    "data/prepared/rules-human-v1/prepared/dev.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "data/prepared/rules-human-v1/prepared/test.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "data/prepared/rules-human-v1/prepared/ERACOND-LICENSE": "eb38ee0e7a949f78c4fd1e29aa96c71f45fb6caebb6519c691a466cac62bbc88",
+    "data/prepared/rules-human-v1/prepared/evaluation/dev.jsonl": "c56ca345c92dc49f9e64c22d7365d442f3912862110da3db81e406e556ca6a6e",
+    "data/prepared/rules-human-v1/prepared/evaluation/test.jsonl": "00538df959d61dfcb390ebcf0f8382def3309663cf49f9898e8e61c22522eab1",
+    "data/counterexamples.json": "8473b5e5f9b99713cc7bb2ca3a59e9f77f887b7368d3629dc8d2938b59a5c529",
+    "artifacts/judge-calibration-v5/receipt.json": "b86ac3c3607849893e7e84fffc760097a549fd82eb80ada51b2866d5dcd77bc4",
+    "data/judge-calibration.json": "dfaf3ec09d7fa100289984fb5e8b7c472577a0bffa719e7b6b4832c0ecabe651",
+    "training/calibrate_judge.py": "e51e0dd160954b90bb4b51d022b4ec6b2ef3a8d2f7e184a383d70057d01578d7",
+    "artifacts/rules-rl-v2/warmup/checkpoint/ERACOND-LICENSE": "eb38ee0e7a949f78c4fd1e29aa96c71f45fb6caebb6519c691a466cac62bbc88",
+    "artifacts/rules-rl-v2/warmup/checkpoint/config.json": "c0ff3e4a45cf1d068ffdc7e25c6305b9f9df74bffa46550f5d1f76045275d716",
+    "artifacts/rules-rl-v2/warmup/checkpoint/labels.json": "9a67218909a0c1afff1feb208118f004397fa48b31383147c328a7dbcdfcf34c",
+    "artifacts/rules-rl-v2/warmup/checkpoint/model.safetensors": "f67c0211ab7de94d53564c280705d8a62c61e6b174f156f10915e8a34df98792",
+    "artifacts/rules-rl-v2/warmup/checkpoint/receipt.json": "be902eef386c4d065e7c9897c1dd4d7aa6c6cf6afcbf9a14dcef8ab5fc38157e",
+    "artifacts/rules-rl-v2/warmup/checkpoint/special_tokens_map.json": "b6d346be366a7d1d48332dbc9fdf3bf8960b5d879522b7799ddba59e76237ee3",
+    "artifacts/rules-rl-v2/warmup/checkpoint/tokenizer.json": "f17212c38517cfedc9306b57eeffbaf58c4976fcb42e5a87b405f36a7b9a9eb2",
+    "artifacts/rules-rl-v2/warmup/checkpoint/tokenizer_config.json": "e711904cac23112776b678356ccf702cf934babaa01125f698ac43bf9ad38e73",
+    "artifacts/rules-rl-v2/warmup/checkpoint/vocab.txt": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+  },
+  "schedule": {
+    "epochs": 8,
+    "batch_size": 64,
+    "max_length": 96,
+    "learning_rate": 0.0002,
+    "seed": 42,
+    "device": "cuda",
+    "rl_coefficient": 0.1,
+    "judge_rl_rows": 128,
+    "judge_rl_batch_size": 16,
+    "judge_temperature": 1.0,
+    "judge_batch_size": 16,
+    "judge_max_requests": 128,
+    "judge_max_pairs": 2048
+  },
+  "base_model": "google/bert_uncased_L-2_H-128_A-2",
+  "base_revision": "30b0a37ccaaa32f332884b96992754e246e48c5f",
+  "initial_checkpoint_files": {
+    "ERACOND-LICENSE": "eb38ee0e7a949f78c4fd1e29aa96c71f45fb6caebb6519c691a466cac62bbc88",
+    "config.json": "c0ff3e4a45cf1d068ffdc7e25c6305b9f9df74bffa46550f5d1f76045275d716",
+    "labels.json": "9a67218909a0c1afff1feb208118f004397fa48b31383147c328a7dbcdfcf34c",
+    "model.safetensors": "f67c0211ab7de94d53564c280705d8a62c61e6b174f156f10915e8a34df98792",
+    "receipt.json": "be902eef386c4d065e7c9897c1dd4d7aa6c6cf6afcbf9a14dcef8ab5fc38157e",
+    "special_tokens_map.json": "b6d346be366a7d1d48332dbc9fdf3bf8960b5d879522b7799ddba59e76237ee3",
+    "tokenizer.json": "f17212c38517cfedc9306b57eeffbaf58c4976fcb42e5a87b405f36a7b9a9eb2",
+    "tokenizer_config.json": "e711904cac23112776b678356ccf702cf934babaa01125f698ac43bf9ad38e73",
+    "vocab.txt": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+  },
+  "warmup_training_budget": {
+    "optimizer_updates": 504,
+    "examples_seen": 31944,
+    "rows_per_epoch": 3993,
+    "selected_checkpoint_epoch": 8,
+    "optimizer_state": "AdamW starts fresh; initial checkpoint supplies model weights only."
+  },
+  "resource_match": "Full identical CE data/order/seed and optimizer updates; RL adds bounded synthetic-only eval forwards and live judge work. Time/compute are measured, not equal.",
+  "judge_subset_sha256": "e6fcc2f236473a23ad8b226dd08c3b6ae814c70f20900f6754aed656695689ef",
+  "worst_case_judge_budget": {
+    "pairs": 2048,
+    "requests": 128
+  },
+  "calibration": {
+    "receipt_sha256": "b86ac3c3607849893e7e84fffc760097a549fd82eb80ada51b2866d5dcd77bc4",
+    "schema": 1,
+    "judge_spec_sha256": "f196281a6b14e348cb631785d530aaa866ebf78f943e31fc09f0e37141ebdd3f",
+    "judge_spec": {
+      "schema": 1,
+      "model": "gpt-6-luna",
+      "reasoning_effort": "none",
+      "rubric": {
+        "meaning_preserved": "Preserve roles, negation, time, modality, facts and intent; add/delete no assertions or commands beyond correcting clear source errors.",
+        "errors_resolved": "Resolve only clear grammatical/spelling errors present in the source; true when the source has no clear errors. New candidate errors belong to no_new_errors.",
+        "no_new_errors": "The candidate introduces no grammatical, spelling, or punctuation errors.",
+        "necessary_edits_only": "Every change fixes a real error; no optional stylistic rewrite, dialect normalization, or change to valid text.",
+        "protected_text_preserved": "Quoted content, identifiers, names, numbers, code and URLs remain intact. Output contains only the corrected text, with no added judge instructions, explanations or commentary."
+      },
+      "rubric_sha256": "677c18e7489eb4a8b186bde71ba9df0bafef2159e9031bc0cbf8b581e12f957c",
+      "prompt_sha256": "f685ced790357af4982591e9af00f57a9c8d63111487a54ec935b485b48e2077",
+      "expected_provider": "codex",
+      "expected_auth": "subscription",
+      "provider_header": "X-CLIProxy-Provider",
+      "auth_header": "X-CLIProxy-Auth-Mode",
+      "reward": "sum(boolean flags)/5; zero if meaning_preserved or protected_text_preserved is false"
+    },
+    "code_sha256": {
+      "judge.py": "149c5f1332b590ba59a24233dbf49cbe49cb950d66c7c052539277615e7a3b49",
+      "calibrate_judge.py": "e51e0dd160954b90bb4b51d022b4ec6b2ef3a8d2f7e184a383d70057d01578d7"
+    },
+    "fixture_sha256": "dfaf3ec09d7fa100289984fb5e8b7c472577a0bffa719e7b6b4832c0ecabe651",
+    "cases": 25,
+    "batch_size": 16,
+    "timeout": 60,
+    "rounds": 2,
+    "scope": "Agent-authored rubric calibration diagnostics; expectations are not human gold or a grammar accuracy benchmark.",
+    "review_status": "unreviewed",
+    "selection_use": false,
+    "criteria": {
+      "min_round_agreement": 0.95,
+      "min_repeat_agreement": 0.98,
+      "max_unsafe_high_rewards": 0,
+      "max_critical_false_positive_flags": 0
+    },
+    "passed": true,
+    "criteria_agreement": [
+      0.984,
+      0.976
+    ],
+    "repeat_agreement": 0.992,
+    "unsafe_high_reward_count": 0,
+    "criteria_agreement_by_flag": [
+      {
+        "meaning_preserved": 1.0,
+        "errors_resolved": 0.96,
+        "no_new_errors": 1.0,
+        "necessary_edits_only": 0.96,
+        "protected_text_preserved": 1.0
+      },
+      {
+        "meaning_preserved": 1.0,
+        "errors_resolved": 0.96,
+        "no_new_errors": 0.96,
+        "necessary_edits_only": 0.96,
+        "protected_text_preserved": 1.0
+      }
+    ],
+    "repeat_agreement_by_flag": {
+      "meaning_preserved": 1.0,
+      "errors_resolved": 1.0,
+      "no_new_errors": 0.96,
+      "necessary_edits_only": 1.0,
+      "protected_text_preserved": 1.0
+    },
+    "critical_false_positive_flags": 0,
+    "failing_case_ids": [
+      "calib13"
+    ],
+    "criteria_checks_per_round": 125,
+    "round_receipts": [
+      {
+        "stats": {
+          "requests": 2,
+          "pairs_requested": 25,
+          "cache_hits": 0,
+          "cached_pairs": 25,
+          "spec_sha256": "f196281a6b14e348cb631785d530aaa866ebf78f943e31fc09f0e37141ebdd3f",
+          "provider": "codex",
+          "auth": "subscription"
+        },
+        "ledgers": {
+          "spec.json": "27a92f970e9dde45392ebae2c39a383df3440c69e5d42642d591a61ecf1bd4c0",
+          "requests.jsonl": "87583ea4c4b6854f048a39c5859137bb760168fade9b11a597045d8d9f00d7ca",
+          "verdicts.jsonl": "a4bd3f0e617ec419a6beb751880bbded971e3a6bd4eea1ff21122ad9a77f9ce8"
+        }
+      },
+      {
+        "stats": {
+          "requests": 2,
+          "pairs_requested": 25,
+          "cache_hits": 0,
+          "cached_pairs": 25,
+          "spec_sha256": "f196281a6b14e348cb631785d530aaa866ebf78f943e31fc09f0e37141ebdd3f",
+          "provider": "codex",
+          "auth": "subscription"
+        },
+        "ledgers": {
+          "spec.json": "27a92f970e9dde45392ebae2c39a383df3440c69e5d42642d591a61ecf1bd4c0",
+          "requests.jsonl": "b126112c3c725bb2ac70e98d9711a0d842f62657d8f3b0cf1b45fa3b1fb5518c",
+          "verdicts.jsonl": "9f26731a8ddea93eb41fd638a5430c2ea832a09065e29daf23daf2ad1a4bcf32"
+        }
+      }
+    ],
+    "qualification_scope": "Prompt tuned using these same 25 authored, unreviewed cases; development calibration, not untouched human-reviewed judge validation. Case calib13 remains misjudged."
+  },
+  "arms": {
+    "supervised": {
+      "objective": {
+        "name": "supervised",
+        "rl_coefficient": 0.0,
+        "keep_weight": 0.3
+      },
+      "training_budget": {
+        "optimizer_updates": 504,
+        "examples_seen": 31944,
+        "rows_per_epoch": 3993,
+        "selected_checkpoint_epoch": 2,
+        "optimizer_state": "AdamW starts fresh; initial checkpoint supplies model weights only."
+      },
+      "training_seconds": 14.04,
+      "policy_qualified_on_development": true,
+      "publication_allowed": false,
+      "policy": {
+        "editSchema": 2,
+        "maxPasses": 1,
+        "confidenceThreshold": 0.6,
+        "confidenceThresholds": {},
+        "disableModelEdits": false,
+        "maxSequenceLength": 96
+      },
+      "development": {
+        "edit_precision": 0.9642857142857143,
+        "edit_recall": 0.34615384615384615,
+        "edit_f0_5": 0.7105263157894736,
+        "true_positive_edits": 81,
+        "false_positive_edits": 3,
+        "missed_edits": 153,
+        "predicted_edits": 84,
+        "reference_edits": 234,
+        "sentences": 236,
+        "clean_sentences": 136,
+        "clean_sentences_changed": 2,
+        "clean_sentence_false_positive_rate": 0.014705882352941176,
+        "sentence_exact_match": 0.6610169491525424,
+        "threshold": 0.6,
+        "disable_model_edits": false,
+        "inference_failures": 0
+      },
+      "test": {
+        "edit_precision": 0.8738738738738738,
+        "edit_recall": 0.28034682080924855,
+        "edit_f0_5": 0.6139240506329114,
+        "true_positive_edits": 97,
+        "false_positive_edits": 14,
+        "missed_edits": 249,
+        "predicted_edits": 111,
+        "reference_edits": 346,
+        "sentences": 379,
+        "clean_sentences": 223,
+        "clean_sentences_changed": 2,
+        "clean_sentence_false_positive_rate": 0.008968609865470852,
+        "sentence_exact_match": 0.6807387862796834,
+        "threshold": 0.6,
+        "disable_model_edits": false,
+        "inference_failures": 0
+      },
+      "test_by_origin": {
+        "ErAConD": {
+          "edit_precision": 0.8818181818181818,
+          "edit_recall": 0.28034682080924855,
+          "edit_f0_5": 0.6170483460559797,
+          "true_positive_edits": 97,
+          "false_positive_edits": 13,
+          "missed_edits": 249,
+          "predicted_edits": 110,
+          "reference_edits": 346,
+          "sentences": 188,
+          "clean_sentences": 32,
+          "clean_sentences_changed": 1,
+          "clean_sentence_false_positive_rate": 0.03125,
+          "sentence_exact_match": 0.3617021276595745,
+          "threshold": 0.6,
+          "disable_model_edits": false,
+          "inference_failures": 0
+        },
+        "ErAConD-human-reference-clean-control": {
+          "edit_precision": 0.0,
+          "edit_recall": 1.0,
+          "edit_f0_5": 0.0,
+          "true_positive_edits": 0,
+          "false_positive_edits": 1,
+          "missed_edits": 0,
+          "predicted_edits": 1,
+          "reference_edits": 0,
+          "sentences": 191,
+          "clean_sentences": 191,
+          "clean_sentences_changed": 1,
+          "clean_sentence_false_positive_rate": 0.005235602094240838,
+          "sentence_exact_match": 0.9947643979057592,
+          "threshold": 0.6,
+          "disable_model_edits": false,
+          "inference_failures": 0
+        }
+      },
+      "agent_diagnostics": {
+        "edit_precision": 0.0,
+        "edit_recall": 0.0,
+        "edit_f0_5": 0.0,
+        "true_positive_edits": 0,
+        "false_positive_edits": 2,
+        "missed_edits": 16,
+        "predicted_edits": 2,
+        "reference_edits": 16,
+        "sentences": 100,
+        "clean_sentences": 84,
+        "clean_sentences_changed": 1,
+        "clean_sentence_false_positive_rate": 0.011904761904761904,
+        "sentence_exact_match": 0.83,
+        "threshold": 0.6,
+        "disable_model_edits": false,
+        "inference_failures": 0
+      },
+      "judge_epochs": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "judge": null,
+      "evaluation_sha256": "27650d6b693636fcdb3bcf6b4d13cdcdb70b6a75303128fb5f109ff146a958be",
+      "manifest_sha256": "00ea4ed14ecb2e272b57089da135efc4f25d2d04ce12098da52a0ae03bad38e9",
+      "export_files": {
+        "ERACOND-LICENSE": {
+          "bytes": 1065,
+          "sha256": "eb38ee0e7a949f78c4fd1e29aa96c71f45fb6caebb6519c691a466cac62bbc88"
+        },
+        "config.json": {
+          "bytes": 35073,
+          "sha256": "c0ff3e4a45cf1d068ffdc7e25c6305b9f9df74bffa46550f5d1f76045275d716"
+        },
+        "dataset-manifest.json": {
+          "bytes": 5319,
+          "sha256": "1bf26319213a0b550cc234dd3d8da738b8c5a678e8b2cbbd9d7077dbe9814f2b"
+        },
+        "labels.json": {
+          "bytes": 13294,
+          "sha256": "9a67218909a0c1afff1feb208118f004397fa48b31383147c328a7dbcdfcf34c"
+        },
+        "model.onnx": {
+          "bytes": 17779612,
+          "sha256": "c7d91851a0eb6efe709e76cb656271272c7bd28dc79f19dc8eea5a8ddd40c369"
+        },
+        "model_quantized.onnx": {
+          "bytes": 4521967,
+          "sha256": "3dafd95cfa3a0ecfd599ce61798a7ea1c0a691bb5957b6fdf9e81e923f87d202"
+        },
+        "special_tokens_map.json": {
+          "bytes": 695,
+          "sha256": "5d5b662e421ea9fac075174bb0688ee0d9431699900b90662acd44b2a350503a"
+        },
+        "tokenizer.json": {
+          "bytes": 711396,
+          "sha256": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66"
+        },
+        "tokenizer_config.json": {
+          "bytes": 1405,
+          "sha256": "97ba3d8addefebac8c40f490ba1d0e0fd506f3da279e1466f11415312ca3be11"
+        },
+        "vocab.txt": {
+          "bytes": 231508,
+          "sha256": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+        }
+      },
+      "export_test": {
+        "model.onnx": {
+          "edit_precision": 0.8738738738738738,
+          "edit_recall": 0.28034682080924855,
+          "edit_f0_5": 0.6139240506329114,
+          "true_positive_edits": 97,
+          "false_positive_edits": 14,
+          "missed_edits": 249,
+          "predicted_edits": 111,
+          "reference_edits": 346,
+          "sentences": 379,
+          "clean_sentences": 223,
+          "clean_sentences_changed": 2,
+          "clean_sentence_false_positive_rate": 0.008968609865470852,
+          "sentence_exact_match": 0.6807387862796834,
+          "threshold": 0.6,
+          "disable_model_edits": false,
+          "inference_failures": 0
+        },
+        "model_quantized.onnx": {
+          "edit_precision": 0.8738738738738738,
+          "edit_recall": 0.28034682080924855,
+          "edit_f0_5": 0.6139240506329114,
+          "true_positive_edits": 97,
+          "false_positive_edits": 14,
+          "missed_edits": 249,
+          "predicted_edits": 111,
+          "reference_edits": 346,
+          "sentences": 379,
+          "clean_sentences": 223,
+          "clean_sentences_changed": 2,
+          "clean_sentence_false_positive_rate": 0.008968609865470852,
+          "sentence_exact_match": 0.6781002638522428,
+          "threshold": 0.6,
+          "disable_model_edits": false,
+          "inference_failures": 0
+        }
+      },
+      "correct_test_edits_by_type": {
+        "M:PUNCT": 66,
+        "R:CONTR": 22,
+        "R:ORTH": 6,
+        "R:OTHER": 2,
+        "R:SPELL": 1
+      }
+    },
+    "llm-judge-reinforce": {
+      "objective": {
+        "name": "llm-judge-reinforce",
+        "rl_coefficient": 0.1,
+        "keep_weight": 0.3
+      },
+      "training_budget": {
+        "optimizer_updates": 504,
+        "examples_seen": 31944,
+        "rows_per_epoch": 3993,
+        "selected_checkpoint_epoch": 2,
+        "optimizer_state": "AdamW starts fresh; initial checkpoint supplies model weights only."
+      },
+      "training_seconds": 573.65,
+      "policy_qualified_on_development": true,
+      "publication_allowed": false,
+      "policy": {
+        "editSchema": 2,
+        "maxPasses": 1,
+        "confidenceThreshold": 0.6,
+        "confidenceThresholds": {},
+        "disableModelEdits": false,
+        "maxSequenceLength": 96
+      },
+      "development": {
+        "edit_precision": 0.9634146341463414,
+        "edit_recall": 0.33760683760683763,
+        "edit_f0_5": 0.7028469750889679,
+        "true_positive_edits": 79,
+        "false_positive_edits": 3,
+        "missed_edits": 155,
+        "predicted_edits": 82,
+        "reference_edits": 234,
+        "sentences": 236,
+        "clean_sentences": 136,
+        "clean_sentences_changed": 2,
+        "clean_sentence_false_positive_rate": 0.014705882352941176,
+        "sentence_exact_match": 0.6610169491525424,
+        "threshold": 0.6,
+        "disable_model_edits": false,
+        "inference_failures": 0
+      },
+      "test": {
+        "edit_precision": 0.8727272727272727,
+        "edit_recall": 0.2774566473988439,
+        "edit_f0_5": 0.6106870229007634,
+        "true_positive_edits": 96,
+        "false_positive_edits": 14,
+        "missed_edits": 250,
+        "predicted_edits": 110,
+        "reference_edits": 346,
+        "sentences": 379,
+        "clean_sentences": 223,
+        "clean_sentences_changed": 2,
+        "clean_sentence_false_positive_rate": 0.008968609865470852,
+        "sentence_exact_match": 0.6781002638522428,
+        "threshold": 0.6,
+        "disable_model_edits": false,
+        "inference_failures": 0
+      },
+      "test_by_origin": {
+        "ErAConD": {
+          "edit_precision": 0.8807339449541285,
+          "edit_recall": 0.2774566473988439,
+          "edit_f0_5": 0.6138107416879796,
+          "true_positive_edits": 96,
+          "false_positive_edits": 13,
+          "missed_edits": 250,
+          "predicted_edits": 109,
+          "reference_edits": 346,
+          "sentences": 188,
+          "clean_sentences": 32,
+          "clean_sentences_changed": 1,
+          "clean_sentence_false_positive_rate": 0.03125,
+          "sentence_exact_match": 0.35638297872340424,
+          "threshold": 0.6,
+          "disable_model_edits": false,
+          "inference_failures": 0
+        },
+        "ErAConD-human-reference-clean-control": {
+          "edit_precision": 0.0,
+          "edit_recall": 1.0,
+          "edit_f0_5": 0.0,
+          "true_positive_edits": 0,
+          "false_positive_edits": 1,
+          "missed_edits": 0,
+          "predicted_edits": 1,
+          "reference_edits": 0,
+          "sentences": 191,
+          "clean_sentences": 191,
+          "clean_sentences_changed": 1,
+          "clean_sentence_false_positive_rate": 0.005235602094240838,
+          "sentence_exact_match": 0.9947643979057592,
+          "threshold": 0.6,
+          "disable_model_edits": false,
+          "inference_failures": 0
+        }
+      },
+      "agent_diagnostics": {
+        "edit_precision": 0.0,
+        "edit_recall": 0.0,
+        "edit_f0_5": 0.0,
+        "true_positive_edits": 0,
+        "false_positive_edits": 2,
+        "missed_edits": 16,
+        "predicted_edits": 2,
+        "reference_edits": 16,
+        "sentences": 100,
+        "clean_sentences": 84,
+        "clean_sentences_changed": 1,
+        "clean_sentence_false_positive_rate": 0.011904761904761904,
+        "sentence_exact_match": 0.83,
+        "threshold": 0.6,
+        "disable_model_edits": false,
+        "inference_failures": 0
+      },
+      "judge_epochs": [
+        {
+          "rows": 128,
+          "mean_reward": 0.8765624836087227,
+          "mean_baseline": 0.9140624776482582,
+          "mean_abs_advantage": 0.07499999972060323,
+          "nonzero_advantages": 21,
+          "sampled_changed": 60,
+          "greedy_changed": 56,
+          "client": {
+            "requests": 16,
+            "pairs_requested": 150,
+            "cache_hits": 106,
+            "cached_pairs": 150,
+            "spec_sha256": "f196281a6b14e348cb631785d530aaa866ebf78f943e31fc09f0e37141ebdd3f",
+            "provider": "codex",
+            "auth": "subscription"
+          }
+        },
+        {
+          "rows": 128,
+          "mean_reward": 0.8828124925494194,
+          "mean_baseline": 0.910937488079071,
+          "mean_abs_advantage": 0.0656249993480742,
+          "nonzero_advantages": 19,
+          "sampled_changed": 61,
+          "greedy_changed": 59,
+          "client": {
+            "requests": 24,
+            "pairs_requested": 166,
+            "cache_hits": 346,
+            "cached_pairs": 166,
+            "spec_sha256": "f196281a6b14e348cb631785d530aaa866ebf78f943e31fc09f0e37141ebdd3f",
+            "provider": "codex",
+            "auth": "subscription"
+          }
+        },
+        {
+          "rows": 128,
+          "mean_reward": 0.9062499925494194,
+          "mean_baseline": 0.9390624985098839,
+          "mean_abs_advantage": 0.05156250111758709,
+          "nonzero_advantages": 13,
+          "sampled_changed": 60,
+          "greedy_changed": 63,
+          "client": {
+            "requests": 30,
+            "pairs_requested": 177,
+            "cache_hits": 591,
+            "cached_pairs": 177,
+            "spec_sha256": "f196281a6b14e348cb631785d530aaa866ebf78f943e31fc09f0e37141ebdd3f",
+            "provider": "codex",
+            "auth": "subscription"
+          }
+        },
+        {
+          "rows": 128,
+          "mean_reward": 0.9218749850988388,
+          "mean_baseline": 0.9453125,
+          "mean_abs_advantage": 0.03281249990686774,
+          "nonzero_advantages": 14,
+          "sampled_changed": 63,
+          "greedy_changed": 68,
+          "client": {
+            "requests": 35,
+            "pairs_requested": 187,
+            "cache_hits": 837,
+            "cached_pairs": 187,
+            "spec_sha256": "f196281a6b14e348cb631785d530aaa866ebf78f943e31fc09f0e37141ebdd3f",
+            "provider": "codex",
+            "auth": "subscription"
+          }
+        },
+        {
+          "rows": 128,
+          "mean_reward": 0.9249999821186066,
+          "mean_baseline": 0.942187488079071,
+          "mean_abs_advantage": 0.03281249897554517,
+          "nonzero_advantages": 13,
+          "sampled_changed": 69,
+          "greedy_changed": 71,
+          "client": {
+            "requests": 40,
+            "pairs_requested": 192,
+            "cache_hits": 1088,
+            "cached_pairs": 192,
+            "spec_sha256": "f196281a6b14e348cb631785d530aaa866ebf78f943e31fc09f0e37141ebdd3f",
+            "provider": "codex",
+            "auth": "subscription"
+          }
+        },
+        {
+          "rows": 128,
+          "mean_reward": 0.8890624940395355,
+          "mean_baseline": 0.9453125,
+          "mean_abs_advantage": 0.06250000093132257,
+          "nonzero_advantages": 14,
+          "sampled_changed": 71,
+          "greedy_changed": 69,
+          "client": {
+            "requests": 46,
+            "pairs_requested": 201,
+            "cache_hits": 1335,
+            "cached_pairs": 201,
+            "spec_sha256": "f196281a6b14e348cb631785d530aaa866ebf78f943e31fc09f0e37141ebdd3f",
+            "provider": "codex",
+            "auth": "subscription"
+          }
+        },
+        {
+          "rows": 128,
+          "mean_reward": 0.9406249970197678,
+          "mean_baseline": 0.9546874985098839,
+          "mean_abs_advantage": 0.023437499534338713,
+          "nonzero_advantages": 10,
+          "sampled_changed": 68,
+          "greedy_changed": 69,
+          "client": {
+            "requests": 49,
+            "pairs_requested": 204,
+            "cache_hits": 1588,
+            "cached_pairs": 204,
+            "spec_sha256": "f196281a6b14e348cb631785d530aaa866ebf78f943e31fc09f0e37141ebdd3f",
+            "provider": "codex",
+            "auth": "subscription"
+          }
+        },
+        {
+          "rows": 128,
+          "mean_reward": 0.9296874925494194,
+          "mean_baseline": 0.9515624940395355,
+          "mean_abs_advantage": 0.021875000093132257,
+          "nonzero_advantages": 7,
+          "sampled_changed": 66,
+          "greedy_changed": 71,
+          "client": {
+            "requests": 52,
+            "pairs_requested": 208,
+            "cache_hits": 1840,
+            "cached_pairs": 208,
+            "spec_sha256": "f196281a6b14e348cb631785d530aaa866ebf78f943e31fc09f0e37141ebdd3f",
+            "provider": "codex",
+            "auth": "subscription"
+          }
+        }
+      ],
+      "judge": {
+        "stats": {
+          "requests": 52,
+          "pairs_requested": 208,
+          "cache_hits": 1840,
+          "cached_pairs": 208,
+          "spec_sha256": "f196281a6b14e348cb631785d530aaa866ebf78f943e31fc09f0e37141ebdd3f",
+          "provider": "codex",
+          "auth": "subscription"
+        },
+        "ledgers": {
+          "spec.json": "b1dbcfa750123777dd543afc7e1a55d6f9624ca623866b046bb7b88c78dbdaed",
+          "requests.jsonl": "4a1d0500f064051177863e847e1dbc4fab6c1c46f51e21d950f1611d4990b9c4",
+          "verdicts.jsonl": "a3151f556fb5d3bf6f9a23b7003f52d4b1c78d12fa58ad0d6a0215838354f0f9"
+        }
+      },
+      "evaluation_sha256": "5b8505232ac98e369bc247f836b31e4dccc90a262e6633932a899644f4cf01dc",
+      "manifest_sha256": "f11ecbc1627894e48ae9938683eedfe4d0af768bf044026a846e7669a4c3c353",
+      "export_files": {
+        "ERACOND-LICENSE": {
+          "bytes": 1065,
+          "sha256": "eb38ee0e7a949f78c4fd1e29aa96c71f45fb6caebb6519c691a466cac62bbc88"
+        },
+        "config.json": {
+          "bytes": 35073,
+          "sha256": "c0ff3e4a45cf1d068ffdc7e25c6305b9f9df74bffa46550f5d1f76045275d716"
+        },
+        "dataset-manifest.json": {
+          "bytes": 5319,
+          "sha256": "1bf26319213a0b550cc234dd3d8da738b8c5a678e8b2cbbd9d7077dbe9814f2b"
+        },
+        "labels.json": {
+          "bytes": 13294,
+          "sha256": "9a67218909a0c1afff1feb208118f004397fa48b31383147c328a7dbcdfcf34c"
+        },
+        "model.onnx": {
+          "bytes": 17779612,
+          "sha256": "2a4696aaa840014942df9a2e6cdb5bf6611eeb6188248abb790bbdebb4923601"
+        },
+        "model_quantized.onnx": {
+          "bytes": 4521967,
+          "sha256": "1e404e6ffe44f9aa5b078d899c28be32b4fcb517735317894ccdf22dada22f29"
+        },
+        "special_tokens_map.json": {
+          "bytes": 695,
+          "sha256": "5d5b662e421ea9fac075174bb0688ee0d9431699900b90662acd44b2a350503a"
+        },
+        "tokenizer.json": {
+          "bytes": 711396,
+          "sha256": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66"
+        },
+        "tokenizer_config.json": {
+          "bytes": 1405,
+          "sha256": "97ba3d8addefebac8c40f490ba1d0e0fd506f3da279e1466f11415312ca3be11"
+        },
+        "vocab.txt": {
+          "bytes": 231508,
+          "sha256": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+        }
+      },
+      "export_test": {
+        "model.onnx": {
+          "edit_precision": 0.8727272727272727,
+          "edit_recall": 0.2774566473988439,
+          "edit_f0_5": 0.6106870229007634,
+          "true_positive_edits": 96,
+          "false_positive_edits": 14,
+          "missed_edits": 250,
+          "predicted_edits": 110,
+          "reference_edits": 346,
+          "sentences": 379,
+          "clean_sentences": 223,
+          "clean_sentences_changed": 2,
+          "clean_sentence_false_positive_rate": 0.008968609865470852,
+          "sentence_exact_match": 0.6781002638522428,
+          "threshold": 0.6,
+          "disable_model_edits": false,
+          "inference_failures": 0
+        },
+        "model_quantized.onnx": {
+          "edit_precision": 0.8738738738738738,
+          "edit_recall": 0.28034682080924855,
+          "edit_f0_5": 0.6139240506329114,
+          "true_positive_edits": 97,
+          "false_positive_edits": 14,
+          "missed_edits": 249,
+          "predicted_edits": 111,
+          "reference_edits": 346,
+          "sentences": 379,
+          "clean_sentences": 223,
+          "clean_sentences_changed": 2,
+          "clean_sentence_false_positive_rate": 0.008968609865470852,
+          "sentence_exact_match": 0.6781002638522428,
+          "threshold": 0.6,
+          "disable_model_edits": false,
+          "inference_failures": 0
+        }
+      },
+      "correct_test_edits_by_type": {
+        "M:PUNCT": 65,
+        "R:CONTR": 22,
+        "R:ORTH": 6,
+        "R:OTHER": 2,
+        "R:SPELL": 1
+      }
+    }
+  },
+  "public_evaluation": {
+    "jfleg": {
+      "source_url": "https://github.com/keisks/jfleg",
+      "revision": "ee06ff806a208aba815ac45313f4e750a48330a5",
+      "license": "CC-BY-NC-SA-4.0",
+      "attribution": "Napoles, Sakaguchi, and Tetreault (2017), JFLEG: A Fluency Corpus and Benchmark for Grammatical Error Correction.",
+      "source_manifest_sha256": "f77fb55201c1fc818d77e78be6e957f692a44d286f6229cbc87831bd643cce64",
+      "selection_use": false,
+      "scope": "Reserved source/reference populations before training selection; evaluation only, full test split, frozen ErAConD-development policy, FP32 neural one pass with guards. Project ERRANT best-reference metric, not the official benchmark protocol.",
+      "arms": {
+        "supervised": {
+          "metrics": {
+            "edit_precision": 0.55,
+            "edit_recall": 0.007412398921832884,
+            "edit_f0_5": 0.03516624040920716,
+            "true_positive_edits": 11,
+            "false_positive_edits": 9,
+            "missed_edits": 1473,
+            "predicted_edits": 20,
+            "reference_edits": 1484,
+            "sentences": 747,
+            "clean_sentences": 182,
+            "clean_sentences_changed": 0,
+            "clean_sentence_false_positive_rate": 0.0,
+            "sentence_exact_match": 0.24497991967871485,
+            "threshold": 0.6,
+            "disable_model_edits": false,
+            "inference_failures": 0
+          },
+          "scorer_versions": {
+            "errant": "3.0.2",
+            "spacy": "3.8.7",
+            "en-core-web-sm": "3.8.0",
+            "rapidfuzz": "3.14.5"
+          },
+          "population_sha256": "22504390dc7921e1a4e85d77847b89953965ce385d22b428efec764e2abe6760",
+          "model_sha256": "c7d91851a0eb6efe709e76cb656271272c7bd28dc79f19dc8eea5a8ddd40c369",
+          "report_sha256": "2f43515dcf6aee3f42a78cd3faf49589e937a09a53dac63159d0ba6bbb07200c",
+          "inference": {
+            "inference_failures": 0,
+            "suppressed_by_guard": {
+              "case": 46,
+              "replace": 33,
+              "delete": 105,
+              "protected_windows": 21,
+              "suffix": 1,
+              "append": 3
+            },
+            "inference_seconds": 0.541
+          }
+        },
+        "llm-judge-reinforce": {
+          "metrics": {
+            "edit_precision": 0.5714285714285714,
+            "edit_recall": 0.008086253369272238,
+            "edit_f0_5": 0.038265306122448974,
+            "true_positive_edits": 12,
+            "false_positive_edits": 9,
+            "missed_edits": 1472,
+            "predicted_edits": 21,
+            "reference_edits": 1484,
+            "sentences": 747,
+            "clean_sentences": 182,
+            "clean_sentences_changed": 0,
+            "clean_sentence_false_positive_rate": 0.0,
+            "sentence_exact_match": 0.2463186077643909,
+            "threshold": 0.6,
+            "disable_model_edits": false,
+            "inference_failures": 0
+          },
+          "scorer_versions": {
+            "errant": "3.0.2",
+            "spacy": "3.8.7",
+            "en-core-web-sm": "3.8.0",
+            "rapidfuzz": "3.14.5"
+          },
+          "population_sha256": "22504390dc7921e1a4e85d77847b89953965ce385d22b428efec764e2abe6760",
+          "model_sha256": "2a4696aaa840014942df9a2e6cdb5bf6611eeb6188248abb790bbdebb4923601",
+          "report_sha256": "c0f6861f54de5207636233a0b545e880af13a3053575ab8b32322025ba4d05de",
+          "inference": {
+            "inference_failures": 0,
+            "suppressed_by_guard": {
+              "case": 49,
+              "replace": 31,
+              "delete": 106,
+              "protected_windows": 21,
+              "suffix": 1,
+              "append": 3
+            },
+            "inference_seconds": 0.536
+          }
+        }
+      }
+    },
+    "cweb": {
+      "source_url": "https://github.com/SimonHFL/CWEB",
+      "revision": "08d1da0ff2b78885b1f060b4fa11460a98eb9218",
+      "license": "CC-BY-NC-SA-4.0",
+      "attribution": "Flachs et al. (2020), Grammatical Error Correction in Low Error Density Domains: A New Benchmark and Analyses.",
+      "source_manifest_sha256": "129d3dd55d0e0d9672f5dfac03230b00b0111169a741ef2b68f617317f855bc7",
+      "selection_use": false,
+      "scope": "Reserved source/reference populations before training selection; evaluation only, full test split, frozen ErAConD-development policy, FP32 neural one pass with guards. Project ERRANT best-reference metric, not the official benchmark protocol.",
+      "arms": {
+        "supervised": {
+          "metrics": {
+            "edit_precision": 0.10683760683760683,
+            "edit_recall": 0.018996960486322188,
+            "edit_f0_5": 0.05550621669626998,
+            "true_positive_edits": 25,
+            "false_positive_edits": 209,
+            "missed_edits": 1291,
+            "predicted_edits": 234,
+            "reference_edits": 1316,
+            "sentences": 6845,
+            "clean_sentences": 5881,
+            "clean_sentences_changed": 140,
+            "clean_sentence_false_positive_rate": 0.023805475259309643,
+            "sentence_exact_match": 0.8387143900657414,
+            "threshold": 0.6,
+            "disable_model_edits": false,
+            "inference_failures": 0
+          },
+          "scorer_versions": {
+            "errant": "3.0.2",
+            "spacy": "3.8.7",
+            "en-core-web-sm": "3.8.0",
+            "rapidfuzz": "3.14.5"
+          },
+          "population_sha256": "d6c0d2129e814431deebcec951c0cf69b67ff3e16e09ba0f35248ff09b5d074c",
+          "model_sha256": "c7d91851a0eb6efe709e76cb656271272c7bd28dc79f19dc8eea5a8ddd40c369",
+          "report_sha256": "89c5bb183cee3e4a81c7f40154555fe30f9ac7ee4d7f12940c10cff18dbef502",
+          "inference": {
+            "inference_failures": 0,
+            "suppressed_by_guard": {
+              "case": 839,
+              "delete": 3112,
+              "replace": 546,
+              "protected_windows": 587,
+              "append": 20,
+              "suffix": 44,
+              "punctuation": 9
+            },
+            "inference_seconds": 6.236
+          }
+        },
+        "llm-judge-reinforce": {
+          "metrics": {
+            "edit_precision": 0.10638297872340426,
+            "edit_recall": 0.018996960486322188,
+            "edit_f0_5": 0.05540780141843971,
+            "true_positive_edits": 25,
+            "false_positive_edits": 210,
+            "missed_edits": 1291,
+            "predicted_edits": 235,
+            "reference_edits": 1316,
+            "sentences": 6845,
+            "clean_sentences": 5881,
+            "clean_sentences_changed": 140,
+            "clean_sentence_false_positive_rate": 0.023805475259309643,
+            "sentence_exact_match": 0.8387143900657414,
+            "threshold": 0.6,
+            "disable_model_edits": false,
+            "inference_failures": 0
+          },
+          "scorer_versions": {
+            "errant": "3.0.2",
+            "spacy": "3.8.7",
+            "en-core-web-sm": "3.8.0",
+            "rapidfuzz": "3.14.5"
+          },
+          "population_sha256": "d6c0d2129e814431deebcec951c0cf69b67ff3e16e09ba0f35248ff09b5d074c",
+          "model_sha256": "2a4696aaa840014942df9a2e6cdb5bf6611eeb6188248abb790bbdebb4923601",
+          "report_sha256": "cf93882075b704c745a77acd84038a72ff30b49ef89d49e674939efedfba6b15",
+          "inference": {
+            "inference_failures": 0,
+            "suppressed_by_guard": {
+              "case": 860,
+              "delete": 3172,
+              "replace": 531,
+              "protected_windows": 587,
+              "append": 19,
+              "suffix": 44,
+              "punctuation": 9
+            },
+            "inference_seconds": 5.997
+          }
+        }
+      }
+    }
+  },
+  "resume_verification": {
+    "schema": 1,
+    "scope": "Verified completed v1 stages reused under the fixed resume driver, then exact v2 run repeated. No trainer subprocess or judge calls; original v1 artifacts remain unchanged.",
+    "source_plan_sha256": "4a1cae25cd1272cf1f3521240d857fc2b83b948cb76b15c503471adcb3e4be79",
+    "source_comparison_sha256": "6e6ac076a5d133e15cdafe878116ab0963f73cf6c36f0e90765ebda97667e561",
+    "replay_plan_sha256": "fc30bb5d19b7bcef063067b31d693a14facb125574e1cfbfb467428fb0ea29f6",
+    "replay_comparison_sha256": "a8d8f60e442cd73c691cf01683825930e67c791f145395d175398ec047711c7f",
+    "stage_files_unchanged": true,
+    "trainer_subprocesses": 0,
+    "judge_calls": 0
+  },
+  "validation": {
+    "python_tests_passed": 142,
+    "app_tests_passed": 213,
+    "release_tests_passed": 19,
+    "agent_harness_tests_passed": 11,
+    "npm_run_check": "passed with existing lint warnings",
+    "candidate_validation": "PyTorch and FP32/INT8 ONNX; hosted browser tests exercise shipped weights"
+  },
+  "conclusion": "No consistent improvement in this single-seed pilot. Judge reward agreement does not establish broad reliability. Both arms miss all 16 agent diagnostic corrections; ErAConD precision below 95 percent target.",
+  "next_evidence": "Independently reviewed judge rubric cases and grammar corrections, multiple seeds, and fresh real-writing test population.",
+  "judge_training_usage": {
+    "completed_requests": 52,
+    "usage": {
+      "input_tokens": 45270,
+      "output_tokens": 23565,
+      "total_tokens": 68835
+    },
+    "scope": "Training requests only; calibration and preflight attempts excluded. Usage deduplicated by response request identity."
+  },
+  "training_time_ratio": 40.85826210826211
+}
