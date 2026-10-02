@@ -100,6 +100,7 @@ export async function initializeProbe(engineUrl, modelBaseUrl, backend, coldOnly
   reset();
   const cold = await check(base);
   if (cold.modelRuns < 1) throw new Error('MODEL_WAS_NOT_EXERCISED');
+  const coldRuntimeCalls = counters.runtimeCalls;
   reset();
   const warm = await check(base);
   const warmCounters = {...counters};
@@ -145,7 +146,7 @@ export async function initializeProbe(engineUrl, modelBaseUrl, backend, coldOnly
     return check(input);
   }
   globalThis.gammaProbe = {
-    evidence: {coldMs: cold.elapsedMs, coldModelRuns: cold.modelRuns, warmCounters, editedCounters, adapter,
+    evidence: {coldMs: cold.elapsedMs, coldModelRuns: cold.modelRuns, coldRuntimeCalls, warmCounters, editedCounters, adapter,
       fixture: {version: workloadVersion, chunks: 24, uniqueTokenWindows: 24, oneEditChangedWindows: 1, base}},
     async timing(name, repetitions, ordinal) {
       const plan = inputPlan(name, repetitions, ordinal);

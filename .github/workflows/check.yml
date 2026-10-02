@@ -84,6 +84,11 @@ jobs:
           path: |
             artifacts/environment.json
             artifacts/inference-analysis-verification.json
+            artifacts/inference-analysis/verification-*/analysis/report.json
+            artifacts/inference-analysis/verification-*/analysis/report.html
+            artifacts/inference-analysis/verification-*/analysis/*.svg
+            artifacts/inference-analysis/verification-*/analysis/*.cpuprofile
+            artifacts/inference-analysis/verification-*/analysis/*.trace.json
             artifacts/browser-smoke.json
             artifacts/synthetic-challenge.json
             data/generated/harder-v1/manifest.json

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import {mkdir, readFile} from 'node:fs/promises';
-import {join, relative} from 'node:path';
+import {access, mkdir, readFile} from 'node:fs/promises';
+import {join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {jsonFile, runCommand, runId} from './agent-runtime.mjs';
+import {git, jsonFile, runCommand, runId} from './agent-runtime.mjs';
 import {policy} from './inference-analysis.mjs';
 
 // Real-browser smoke for the infrastructure, with fictional inputs only. A
@@ -35,6 +35,7 @@ try {
     assert.equal(report.trials[name].length, policy.minimumTrials);
     assert.equal(report.trees[name].probe.warmCounters.runtimeCalls, 0);
     assert.equal(report.trees[name].probe.editedCounters.runtimeCalls, 1);
+    assert.equal(report.trees[name].probe.coldRuntimeCalls, 24);
     for (const [workload, profile] of Object.entries(report.profiles[name])) {
       if (workload !== 'cold') assert(profile.samples >= policy.minimumProfileSamples);
       const cpu = JSON.parse(await readFile(join(output, profile.artifacts.cpu), 'utf8'));
@@ -45,8 +46,45 @@ try {
       assert(trace.traceEvents.length > 0 && trace.traceEvents.every(event => event.ph === 'X' && event.dur >= 0));
     }
   }
+  for (const [name, args, environment] of [
+    ['invalid-options', ['--trials', '4'], {}],
+    ['alternate-model', [], {GAMMA_MODEL_DIR: 'unapproved-model'}],
+  ]) {
+    let failed = false;
+    try { await runCommand(process.execPath, [join(root, 'scripts/analyze-inference.mjs'), ...args],
+      {cwd: root, timeoutMs: 30000, environment, log: join(directory, `${name}.private.log`)}); }
+    catch (error) { if (error.result?.code !== 1 || error.result.timedOut || error.result.interrupted) throw error; failed = true; }
+    assert(failed, `${name} must exit invalid`);
+  }
+  const lock = join(resolve(root, await git(root, 'rev-parse', '--git-common-dir')), 'gamma-agent.lock');
+  const interruptionLog = join(directory, 'interruption.private.log');
+  let signaled = false;
+  const poll = setInterval(async () => {
+    if (signaled) return;
+    try {
+      const text = await readFile(interruptionLog, 'utf8');
+      if (text.includes('unprofiled-timing')) {
+        const started = JSON.parse(text.split('\n').find(line => line.includes('"phase":"analysis-start"')));
+        const owner = JSON.parse(await readFile(join(lock, 'owner.json'), 'utf8'));
+        if (signaled || owner.pid !== started.pid) return;
+        signaled = true; process.kill(started.pid, 'SIGTERM');
+      }
+    } catch { /* wait for the owned analysis to acquire its lock and start */ }
+  }, 100);
+  try {
+    let code = 0;
+    try { await runCommand(process.execPath, [join(root, 'scripts/analyze-inference.mjs'), '--baseline', root,
+      '--iterations', '5', '--profile-ms', '500', '--output', join(directory, 'interruption')],
+    {cwd: root, timeoutMs: 60000, log: interruptionLog}); }
+    catch (error) { if (error.result?.code !== 1 || error.result.timedOut || error.result.interrupted) throw error; code = 1; }
+    assert(signaled && code === 1, 'Interruption must invalidate the run');
+    const interrupted = JSON.parse(await readFile(join(directory, 'interruption/report.json'), 'utf8'));
+    assert.equal(interrupted.decision.status, 'invalid');
+    await assert.rejects(access(lock), {code: 'ENOENT'});
+  } finally { clearInterval(poll); }
   evidence.checks = {realBrowser: true, correctCacheWorkloads: true, exactOutputParity: true,
-    realCpuSamples: true, flamegraphs: true, wallTraces: true, incompleteQualityCannotPromote: true};
+    realCpuSamples: true, flamegraphs: true, wallTraces: true, incompleteQualityCannotPromote: true,
+    invalidOptionsRejected: true, alternateModelsRejected: true, interruptionInvalidatesAndReleasesLock: true};
   evidence.report = relative(root, join(output, 'report.json'));
   evidence.passed = true;
 } catch {

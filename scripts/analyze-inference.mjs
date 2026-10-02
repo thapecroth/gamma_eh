@@ -28,6 +28,9 @@ function options() {
     'include-holdout': {type: 'boolean'}, trials: {type: 'string', default: '5'},
     iterations: {type: 'string', default: '25'}, 'profile-ms': {type: 'string', default: '750'}, help: {type: 'boolean'}}});
   if (values.help) return null;
+  const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
+  assert(nodeMajor === 24 && nodeMinor >= 11, 'Analysis requires Node 24.11 or newer in the 24.x line');
+  assert(!process.env.GAMMA_MODEL_DIR && !process.env.GAMMA_BUILD_PROFILE, 'Analysis requires bundled models/browser; clear alternate model/profile variables');
   for (const [name, low, high] of [['trials', 5, 20], ['iterations', 5, 100], ['profile-ms', 500, 5000]]) {
     assert(/^\d+$/u.test(values[name]) && Number(values[name]) >= low && Number(values[name]) <= high, `Invalid ${name}: require ${low}..${high}`);
     values[name] = Number(values[name]);
@@ -115,7 +118,7 @@ function htmlReport(report, sections) {
   const rows = Object.entries(report.trials).flatMap(([name, trials]) => !trials.length ? [] : ['cold', ...workloadNames].map(workload => {
     const median = percentile(trials.map(row => workload === 'cold' ? row.coldMs : row[workload].medianMs), 0.5);
     const p95 = workload === 'cold' ? null : percentile(trials.map(row => row[workload].p95Ms), 0.5);
-    const calls = workload === 'cold' ? report.trees[name].probe?.coldModelRuns : percentile(trials.map(row => row[workload].counters.runtimeCalls), 0.5);
+    const calls = workload === 'cold' ? percentile(trials.map(row => row.coldRuntimeCalls), 0.5) : percentile(trials.map(row => row[workload].counters.runtimeCalls), 0.5);
     const hits = workload === 'cold' ? 0 : percentile(trials.map(row => row[workload].counters.cacheHits), 0.5);
     return `<tr><td>${escapeHtml(name)}</td><td>${workload}</td><td>${median.toFixed(3)}</td><td>${p95?.toFixed(3) ?? '—'}</td><td>${calls ?? '—'}</td><td>${hits}</td></tr>`;
   })).join('');
@@ -158,6 +161,7 @@ async function main() {
     const commonDirs = new Map();
     for (const tree of [root, ...Object.values(trees)]) commonDirs.set(resolve(tree, await git(tree, 'rev-parse', '--git-common-dir')), tree);
     for (const [, tree] of [...commonDirs].sort(([a], [b]) => a.localeCompare(b))) locks.push(await acquireLock(tree));
+    console.log(JSON.stringify({phase: 'analysis-start', pid: process.pid, runId: id}));
     report.harness = {root, ...await snapshot(root), hashes: {}};
     for (const path of protectedHarness) report.harness.hashes[path] = digest(await readFile(join(root, path)));
     report.harness.sha256 = digest(JSON.stringify(report.harness.hashes));
@@ -244,7 +248,7 @@ async function main() {
         if (trial % 2) names.reverse();
         report.environment.host.push(await host());
         for (const name of names) await withPage(name, async (page, initialization) => {
-          const measurements = {trial, order: names, coldMs: initialization.coldMs};
+          const measurements = {trial, order: names, coldMs: initialization.coldMs, coldRuntimeCalls: initialization.coldRuntimeCalls};
           report.trees[name].probe = initialization;
           trialOutputs[name] ??= [];
           for (const workload of workloadNames) {

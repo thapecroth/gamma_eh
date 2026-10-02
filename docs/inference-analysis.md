@@ -8,6 +8,10 @@ model assets on local Chromium. It does not train, modify, publish, or merge cod
 Run `npm run test:inference-analysis` to verify the infrastructure itself in real
 Chromium with fictional inputs. CI verifies profiles, flamegraphs, elapsed traces,
 cache counters, output parity and refusal to promote without the frozen corpus.
+It also rejects invalid options and alternate-model variables, and verifies that
+interrupting an active analysis invalidates its receipt and releases the lock.
+CI preserves fictional aggregate reports and profiles; private corpus outputs,
+exception logs and model bundles are excluded from uploaded evidence.
 
 ## Start with a trusted harness
 
@@ -26,6 +30,8 @@ JFLEG corpus once using `python3 training/import_jfleg.py --execute --output
 data/imported/jfleg-evaluation`. The corpus is evaluation only and separately
 licensed; retain it locally in ignored directories. A run without it remains a
 diagnostic and cannot promote a candidate.
+Clear `GAMMA_MODEL_DIR` and `GAMMA_BUILD_PROFILE`: this performance-only gate
+requires each checkout's bundled `models/browser` assets.
 
 ```sh
 # Run from the trusted checkout. Baseline/anchor checkouts are read only.
@@ -103,6 +109,7 @@ execution or other process/worker CPU. A narrow CPU graph beside a long
 `JaxSession.run` wall span can indicate async waiting. Runtime spans include await
 time and must not be described as device CPU time. Profile overhead never decides
 acceptance; only the earlier unprofiled trials do.
+The raw profiles follow the [CDP Profiler protocol](https://chromedevtools.github.io/devtools-protocol/tot/Profiler/).
 
 Node, Chromium, Playwright, esbuild/runtime versions, actual model/bundle/input
 hashes, commits, dirty scopes, adapter/software evidence, host load, Linux PSI and

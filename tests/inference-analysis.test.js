@@ -48,6 +48,14 @@ describe('trusted inference analysis', () => {
     expect(tree.excluded.idleUs).toBe(2000);
     expect(flamegraphSvg(tree, 'Allocation')).toContain('(garbage collector)');
   });
+  it('counts frames named like Object prototype properties as real CPU', () => {
+    for (const name of ['constructor', 'toString', '__proto__']) {
+      const tree = profileTree(profile({nodes: [frame(1, '(root)', [2]), frame(2, name)],
+        samples: [2], timeDeltas: [6000]}));
+      expect(tree.root.value).toBe(6000);
+      expect([...tree.root.children.values()][0].name).toBe(name);
+    }
+  });
   it('maps generated frame refs without renaming symbols', () => {
     const resolver = sourceResolver({version: 3, sources: ['src/model.ts'], mappings: 'AAAA'});
     expect(resolver(frame(2, 'analyzePass').callFrame)).toBe('src/model.ts:1:1');

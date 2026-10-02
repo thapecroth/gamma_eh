@@ -188,6 +188,7 @@ export function profileTree(profile, resolveSource = sourceResolver(null)) {
   }
   const root = {name: 'Sampled renderer CPU (including GC)', value: 0, self: 0, children: new Map()};
   const excluded = {idleUs: 0, programUs: 0, rootUs: 0};
+  const excludedCategories = new Map([['(idle)', 'idleUs'], ['(program)', 'programUs'], ['(root)', 'rootUs']]);
   let sampledUs = 0, activeSamples = 0, garbageCollectionUs = 0;
   profile.samples.forEach((id, index) => {
     const delta = profile.timeDeltas[index];
@@ -197,7 +198,7 @@ export function profileTree(profile, resolveSource = sourceResolver(null)) {
     while (current !== undefined) { stack.unshift(nodes.get(current)); current = parents.get(current); }
     const leaf = stack.at(-1).callFrame.functionName;
     if (leaf === '(garbage collector)') garbageCollectionUs += delta;
-    const category = {'(idle)': 'idleUs', '(program)': 'programUs', '(root)': 'rootUs'}[leaf];
+    const category = excludedCategories.get(leaf);
     if (category) { excluded[category] += delta; return; }
     activeSamples++; root.value += delta;
     let branch = root;
