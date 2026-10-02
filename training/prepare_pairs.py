@@ -9,11 +9,12 @@ import sqlite3
 from data import edit_tags, render, tokens
 from edit_ops import reconstruct
 from pairs import group_id, hash_file, normalized, validate_pair
+from verified_teacher import MODEL, blind_id, blind_reason, critic_id, critic_reason
 
 LICENSES = {"CC0-1.0", "CC-BY-4.0", "Apache-2.0", "MIT"}
 TEACHER_ORIGINS = {"llm-teacher", "glm-recipe-machine-screened"}
 SCREENING_FIELDS = ("row_id", "recipe_id", "recipe_version", "family_id", "split", "register", "context",
-                    "job_id", "run_fingerprint", "mutation", "guard_coverage", "blind_review", "pair_review",
+                    "job_id", "run_fingerprint", "mutation", "guard_coverage", "blind_review", "pair_review", "critic_request_id",
                     "status", "screening_status", "admission_status", "human_reviewed", "weak_supervision")
 
 
@@ -56,7 +57,15 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
                                     or not isinstance(raw.get("family_id"), str)
                                     or len(raw["family_id"]) != 64
                                     or any(char not in "0123456789abcdef" for char in raw["family_id"])
-                                    or not raw.get("run_fingerprint") or not raw.get("blind_review") or not raw.get("pair_review")):
+                                    or raw.get("model") != MODEL or not isinstance(raw.get("row_id"), str)
+                                    or not isinstance(raw.get("run_fingerprint"), str) or len(raw["run_fingerprint"]) != 64
+                                    or any(char not in "0123456789abcdef" for char in raw["run_fingerprint"])
+                                    or not isinstance(raw.get("blind_review"), dict) or not isinstance(raw.get("pair_review"), dict)):
+                                raise ValueError("teacher_evidence_missing")
+                            if (raw["blind_review"].get("id") != blind_id(raw, raw["run_fingerprint"])
+                                    or raw["pair_review"].get("id") != raw["row_id"]
+                                    or "critic_request_id" in raw and raw["critic_request_id"] != critic_id(raw, raw["run_fingerprint"])
+                                    or blind_reason(raw, raw["blind_review"]) or critic_reason(raw, raw["pair_review"])):
                                 raise ValueError("teacher_evidence_missing")
                         row = validate_pair(raw)
                         license_id = raw.get("license")
@@ -94,7 +103,11 @@ def prepare(inputs, output, allow_weak_train=False, teacher_license=None, max_la
                             if all(tag == 'KEEP' for tag in tags) and normalized(row['source']) != normalized(row['target']):
                                 raise ValueError('unrepresentable_spacing_change')
                             expected = render(tokens(row["target"])) if schema == 1 else row["target"]
-                            if normalized(reconstruct(words, tags, schema)) != normalized(expected):
+                            # Runtime KEEP makes no edits and preserves the original
+                            # source, including punctuation/spacing the canonical
+                            # token renderer cannot reproduce.
+                            exact_identity = row["source"] == row["target"] and all(tag == "KEEP" for tag in tags)
+                            if not exact_identity and normalized(reconstruct(words, tags, schema)) != normalized(expected):
                                 raise ValueError("unrepresentable_case_or_spacing_change")
                             row.update({"tokens": words, "tags": tags})
                         except ValueError as error:

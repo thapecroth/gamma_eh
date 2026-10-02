@@ -8,7 +8,7 @@ GLM generates and verifies the examples in fresh requests; its errors can be
 correlated across those requests. A human audit and independent natural-text
 evaluation remain necessary before claims about quality or model promotion.
 
-The v1 client uses only `http://127.0.0.1:8317/v1/chat/completions` and the exact
+The client uses only `http://127.0.0.1:8317/v1/chat/completions` and the exact
 model `glm-5.3`. It disables environment HTTP proxies, rejects redirects, and has
 no direct provider endpoint or fallback model. Optional monitor attribution
 retains only approved provider/auth-mode values. Account identifiers, keys,
@@ -43,7 +43,9 @@ Every family receives a split before corruption. The surface family hash uses
 NFC casefolded lexical tokens, equates straight/curly apostrophes, ignores
 punctuation, and collapses numeral values. This groups those surface variants,
 not arbitrary paraphrases or related syntactic templates. The stable split is
-80% train, 10% dev and 10% test. All siblings share the same split. Synthetic
+80% train, 10% dev and 10% test. Basic cardinal words zero through ten and digit
+numerals use the same family placeholder, so `two`, `three`, `2` and `3` variants
+stay together. All siblings share the same split. Synthetic
 dev/test remain diagnostics and do not certify natural-text generalization.
 
 ## Running a bounded pilot
@@ -53,7 +55,7 @@ configuration loader. Never put them in CLI arguments or dataset files.
 
 ```sh
 python training/verified_teacher.py \
-  --output data/teacher/verified-pilot-v1 \
+  --output data/teacher/verified-pilot-v2 \
   --families 80 --batch-size 4 --seed 46 \
   --api-key-env TEACHER_API_KEY \
   --attribution-token-env GAMMA_MONITOR_TOKEN --require-attribution \
@@ -82,6 +84,18 @@ budget charge; timeout/interruption billing is marked unknown.
 
 ## Blinding, checkpoints and outputs
 
+The v2 generator receives an executable `generation_contract` derived from the
+mutator's own allowed constants and adjacency/boundary patterns. It explicitly
+names eligible subject heads, modifier objects, auxiliary frames, noun boundaries
+and governed-preposition object starters. This improves mutation eligibility
+while leaving fictional situations and free sentence tails varied. Changing a
+construction requires a new source fingerprint/run directory; the completed v1
+pilot and its archived source remain frozen.
+Domain/register planning uses independent salted local recipe counters: each
+eight-family block covers all eight domains, and each four-family block has one
+informal context, including general clean controls. The assignment is deterministic
+without tying recipe parity to a restricted domain or register.
+
 Repair inputs contain only source, register, fictional context and an opaque
 ID. Clean and corrupted siblings use separate requests; their family, recipe,
 class, mutation and intended target are withheld. A variant batch cannot contain
@@ -89,6 +103,19 @@ its intended target as another source. The critic intentionally sees source and
 target and returns explicit booleans for grammaticality, necessity, minimality,
 meaning and register. False booleans and malformed row verdicts are quarantined.
 Informal initial lowercase and other unaffected characters must remain exact.
+
+Critic IDs are also opaque and hide family and clean/error class. Three newly
+authored fictional sentinels are mixed into each critic request: a valid identity,
+a grammatical source with a changed color/fact, and a malformed target. Local
+expected properties test basic reviewer reliability without demanding subjective
+verdicts, such as whether a one-word color swap is minimal. Both fields of every
+control are checked against exclusion keys; details rotate deterministically.
+Any failed control quarantines that group's real rows. These controls are screening
+diagnostics, not independent or human validation, and never enter corpus exports.
+One group receipt in SQLite retains controls, expectations and verdicts; the
+manifest aggregates checked/failed counts. Raw wire reviews remain checkpointed.
+For real rows, `critic_request_id` records the opaque wire ID while the bound
+`pair_review.id` uses the local row ID for the preparation join.
 
 SQLite stores stage inputs by hash, sanitized attempt receipts, rows and job
 progress. A completed assistant response is committed before parsing/advancement,
@@ -124,9 +151,11 @@ that revocation.
 
 Mutation spans record both Python Unicode-codepoint offsets and browser UTF-16
 offsets. The teacher supplies no authoritative edit offsets. Compatibility checks
-separately require exact schema-2 reconstruction and a current decoded-source
-roundtrip at oracle confidence `1.0`, with conservative whole-source abstention
-for protected spans. Tokenizer context budget and empirical student accuracy are
+report canonical schema-2 reconstruction and a decoded-source roundtrip
+independently, at oracle confidence `1.0`. Exact clean identities preserve runtime
+text with zero edits even when canonical token rendering cannot reproduce an em
+dash or CLI flag. Edited sources use conservative whole-source abstention for
+protected spans. Tokenizer context budget and empirical student accuracy are
 separate checks. Verified raw pairs are retained even when current guards block
 them; coverage limitations must not redefine dataset quality.
 
@@ -152,11 +181,11 @@ provenance and verifier receipts while retaining the weak-supervision label.
 
 ```sh
 python training/prepare_pairs.py \
-  --input data/teacher/verified-pilot-v1/candidates.jsonl \
-  --output data/prepared/verified-pilot-v1 --schema 2 \
+  --input data/teacher/verified-pilot-v2/candidates.jsonl \
+  --output data/prepared/verified-pilot-v2 --schema 2 \
   --allow-weak-train --allow-unverified-teacher-terms
 python training/train.py \
-  --data data/prepared/verified-pilot-v1 \
+  --data data/prepared/verified-pilot-v2 \
   --evaluation-dir data/imported/jfleg-evaluation \
   --output artifacts/verified-student-v1/export \
   --checkpoint artifacts/verified-student-v1/checkpoint \

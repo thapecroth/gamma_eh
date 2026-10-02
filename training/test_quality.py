@@ -21,15 +21,18 @@ def write_rows(path, rows):
 
 def screened_pair(**overrides):
     from teacher_recipes import lexical_family
+    from verified_teacher import CRITIC_FIELDS, blind_id, critic_id
     target = "She is ready for the workshop."
     row = {"source": "She are ready for the workshop.", "target": target, "category": "agreement",
            "origin": "glm-recipe-machine-screened", "model": "glm-5.3",
            "license": "provider-terms-unverified", "status": "screened", "admission_status": "screened",
            "review_status": "machine-verified", "split": "train", "human_reviewed": False,
            "weak_supervision": True, "family_id": lexical_family(target), "recipe_id": "agreement_subject",
-           "recipe_version": 1, "run_fingerprint": "a" * 64,
-           "blind_review": {"corrected": target, "source_is_grammatical": False},
-           "pair_review": {"target_is_grammatical": True}, "guard_coverage": {"alignment": True, "guarded": True}}
+           "recipe_version": 1, "run_fingerprint": "a" * 64, "row_id": "family-00000000:variant",
+           "guard_coverage": {"alignment": True, "guarded": True}}
+    row["blind_review"] = {"id": blind_id(row, row["run_fingerprint"]), "corrected": target, "source_is_grammatical": False}
+    row["pair_review"] = {"id": row["row_id"], **dict.fromkeys(CRITIC_FIELDS, True)}
+    row["critic_request_id"] = critic_id(row, row["run_fingerprint"])
     return {**row, **overrides}
 
 
@@ -43,6 +46,7 @@ def test_preparation_retains_machine_provenance_without_promoting_review_or_lice
     assert row["recipe_version"] == 1 and row["run_fingerprint"] == "a" * 64
     assert row["clean_group"] == screened_pair()["family_id"]
     assert row["blind_review"] == screened_pair()["blind_review"]
+    assert row["critic_request_id"] == screened_pair()["critic_request_id"]
     assert manifest["publication_allowed"] is False
     assert manifest["evaluation"]["dev"]["rows"] == manifest["evaluation"]["test"]["rows"] == 0
 
@@ -53,6 +57,8 @@ def test_preparation_retains_machine_provenance_without_promoting_review_or_lice
     ({"split": "test"}, "teacher_heldout"),
     ({"blind_review": None}, "teacher_evidence_missing"),
     ({"human_reviewed": True}, "teacher_evidence_missing"),
+    ({"pair_review": {"target_is_grammatical": True}}, "teacher_evidence_missing"),
+    ({"critic_request_id": "wrong-wire-id"}, "teacher_evidence_missing"),
 ])
 def test_preparation_rejects_revocations_heldout_teacher_families_and_missing_evidence(tmp_path, overrides, reason):
     source = tmp_path / "pairs.jsonl"
@@ -61,6 +67,45 @@ def test_preparation_rejects_revocations_heldout_teacher_families_and_missing_ev
     manifest = prepare([source], output, allow_weak_train=True, allow_unverified_teacher_terms=True, schema=2)
     assert not (output / "train.jsonl").read_text()
     assert manifest["counts"]["rejected:" + reason] == 1
+
+
+@pytest.mark.parametrize("field,value", [("meaning_preserved", False), ("minimal_edit", "true"), ("id", "wrong-row")])
+def test_preparation_rechecks_explicit_successful_critic_verdicts(tmp_path, field, value):
+    row = screened_pair()
+    row["pair_review"][field] = value
+    source = tmp_path / "pairs.jsonl"
+    write_rows(source, [row])
+    manifest = prepare([source], tmp_path / "prepared", allow_weak_train=True, allow_unverified_teacher_terms=True, schema=2)
+    assert manifest["splits"]["train"]["accepted"] == 0
+    assert manifest["counts"]["rejected:teacher_evidence_missing"] == 1
+
+
+def test_preparation_rechecks_exact_blind_repair_target(tmp_path):
+    row = screened_pair()
+    row["blind_review"]["corrected"] = "She was ready for the workshop."
+    source = tmp_path / "pairs.jsonl"
+    write_rows(source, [row])
+    manifest = prepare([source], tmp_path / "prepared", allow_weak_train=True, allow_unverified_teacher_terms=True, schema=2)
+    assert manifest["splits"]["train"]["accepted"] == 0
+
+
+@pytest.mark.parametrize("text", ["We use --help to inspect the CLI.", "Mira arrived—then the meeting began.",
+                                  "The folder  is ready for review."])
+def test_preparation_retains_exact_clean_keep_controls_and_original_text(tmp_path, text):
+    from teacher_recipes import lexical_family
+    row = screened_pair(source=text, target=text, category="clean", family_id=lexical_family(text))
+    row["blind_review"].update(corrected=text, source_is_grammatical=True)
+    row["pair_review"].update(source_has_error=False, correction_is_necessary=False)
+    source = tmp_path / "pairs.jsonl"
+    write_rows(source, [row])
+    output = tmp_path / "prepared"
+    manifest = prepare([source], output, allow_weak_train=True, allow_unverified_teacher_terms=True, schema=2)
+    prepared = json.loads((output / "train.jsonl").read_text())
+    assert prepared["source"] == prepared["target"] == text
+    assert prepared["tags"] and set(prepared["tags"]) == {"KEEP"}
+    assert prepared["review_status"] == "weak-supervision" and prepared["human_reviewed"] is False
+    assert manifest["splits"]["train"]["accepted"] == 1
+    assert manifest["counts"].get("rejected", 0) == 0
 
 
 def words(text):

@@ -6,7 +6,9 @@ import sqlite3
 import pytest
 
 import verified_teacher as pipeline
-from teacher_recipes import (derive_variant, guard_coverage, lexical_family,
+from teacher_recipes import (COUNT_NOUNS, COUNT_NUMERALS, GOVERNED_PREPOSITIONS, HABITUAL_TIMES,
+                             MODIFIER_OBJECTS, OBJECT_STARTERS, PRONOUNS, SINGULAR_HEADS,
+                             derive_variant, generation_contract, guard_coverage, lexical_family,
                              load_registry, mutation_candidates, synthetic_split)
 
 
@@ -39,9 +41,16 @@ class FixtureClient:
             value = {"repairs": [{"id": row["id"], "corrected": self.text,
                                    "source_is_grammatical": row["source"] == self.text} for row in user["sources"]]}
         else:
-            value = {"reviews": [{"id": row["id"], **{field: row["source"] != row["target"]
-                       if field in {"source_has_error", "correction_is_necessary"} else True
-                       for field in pipeline.CRITIC_FIELDS}} for row in user["pairs"]]}
+            reviews = []
+            for row in user["pairs"]:
+                changed_fact = "placed the " in row["source"] and row["source"] != row["target"]
+                malformed_target = "has took the camera" in row["target"]
+                source_error = row["source"] != row["target"] and not changed_fact and not malformed_target
+                reviews.append({"id": row["id"], "source_has_error": source_error,
+                                "target_is_grammatical": not malformed_target,
+                                "correction_is_necessary": source_error, "minimal_edit": True,
+                                "meaning_preserved": not changed_fact, "register_preserved": True})
+            value = {"reviews": reviews}
         if self.change: self.change(stage, value)
         return {"content": json.dumps(value), "usage": {"total_tokens": 10, "untrusted": "discard"},
                 "attribution": {"provider": "claude", "auth_mode": "api-key", "account_id": "discard"},
@@ -89,6 +98,14 @@ def test_guard_coverage_reports_broad_rows_spacing_and_protected_source():
     assert not protected["guarded"]
 
 
+def test_exact_clean_identity_preserves_runtime_text_despite_canonical_alignment_failure():
+    for text in ("We use --help to inspect the CLI.", "Mira arrived—then the meeting began."):
+        coverage = guard_coverage(text, text)
+        assert coverage["alignment"] is False
+        assert coverage["guarded"] is True
+        assert coverage["guard_reason"] == "identity_no_edits"
+
+
 def test_ambiguous_contexts_abstain_and_utf16_offsets_are_explicit():
     assert mutation_candidates("She read the note yesterday.", "agreement") == []
     assert mutation_candidates("She has apple juice.", "article_missing") == []
@@ -105,7 +122,30 @@ def test_ambiguous_contexts_abstain_and_utf16_offsets_are_explicit():
 def test_family_splits_are_stable_for_case_punctuation_and_numerals():
     family = lexical_family("Mara bought 2 tickets.")
     assert family == lexical_family("mara bought 3 tickets!")
+    assert family == lexical_family("Mara bought two tickets.")
+    assert family == lexical_family("Mara bought three tickets.")
     assert synthetic_split(family) in {"train", "dev", "test"}
+
+
+def test_generation_contracts_derive_the_executable_preconditions():
+    agreement = generation_contract("agreement")
+    assert set(agreement["sentence_start_pronouns"]) == set(PRONOUNS)
+    assert set(agreement["singular_heads"]) == SINGULAR_HEADS
+    assert set(agreement["modifier_objects"]) == MODIFIER_OBJECTS
+    assert agreement["habitual_times"] == list(HABITUAL_TIMES)
+    for subject in agreement["sentence_start_pronouns"]:
+        verb = "am" if subject == "i" else "is" if subject in {"he", "she", "it"} else "are"
+        assert mutation_candidates(f"{subject} {verb} ready for lunch.", "agreement")
+    for head in agreement["singular_heads"]:
+        assert mutation_candidates(f"The {head} is ready for lunch.", "agreement")
+    numeric = generation_contract("numeric_count")
+    assert numeric["singular_plural"] == COUNT_NOUNS
+    assert set(numeric["numerals"]) == COUNT_NUMERALS
+    for numeral in numeric["numerals"]:
+        assert mutation_candidates(f"We bought {numeral} tickets.", "numeric_count")
+    prepositions = generation_contract("governed_preposition")
+    assert prepositions["governor_preposition"] == GOVERNED_PREPOSITIONS
+    assert set(prepositions["object_starters"]) == OBJECT_STARTERS
 
 
 def test_dry_run_large_plan_is_count_only_and_writes_nothing(tmp_path):
@@ -113,6 +153,21 @@ def test_dry_run_large_plan_is_count_only_and_writes_nothing(tmp_path):
     report = pipeline.run(args)
     assert report["generation_jobs"] == 1_000_000
     assert not args.output.exists()
+
+
+def test_each_recipe_covers_all_domains_and_balanced_registers_per_local_block(tmp_path):
+    args = args_for(tmp_path, recipe=None, families=80, batch_size=4)
+    registry = load_registry(args.recipes)
+    config = pipeline.build_config(args, registry, [])
+    jobs = list(pipeline.plan_jobs(config, registry))
+    assert jobs == list(pipeline.plan_jobs(config, registry))
+    for recipe in registry["recipes"]:
+        contexts = [context for job in jobs if job["recipe"]["id"] == recipe["id"] for context in job["contexts"]]
+        assert len(contexts) == 8
+        assert {context["context"] for context in contexts} == set(pipeline.DOMAINS)
+        assert sum(context["register"] == "informal" for context in contexts) == 2
+        assert all(sum(context["register"] == "informal" for context in contexts[offset:offset + 4]) == 1
+                   for offset in (0, 4))
 
 
 @pytest.mark.parametrize("url", ["https://api.z.ai/v1", "http://localhost:8317/v1", "http://127.0.0.1:8317/v1?key=secret",
@@ -150,6 +205,69 @@ def test_repair_requests_never_expose_siblings_answers_or_class_ids(tmp_path):
             assert ":clean" not in row["id"] and ":variant" not in row["id"] and "family" not in row["id"]
 
 
+def test_critic_ids_are_opaque_and_bound_receipts_preserve_ingestion_ids(tmp_path):
+    args = args_for(tmp_path)
+    client = FixtureClient()
+    report = pipeline.run(args, client, sleeper=lambda _: None)
+    critic_user = next(user for stage, user in client.calls if stage == "critic")
+    assert len(critic_user["pairs"]) == 5
+    for pair in critic_user["pairs"]:
+        assert pair["id"].startswith("r-") and len(pair["id"]) == 26
+        assert not any(marker in pair["id"] for marker in ("clean", "variant", "family", "sentinel"))
+        assert set(pair) == {"id", "source", "target", "register", "context"}
+    admitted = all_admitted(args)
+    assert len(admitted) == 2
+    assert report["critic_control_counts"] == {"checked": 3, "failed": 0, "groups_checked": 1}
+    db = sqlite3.connect(args.output / "ledger.sqlite3")
+    raw_reviews = json.loads(db.execute("SELECT response FROM stages WHERE stage='critic'").fetchone()[0])["reviews"]
+    assert db.execute("SELECT count(*) FROM critic_controls").fetchone()[0] == 1
+    db.close()
+    for row in admitted:
+        assert row["pair_review"]["id"] == row["row_id"]
+        assert row["critic_request_id"] == pipeline.critic_id(row, row["run_fingerprint"])
+        assert any(review["id"] == row["critic_request_id"] for review in raw_reviews)
+        assert "sentinel" not in row["row_id"]
+        assert "controls" not in row
+    assert client.calls[0][1]["recipe"]["generation_contract"]["mutator"] == "agreement"
+
+
+def test_critic_rubberstamp_rejects_entire_group_and_retains_control_receipt(tmp_path):
+    def rubberstamp(stage, value):
+        if stage == "critic":
+            for review in value["reviews"]:
+                review.update({field: True for field in pipeline.CRITIC_FIELDS})
+    args = args_for(tmp_path)
+    report = pipeline.run(args, FixtureClient(change=rubberstamp), sleeper=lambda _: None)
+    assert not all_admitted(args)
+    assert report["critic_control_counts"] == {"checked": 3, "failed": 3, "groups_checked": 1}
+    rejected = read_jsonl(args.output / "quarantine.jsonl")
+    assert len(rejected) == 2
+    assert {row["reason"] for row in rejected} == {"critic_control_failed"}
+    assert all("pair_review" in row and "source" in row for row in rejected)
+
+
+def test_critic_controls_rotate_locally_excluded_text_and_withhold_expectations():
+    original = pipeline.critic_controls("group-fixture", "fingerprint-fixture", set())
+    exclusions = {pipeline.normalized(original[0]["wire"]["source"]).casefold()}
+    rotated = pipeline.critic_controls("group-fixture", "fingerprint-fixture", exclusions)
+    assert rotated == pipeline.critic_controls("group-fixture", "fingerprint-fixture", exclusions)
+    assert rotated[0]["wire"]["source"] != original[0]["wire"]["source"]
+    assert all(pipeline.normalized(control["wire"][field]).casefold() not in exclusions
+               for control in rotated for field in ("source", "target"))
+    assert all("expected" not in control["wire"] and "kind" not in control["wire"] for control in rotated)
+
+
+def test_control_failure_requires_full_boolean_schema_but_not_subjective_verdicts():
+    control = next(row for row in pipeline.critic_controls("group-fixture", "fingerprint-fixture", set())
+                   if row["kind"] == "changed_fact")
+    response = {"id": control["wire"]["id"], **{field: True for field in pipeline.CRITIC_FIELDS}, **control["expected"]}
+    assert pipeline.control_reason(control, response) is None
+    response["minimal_edit"] = False
+    assert pipeline.control_reason(control, response) is None
+    response["meaning_preserved"] = "false"
+    assert pipeline.control_reason(control, response) == "control_schema"
+
+
 def test_informal_clean_identity_and_original_screenshot_stay_local(tmp_path):
     # The real screenshot regression is a local fixture only, never a live prompt.
     phrase = "my cat is hungry."
@@ -171,7 +289,7 @@ def test_false_critic_boolean_quarantines_error_and_retains_clean_sibling(tmp_pa
     def reject(stage, value):
         if stage == "critic":
             for row in value["reviews"]:
-                if row["id"].endswith(":variant"): row["meaning_preserved"] = False
+                if row["source_has_error"] is True: row["meaning_preserved"] = False
     args = args_for(tmp_path)
     pipeline.run(args, FixtureClient(change=reject), sleeper=lambda _: None)
     assert len(all_admitted(args)) == 1
