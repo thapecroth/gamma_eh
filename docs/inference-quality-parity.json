@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "measuredAt": "2026-10-02T02:07:14.487Z",
+  "scope": "Fresh before/after output parity, not a claim of universal grammar accuracy",
+  "baselineCommit": "310f10a3a19d314d87d32503dce73a2540e0ae9e",
+  "integrationBaseCommit": "0b0378c",
+  "baselineEngineMatchesIntegrationBase": true,
+  "corpus": {
+    "rows": 1501,
+    "inputs": [
+      {
+        "split": "dev",
+        "sha256": "b5581c7aa7dfcbacdf39b41256e3b01e13e85ace621baa766ac2b3868723f3a5",
+        "rows": 754
+      },
+      {
+        "split": "test",
+        "sha256": "22504390dc7921e1a4e85d77847b89953965ce385d22b428efec764e2abe6760",
+        "rows": 747
+      }
+    ],
+    "combinedSha256": "c2fac335ac55e8e774edc86fffb6dc46f14da0f2c17b910cb8581eb07db949e5"
+  },
+  "webgpuAdapter": {
+    "architecture": "swiftshader",
+    "isFallbackAdapter": true
+  },
+  "totalComparisons": 12008,
+  "results": [
+    {
+      "schema": 1,
+      "backend": "wasm",
+      "sentences": 1501,
+      "inputSha256": "c2fac335ac55e8e774edc86fffb6dc46f14da0f2c17b910cb8581eb07db949e5",
+      "modelSha256": "cb3280db7b33a7273ae75e87c8c5d432c63f9bdac89101d93dda72c776b38266",
+      "baselineEngineBundleSha256": "2e78c46a7d49c1dc4219a2323199385f4f184230193693f42c4ac3f80eafc1ae",
+      "optimizedEngineBundleSha256": "1de043321c23b96ebc9ac0cd56ca23840ba0f19f6d0eccc22b8378694f70e3c9",
+      "baselineReportSha256": "d7acfbde08200f37c21193c544ddb08ad50901822c1d75006bd09390e6784703",
+      "optimizedReportSha256": "956f7d5a76de5b27b6b2f3ce1d871f0a4f124896bb675d5138ede86da43f4e72",
+      "conditions": [
+        {
+          "mode": "model",
+          "maxPasses": 1,
+          "comparisons": 1501,
+          "correctedDifferences": 0,
+          "editDifferences": 0,
+          "maximumConfidenceDifference": 5.102251400268543e-7,
+          "baselineExactMatches": 352,
+          "optimizedExactMatches": 352,
+          "failures": 0
+        },
+        {
+          "mode": "model",
+          "maxPasses": 2,
+          "comparisons": 1501,
+          "correctedDifferences": 0,
+          "editDifferences": 0,
+          "maximumConfidenceDifference": 5.102251400268543e-7,
+          "baselineExactMatches": 352,
+          "optimizedExactMatches": 352,
+          "failures": 0
+        },
+        {
+          "mode": "combined",
+          "maxPasses": 1,
+          "comparisons": 1501,
+          "correctedDifferences": 0,
+          "editDifferences": 0,
+          "maximumConfidenceDifference": 5.102251400268543e-7,
+          "baselineExactMatches": 385,
+          "optimizedExactMatches": 385,
+          "failures": 0
+        },
+        {
+          "mode": "combined",
+          "maxPasses": 2,
+          "comparisons": 1501,
+          "correctedDifferences": 0,
+          "editDifferences": 0,
+          "maximumConfidenceDifference": 5.102251400268543e-7,
+          "baselineExactMatches": 385,
+          "optimizedExactMatches": 385,
+          "failures": 0
+        }
+      ],
+      "passed": true
+    },
+    {
+      "schema": 1,
+      "backend": "webgpu",
+      "sentences": 1501,
+      "inputSha256": "c2fac335ac55e8e774edc86fffb6dc46f14da0f2c17b910cb8581eb07db949e5",
+      "modelSha256": "cb3280db7b33a7273ae75e87c8c5d432c63f9bdac89101d93dda72c776b38266",
+      "baselineEngineBundleSha256": "2e78c46a7d49c1dc4219a2323199385f4f184230193693f42c4ac3f80eafc1ae",
+      "optimizedEngineBundleSha256": "1de043321c23b96ebc9ac0cd56ca23840ba0f19f6d0eccc22b8378694f70e3c9",
+      "baselineReportSha256": "2f2906fe9becfe7016c5157d06cc0f4d3eb08878b02b21db7e73e9daec885caa",
+      "optimizedReportSha256": "be0f44367f25c823779a4756132187d749a9d1691d99e315d388cf36828fb396",
+      "conditions": [
+        {
+          "mode": "model",
+          "maxPasses": 1,
+          "comparisons": 1501,
+          "correctedDifferences": 0,
+          "editDifferences": 0,
+          "maximumConfidenceDifference": 3.516310901341413e-7,
+          "baselineExactMatches": 352,
+          "optimizedExactMatches": 352,
+          "failures": 0
+        },
+        {
+          "mode": "model",
+          "maxPasses": 2,
+          "comparisons": 1501,
+          "correctedDifferences": 0,
+          "editDifferences": 0,
+          "maximumConfidenceDifference": 3.516310901341413e-7,
+          "baselineExactMatches": 352,
+          "optimizedExactMatches": 352,
+          "failures": 0
+        },
+        {
+          "mode": "combined",
+          "maxPasses": 1,
+          "comparisons": 1501,
+          "correctedDifferences": 0,
+          "editDifferences": 0,
+          "maximumConfidenceDifference": 3.516310901341413e-7,
+          "baselineExactMatches": 385,
+          "optimizedExactMatches": 385,
+          "failures": 0
+        },
+        {
+          "mode": "combined",
+          "maxPasses": 2,
+          "comparisons": 1501,
+          "correctedDifferences": 0,
+          "editDifferences": 0,
+          "maximumConfidenceDifference": 3.516310901341413e-7,
+          "baselineExactMatches": 385,
+          "optimizedExactMatches": 385,
+          "failures": 0
+        }
+      ],
+      "passed": true
+    }
+  ]
+}

@@ -68,6 +68,38 @@ on WebGPU. Confidence differences stayed below 0.0001 in the compared edits.
 This checks numerical and behavioral parity for the tested inputs, and is not
 a measure of real-world grammar accuracy.
 
+## Natural-text quality parity
+
+The [expanded parity results](inference-quality-parity.json) compare the active
+bundled model before and after this optimization on all 754 JFLEG development
+and 747 test sentences. Each sentence ran in model-only and combined modes with
+one and two correction passes on both WASM and WebGPU: 12,008 paired comparisons.
+The baseline engine matches the latest integration base `0b0378c`; the playground
+update did not change inference or decoding. Frozen input, model, engine bundle,
+and private prediction-report hashes accompany the aggregate evidence. Raw
+sentences, references, and predictions remain in ignored local artifacts.
+
+Every compared corrected text and edit matched, with zero inference failures
+and unchanged exact-reference match counts in every condition. The largest
+confidence difference was 0.000000511 on WASM and 0.000000352 on software WebGPU.
+This establishes no observed correction-quality regression on this fixed
+population with the current policy. FP32 logits are not bit-for-bit identical;
+decisions exactly at a confidence boundary remain sensitive to numerical drift.
+
+This natural-text run checks quality and is distinct from the incremental-draft
+speed benchmark above. Padding adds computation for fresh windows. In this run,
+the combined single-pass median for a new sentence was 1.4 to 1.5 ms on WASM and
+16.1 to 21.5 ms on software WebGPU. The speed gains above apply to reusing
+unchanged windows and avoiding repeated shape compilation. These sequential
+single-host timings do not isolate padding from runtime or host variability.
+
+Reproduce each baseline/optimized report with the same complete local corpus and
+model assets through `scripts/evaluate-browser.mjs`, `--modes model,combined`,
+and `--passes 1,2`; add `--webgpu` for the GPU condition. Join reports by row ID
+and source hash, require identical corrected text and edits excluding confidence,
+and compare confidence numerically. See [independent model quality](model-quality.md)
+for the frozen evaluation importer, provenance, license, and report format.
+
 ## Reproduction
 
 Run heavy commands sequentially. Use a separate unchanged worktree for the
