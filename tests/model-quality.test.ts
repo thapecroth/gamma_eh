@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import parity from '../training/edit-parity.json';
 import tokenizerParity from '../training/tokenizer-parity.json';
+import legacyParity from '../training/legacy-guard-parity.json';
 import { protectedSpans } from '../packages/engine/src/rules';
 import { EditHistory } from '../packages/engine/src/edit-history';
 import { decodeProposal, decodeWord } from '../packages/engine/src/edit-tags';
@@ -21,6 +22,13 @@ function corrected(text: string, index: number, tag: string, confidence = .99, s
 }
 
 describe('versioned edit contract', () => {
+  it('shares conservative legacy replacement, insertion and deletion evidence with Python', () => {
+    for (const row of legacyParity.cases) {
+      const words = splitWords(row.source);
+      const indices = words.map((word, index) => word.text === row.anchor ? index : -1).filter(index => index >= 0);
+      expect(corrected(row.source, indices[row.occurrence ?? 0], row.tag, .999, 1)).toBe(row.target);
+    }
+  });
   it('reproduces the pinned Python tokenizer on multilingual context and contractions', () => {
     const vocabulary = readFileSync(new URL('../models/browser/vocab.txt', import.meta.url), 'utf8');
     expect(createHash('sha256').update(vocabulary).digest('hex')).toBe(tokenizerParity.vocab_sha256);

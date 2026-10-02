@@ -13,6 +13,7 @@ import time
 
 from edit_ops import TOKEN_RE, decode_word, preserve_case, render, tag_category
 from pairs import hash_file, normalized
+from legacy_spelling import known_word, spelling_distance, whole_words
 
 # Mirror the two independently matched browser patterns. JS /u word boundaries
 # are ASCII, while letters/numbers and ECMAScript whitespace remain Unicode.
@@ -221,30 +222,63 @@ SINGULAR_HEADS = set("friend teacher neighbor student child colleague manager ca
 PLURAL_HEADS = set("friends teachers neighbors students children colleagues managers cats dogs people".split())
 
 
-def valid_verb(text, word, proposed):
-    """Mirror the browser's bounded full-source agreement guard, including abstention."""
-    original_family = AGREEMENT_VERBS.get(word["text"].lower())
-    proposed_family = AGREEMENT_VERBS.get(proposed.lower())
-    if not original_family and not proposed_family: return True
-    if not original_family or original_family != proposed_family: return False
+def expected_verb(text, word, family):
     subject = re.search(rf"(?:^|[.!?][{JS_WHITESPACE}]+)(?:(i|you|we|they|he|she|it)|(?:my|your|our|his|her|their|the|a|an)[ \t]+([A-Za-z]+))[ \t]+\Z",
                         text[:word["start"]], re.IGNORECASE | re.ASCII)
-    if not subject: return False
+    if not subject: return None
     tail = text[word["end"]:]
-    if re.search(r"^[^.!?]*\?", tail): return False
+    if re.search(r"^[^.!?]*\?", tail): return None
     pronoun = (subject[1] or "").lower()
     head = (subject[2] or "").lower()
     head = SPELLING.get(head, head)
     if pronoun: singular = pronoun in {"he", "she", "it"}
     elif head in SINGULAR_HEADS: singular = True
     elif head in PLURAL_HEADS: singular = False
-    else: return False
-    singular_verb, plural_verb, first_person, habitual = original_family
+    else: return None
+    singular_verb, plural_verb, first_person, habitual = family
     if habitual and (plural_verb == "read" or not re.search(
             r"^[^.!?\n]*\bevery[ \t]+(?:morning|day|evening|night|week)\b[^.!?\n]*(?:\.|$)",
-            tail, re.IGNORECASE | re.ASCII)): return False
-    expected = first_person if pronoun == "i" and first_person else singular_verb if singular else plural_verb
+            tail, re.IGNORECASE | re.ASCII)): return None
+    return first_person if pronoun == "i" and first_person else singular_verb if singular else plural_verb
+
+
+def valid_verb(text, word, proposed):
+    """Mirror the browser's bounded full-source agreement guard, including abstention."""
+    original_family = AGREEMENT_VERBS.get(word["text"].lower())
+    proposed_family = AGREEMENT_VERBS.get(proposed.lower())
+    if not original_family and not proposed_family: return True
+    if not original_family or original_family != proposed_family: return False
+    expected = expected_verb(text, word, original_family)
     return word["text"].lower() != expected and proposed.lower() == expected
+
+
+COUNTABLE_OBJECTS = set("apple orange egg umbrella envelope idea hour heir book pencil bicycle camera notebook ticket friend message pen project library university user unicorn".split())
+
+
+def valid_legacy_replacement(text, word, proposed, next_word):
+    original, replacement = word["text"].lower(), proposed.lower()
+    if original in AGREEMENT_VERBS or replacement in AGREEMENT_VERBS:
+        return valid_verb(text, word, replacement)
+    if original in {"a", "an"} or replacement in {"a", "an"}:
+        return original in {"a", "an"} and original != replacement and valid_article(replacement, next_word)
+    if not re.fullmatch(r"[A-Z]?[a-z]+", word["text"]): return False
+    prefix = re.sub(rf"[{JS_WHITESPACE}]+\Z", "", text[:word["start"]])
+    if word["text"][0].isupper() and not re.search(rf"(?:^|[.!?][{JS_WHITESPACE}]*)\Z", prefix):
+        return False
+    canonical = SPELLING.get(original, original)
+    if canonical != original: return canonical == replacement
+    if not re.fullmatch(r"[a-z]{3,32}", original) or not re.fullmatch(r"[a-z]{3,32}", replacement) or known_word(original) or not known_word(replacement):
+        return False
+    limit = 1 if len(original) < 5 else 2
+    return spelling_distance(original, replacement, limit) <= limit
+
+
+def valid_legacy_append(text, word, proposed, next_word):
+    family = AGREEMENT_VERBS.get(word["text"].lower())
+    return bool(family and next_word and family[0] == "has" and word["text"].lower() == expected_verb(text, word, family)
+        and next_word["text"] == next_word["text"].lower() and re.fullmatch(r"[ \t]+", text[word["end"]:next_word["start"]])
+        and SPELLING.get(next_word["text"], next_word["text"]) in COUNTABLE_OBJECTS and valid_article(proposed, next_word["text"])
+        and re.match(rf"^[ \t]*(?:[.!?](?:[{JS_WHITESPACE}]|$)|$)", text[next_word["end"]:]))
 
 
 def spaced_append(payload, source_after):
@@ -259,6 +293,21 @@ def decode_proposal(text, words, index, tag, confidence, schema):
     start, end, value = word["start"], word["end"], word["text"]
     if not WORD.fullmatch(value) and not (schema == 2 and PUNCTUATION.fullmatch(value)): return None
     if tag == "KEEP": return None
+    if schema == 1:
+        whole = whole_words(text)
+        if (start, end) not in whole: return None
+        next_word = words[index + 1] if index + 1 < len(words) else None
+        if next_word and (next_word["start"], next_word["end"]) not in whole: next_word = None
+        if tag == "DELETE":
+            previous = words[index - 1] if index > 0 else None
+            if value.lower() in {"had", "that"} or not previous or previous["text"].lower() != value.lower() or (previous["start"], previous["end"]) not in whole or not re.fullmatch(r"[ \t]+", text[previous["end"]:start]):
+                return None
+            while start > 0 and text[start - 1] in " \t": start -= 1
+            return {"start": start, "end": end, "replacement": "", "confidence": confidence, "tag": tag, "category": tag_category(tag)}
+        if tag.startswith("REPLACE:") and not valid_legacy_replacement(text, word, tag[8:], next_word["text"] if next_word else ""):
+            return None
+        if tag.startswith("APPEND:") and not valid_legacy_append(text, word, tag[7:], next_word):
+            return None
     if tag == "DELETE":
         lower = value.lower()
         duplicate = bool(WORD.fullmatch(value)) and lower not in {"had", "that"} and any(

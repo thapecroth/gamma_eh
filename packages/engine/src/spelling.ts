@@ -32,6 +32,10 @@ function getDictionary(): Dictionary {
   return dictionary;
 }
 
+export function isKnownSpellingWord(word: string): boolean {
+  return getDictionary().known.has(word) || technicalWords.has(word);
+}
+
 function deleteKeys(word: string, distance: number): Set<string> {
   const prefix = word.slice(0, PREFIX_LENGTH);
   const keys = new Set([prefix]);
