@@ -1,12 +1,14 @@
 # Project documentation
 
 - [GitHub Pages](github-pages.md): public playground URL, checked deployment, repository-path assets, live verification, and rollback.
+- [Local AI defaults](local-ai-defaults.md): automatic local inference, browser/device fallback, and saved opt-outs.
 - [Web playground](playground.md): standalone browser demo, red error underlines, default-enabled local AI, privacy, hosting, and extension-free verification.
 - [Windows WebGPU initialization](windows-webgpu.md): adapter options, runtime warnings, and rebuilding an unpacked extension.
 - [Chrome Web Store](chrome-web-store.md): unlisted submission material and automated approved updates.
 - [Extension privacy policy](privacy.md): local text processing, settings, site access, and controls.
 - [JAX JS inference](jax-js-runtime.md): bundled WebGPU/WASM runtime, FP32 parity, GPU fallback, and release metadata.
 - [Inference performance](inference-performance.md): measured bottlenecks, bounded sentence reuse, compiled shape reuse, and reproducible browser benchmarks.
+- [Trusted inference analysis](inference-analysis.md): paired measurements, real CPU flamegraphs and elapsed traces, frozen quality parity, and bounded optimization gates.
 - [Research and architecture](research-and-architecture.md): current WebGPU stack, model choices, correction flow, extension boundaries.
 - [Grammar correction literature review](gec-literature-review.md): evidence for compact edit models and span generation, browser tradeoffs, and a controlled experiment plan.
 - [Natural correction datasets](gec-datasets.md): human and synthetic sources, access, licensing, and public model training choices.
@@ -16,6 +18,7 @@
 - [Harder synthetic challenge](synthetic-challenge.md): separate adversarial evaluation, original training augmentation, and current full-engine baseline.
 - [Controlled model tuning](model-tuning.md): frozen CC0 training comparison, actual browser/natural evaluation, promotion gates and lexical safeguards.
 - [Scaling the dataset](massive-dataset.md): resumable teacher generation, pinned C4 streaming, and train-only weak supervision.
+- [Machine-screened teacher data](verified-teacher-data.md): versioned recipes, deterministic errors, blind repair, guarded coverage, immutable shards and train-only admission.
 - [End-to-end teacher pilot](live-pilot.md): real CLIProxyAPI calls, isolated student training and builds, and browser verification.
 - [Independent model quality](model-quality.md): frozen human references, expanded edits, GLM/C4 data, safe export calibration, and controlled browser comparisons.
 - [Model quality results](model-quality-results.md): completed 10,436-pair GLM corpus, four trained students, actual browser comparisons, and promotion decisions.

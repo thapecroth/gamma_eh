@@ -69,8 +69,10 @@ machine. A hosted app pass cannot prove the unfinished live teacher pipeline.
 
 The extension fixtures load an unchanged copy of the shipping manifest with
 automatic HTTP/HTTPS content scripts. Checking starts without popup activation
-or dynamic per-site registration, using rules by default and Local AI only after
-opt-in. Both localhost and `gamma-http.test` point to the same local server; the
+or dynamic per-site registration, with Local AI enabled by default. The fixtures
+verify model corrections before any AI setting is saved and saved opt-outs after
+navigation. A separate shared-engine browser check disables WebAssembly and
+verifies spelling/rules fallback. Both localhost and `gamma-http.test` point to the same local server; the
 latter is an ordinary insecure HTTP origin. Session identifiers use
 `crypto.getRandomValues` so startup also works where `crypto.randomUUID` is
 unavailable. The HTTP fixture must be insecure and have no `randomUUID`.

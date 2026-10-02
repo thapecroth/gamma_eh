@@ -59,7 +59,7 @@ npm run agent:e2e -- --focus 'Exercise pause/resume around a spelling correction
 The driver uses a fresh Chromium profile and fictional localhost fields. It
 clicks the actual popup Enable button and checkboxes, and accepts/dismisses
 suggestions in the extension's closed shadow panel. Required checks cover local
-AI opt-in, rule and AI corrections, dismiss without mutation, pause/resume,
+default-enabled AI, AI toggles, rule and AI corrections, dismiss without mutation, pause/resume,
 private/payment/opt-out fields, plain editable text, rich DOM preservation,
 UTF-16 emoji offsets, and a stale suggestion after text changes.
 

@@ -68,7 +68,7 @@ The regression witness includes a model-origin correction beyond the rules.
 
 Browser checks also inject missing GPU adapters, GPU allocation failures, and
 kernel compilation failures to require actual WASM model fallback. Extension
-checks exercise the worker pipeline, AI opt-in, popup controls, UTF-16 edits,
+checks exercise the worker pipeline, default-enabled AI, popup controls, UTF-16 edits,
 stale suggestions, protected fields, and rich-DOM preservation. External network
 requests and uncaught browser exceptions fail validation. Headless WebGPU may
 use SwiftShader software; adapter evidence must accompany any GPU claim.

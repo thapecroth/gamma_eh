@@ -11,7 +11,8 @@ It includes the model, JAX JS, and all executable code locally.
 3. Open or reload an ordinary HTTP/HTTPS tab. Suggestions start automatically.
 4. Focus a textarea or supported plain-text contenteditable. Accept or dismiss
    suggestions, or use the popup to pause checking globally or on the current site.
-5. Local AI is experimental and off by default; enable it in the popup to try it.
+5. Experimental Local AI is on by default, with local CPU or rules fallback
+   when needed. The popup can disable it; saved opt-outs are respected.
 
 Temporary add-ons are removed when Firefox restarts. Permanent installation in
 standard Firefox requires Mozilla signing; this project does not yet publish a

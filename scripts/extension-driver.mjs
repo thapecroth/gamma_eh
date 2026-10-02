@@ -69,7 +69,7 @@ const fixtureHtml = `<!doctype html><html lang="en"><title>Fictional Gamma EH fi
 
 export const mandatoryScenarios = [
   {id: 'rules-and-popup', steps: [step('popup', 'useAI', false), step('focus', 'draft'), step('assertBackend', null, null, 'rules'), step('accept'), step('accept'), step('assertText', 'draft', null, 'She has a friend.'), step('popup', 'enabled', false), step('assertPanel', null, null, 'hidden'), step('popup', 'enabled', true), step('fill', 'draft', 'She have a book.'), step('assertBackend', null, null, 'rules')]},
-  {id: 'ai-opt-in', steps: [step('popup', 'useAI', true), step('focus', 'draft'), step('assertBackend', null, null, 'ai'), step('accept'), step('accept'), step('assertText', 'draft', null, 'She has a friend.'), step('popup', 'useAI', false), step('assertBackend', null, null, 'rules')]},
+  {id: 'ai-toggle', steps: [step('popup', 'useAI', true), step('focus', 'draft'), step('assertBackend', null, null, 'ai'), step('accept'), step('accept'), step('assertText', 'draft', null, 'She has a friend.'), step('popup', 'useAI', false), step('assertBackend', null, null, 'rules')]},
   {id: 'ai-model-offsets-and-stale', steps: [step('popup', 'useAI', true), step('fill', 'draft', '😀. The students has a notebook.'), step('assertBackend', null, null, 'ai'), step('staleAccept', 'draft', '😀 Newly changed text.', '😀 Newly changed text.'), step('fill', 'draft', '😀. The students has a notebook.'), step('assertBackend', null, null, 'ai'), step('accept'), step('assertText', 'draft', null, '😀. The students have a notebook.')]},
   {id: 'dismiss-preserves-text', steps: [step('focus', 'draft'), step('assertBackend', null, null, 'rules'), step('dismiss'), step('assertPanel', null, null, 'visible'), step('assertText', 'draft', null, 'She have a freind.')]},
   ...['private', 'payment', 'optout'].map(field => ({id: `protected-${field}`, steps: [step('focus', 'draft'), step('assertPanel', null, null, 'visible'), step('focus', field), step('assertPanel', null, null, 'hidden'), step('assertText', field, null, 'She have a freind.')]})),
@@ -178,7 +178,7 @@ export async function runExtensionScenarios({root, directory, plan = null, id = 
     await popup.waitForURL(`chrome-extension://${extensionId}/popup.html`);
     await popup.locator('#site-name').filter({hasText: '127.0.0.1'}).waitFor();
     evidence.defaultSettings = {enabled: await popup.locator('#enabled').isChecked(), useAI: await popup.locator('#use-ai').isChecked()};
-    assert.deepEqual(evidence.defaultSettings, {enabled: true, useAI: false}, 'Fresh install must keep AI opt-in');
+    assert.deepEqual(evidence.defaultSettings, {enabled: true, useAI: true}, 'Fresh install must enable local AI by default');
     await popup.locator('#site-detail').filter({hasText: 'Enabled automatically.'}).waitFor();
     assert.equal(await popup.locator('#enable-site').isVisible(), false);
     const registered = await background.evaluate(() => chrome.scripting.getRegisteredContentScripts());
