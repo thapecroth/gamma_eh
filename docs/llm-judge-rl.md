@@ -67,6 +67,10 @@ requires at least 95% flag agreement in each round, 98% repeat agreement, zero
 unsafe positive rewards, and zero false-positive critical meaning/protection
 flags. Validation hashes the independent ledgers and recomputes the metrics from
 the exact cached pairs; editing a `passed` field cannot qualify the judge.
+Both direct training and the comparison require exactly the current `judge.py`
+and `calibrate_judge.py` code fingerprints. Missing, partial, extra, or changed
+fingerprints fail qualification; changing either implementation requires fresh
+calibration. Historical pilot receipts retain their original code identities.
 The prompt was tuned using these same cases. This is development calibration,
 not untouched judge validation or independently reviewed human agreement.
 

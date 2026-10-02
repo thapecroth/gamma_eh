@@ -55,6 +55,28 @@ def test_calibration_rejects_truncated_verdicts_and_flipped_receipt(tmp_path, mo
         validate_calibration(calibration, judge_spec(), fixture)
 
 
+@pytest.mark.parametrize("entrypoint", ["shared-validation", "comparison-plan"])
+@pytest.mark.parametrize("change", ["missing", "empty", "missing-judge", "missing-calibrator",
+                                   "changed-judge", "changed-calibrator", "extra", "non-object"])
+def test_calibration_rejects_incomplete_or_changed_code_provenance(tmp_path, monkeypatch, entrypoint, change):
+    data, evaluation, fixture, calibration = prepared(tmp_path, monkeypatch)
+    receipt = json.loads(calibration.read_text())
+    if change == "missing": receipt.pop("code_sha256")
+    elif change == "empty": receipt["code_sha256"] = {}
+    elif change == "non-object": receipt["code_sha256"] = []
+    elif change == "missing-judge": receipt["code_sha256"].pop("judge.py")
+    elif change == "missing-calibrator": receipt["code_sha256"].pop("calibrate_judge.py")
+    elif change == "changed-judge": receipt["code_sha256"]["judge.py"] = "0" * 64
+    elif change == "changed-calibrator": receipt["code_sha256"]["calibrate_judge.py"] = "0" * 64
+    else: receipt["code_sha256"]["unrelated.py"] = "0" * 64
+    calibration.write_text(json.dumps(receipt))
+    with pytest.raises(ValueError, match="calibration.*code"):
+        if entrypoint == "shared-validation":
+            validate_calibration(calibration, judge_spec(), fixture)
+        else:
+            plan(data, evaluation, tmp_path / "output", calibration, fixture=fixture)
+
+
 def test_calibration_rejects_copied_rounds_even_with_updated_hashes(tmp_path, monkeypatch):
     _, _, fixture, calibration = prepared(tmp_path, monkeypatch)
     receipt = json.loads(calibration.read_text())

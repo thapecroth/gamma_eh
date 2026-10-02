@@ -36,10 +36,7 @@ def plan(data, evaluation_dir, output, calibration, initial_checkpoint=None, fix
         raise ValueError("Worst-case sampled/baseline judgments exceed the finite budget")
     judge = judge_spec(judge_model, judge_provider, judge_auth, judge_provider_header, judge_auth_header)
     calibration, fixture = Path(calibration).resolve(), Path(fixture).resolve()
-    calibration_receipt = validate_calibration(calibration, judge, fixture)
-    for name, expected in calibration_receipt.get("code_sha256", {}).items():
-        if name not in {"judge.py", "calibrate_judge.py"} or hash_file(ROOT / "training" / name) != expected:
-            raise ValueError("Judge calibration executed different code")
+    validate_calibration(calibration, judge, fixture)
     fixture_rows = json.loads(fixture.read_text())["cases"]
     reserved = {normalized(row[field]).casefold() for row in fixture_rows for field in ("source", "candidate")}
     for row in read_rows(data / "train.jsonl"):

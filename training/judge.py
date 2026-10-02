@@ -69,6 +69,10 @@ def validate_calibration(path, spec, fixture=None):
             or any(type(value) not in {int, float} or not .95 <= value <= 1 for value in agreement)
             or type(repeat) not in {int, float} or not .98 <= repeat <= 1):
         raise ValueError("Judge calibration numeric agreement gates failed")
+    code_hashes = {name: digest(Path(__file__).with_name(name).read_bytes())
+                   for name in ("judge.py", "calibrate_judge.py")}
+    if receipt.get("code_sha256") != code_hashes:
+        raise ValueError("Judge calibration requires complete matching code fingerprints")
     if fixture is None:
         raise ValueError("Judge calibration qualification requires the original fixture and both verified round ledgers")
     if fixture is not None and receipt.get("fixture_sha256") != digest(Path(fixture).read_bytes()):
