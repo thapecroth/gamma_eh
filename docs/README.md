@@ -7,6 +7,7 @@
 - [Extension privacy policy](privacy.md): local text processing, settings, site access, and controls.
 - [JAX JS inference](jax-js-runtime.md): bundled WebGPU/WASM runtime, FP32 parity, GPU fallback, and release metadata.
 - [Inference performance](inference-performance.md): measured bottlenecks, bounded sentence reuse, compiled shape reuse, and reproducible browser benchmarks.
+- [Trusted inference analysis](inference-analysis.md): paired measurements, real CPU flamegraphs and elapsed traces, frozen quality parity, and bounded optimization gates.
 - [Research and architecture](research-and-architecture.md): current WebGPU stack, model choices, correction flow, extension boundaries.
 - [Grammar correction literature review](gec-literature-review.md): evidence for compact edit models and span generation, browser tradeoffs, and a controlled experiment plan.
 - [Natural correction datasets](gec-datasets.md): human and synthetic sources, access, licensing, and public model training choices.
