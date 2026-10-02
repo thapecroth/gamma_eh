@@ -1,0 +1,17 @@
+{
+  "id": "fce",
+  "training_split": "train",
+  "release_eligible": false,
+  "format": "m2-tar",
+  "license": "LicenseRef-Cambridge-FCE",
+  "license_scope": "Cambridge FCE v2.1 noncommercial research/education only; retain licence.txt; no unrestricted data/weight publication.",
+  "supervision": "human-annotated",
+  "source_url": "https://www.cl.cam.ac.uk/research/nl/bea2019st/",
+  "revision": "FCE v2.1 BEA2019",
+  "download_url": "https://www.cl.cam.ac.uk/research/nl/bea2019st/data/fce_v2.1.bea19.tar.gz",
+  "sha256": "c574c1cdba6d3ab5a87280f180133cdcf0609848f5dc87cfa2c3f4b0c07ec67e",
+  "max_download_bytes": 40000000,
+  "members": [
+    "fce/m2/fce.train.gold.bea19.m2"
+  ]
+}
