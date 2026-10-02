@@ -23,7 +23,7 @@ python training/corpus_import.py github-typo \
   --output data/imported/corpora/github-typo-v1 \
   --heldout data/imported/jfleg-evaluation \
   --heldout data/imported/public-benchmark/cweb \
-+  --limit 500 --max-scanned 500
+  --limit 500 --max-scanned 500
 ```
 
 This is a dry run. Add `--execute` to import and choose a fresh output directory.
@@ -33,7 +33,7 @@ Read the [shared workflow](../training-corpora.md) before changing the bounds.
 ## Run status
 
 The bounded four-epoch pilot completed on **CPU** using the pinned tiny-BERT encoder,
-seed42, batch32, context128 and a source-specific edit vocabulary (up to4,096 labels).
+seed 42, batch 32, context 128 and a source-specific edit vocabulary (up to 4,096 labels).
 
 | Measurement | Result |
 | --- | ---: |
@@ -48,10 +48,10 @@ seed42, batch32, context128 and a source-specific edit vocabulary (up to4,096 la
 | Reference-accepted test sources changed | 0 / 182 |
 | Export quality gate | Failed: model edits disabled |
 
-The diagnostic threshold is selected on all754 development sentences. All747
+The diagnostic threshold is selected on all 754 development sentences. All 747
 test sentences are scored with sentence-wise best-reference ERRANT; this is
 not official JFLEG GLEU or a browser benchmark. The exported policy retains the
-95% development precision,2% clean-text-change and25-edit-support gates across
+95% development precision, 2% clean-text-change and 25-edit-support gates across
 both FP32 and INT8. No shipped model is changed.
 
 Candidate input SHA256: `21a3c8cf839fa6b001ded03cf8a252a5e767743f18b02254fc7b5eac67deb995`.
