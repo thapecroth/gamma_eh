@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {mkdir, readFile, realpath, writeFile} from 'node:fs/promises';
-import {cpus, loadavg, platform, release} from 'node:os';
+import {platform, release, tmpdir} from 'node:os';
 import {dirname, isAbsolute, join, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parseArgs} from 'node:util';
@@ -12,8 +12,8 @@ import {browserArguments, findChromium, withLocalHttp} from './browser-environme
 import {buildPaths} from './paths.mjs';
 import {runtimeManifest} from './inference-runtime.mjs';
 import {webGPUAdapterEsbuildPlugin} from './webgpu-adapter-options.mjs';
-import {compareLogits, compareOutputs, digest, escapeHtml, flamegraphSvg, frozenQuality, percentile, policy,
-  profileTree, sourceResolver, timingGate, validateAssetSet, validateFrozenQuality} from './inference-analysis.mjs';
+import {compareLogits, compareOutputs, digest, escapeHtml, flamegraphSvg, frozenQuality, hostSample, percentile, policy,
+  profileTree, sourceResolver, swapAdvanced, timingGate, validateAssetSet, validateFrozenQuality} from './inference-analysis.mjs';
 import {paragraph, workloadNames} from './inference-probe.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -38,25 +38,6 @@ function options() {
   assert(!values.anchor || values.baseline, 'Anchor requires baseline');
   assert(!values['include-holdout'] || values['quality-dir'], 'Holdout requires frozen quality directory');
   return values;
-}
-
-async function host() {
-  const result = {at: new Date().toISOString(), logicalCpus: cpus().length, load: loadavg(), pressure: {}, swap: {}};
-  if (platform() === 'linux') {
-    for (const name of ['cpu', 'memory', 'io']) {
-      const text = await readFile(`/proc/pressure/${name}`, 'utf8');
-      result.pressure[name] = Object.fromEntries(text.trim().split('\n').map(line => {
-        const [kind, ...fields] = line.split(' ');
-        return [kind, Object.fromEntries(fields.map(field => { const [key, value] = field.split('='); return [key, Number(value)]; }))];
-      }));
-    }
-    const vmstat = await readFile('/proc/vmstat', 'utf8');
-    result.swap = Object.fromEntries([...vmstat.matchAll(/^(pswpin|pswpout) (\d+)$/gmu)].map(match => [match[1], Number(match[2])]));
-  }
-  result.underPressure = result.load[0] >= result.logicalCpus * policy.hostPressure.loadCpuFraction ||
-    (result.pressure.memory?.full?.avg10 ?? 0) > policy.hostPressure.memoryFullAvg10 ||
-    (result.pressure.io?.full?.avg10 ?? 0) > policy.hostPressure.ioFullAvg10;
-  return result;
 }
 
 async function snapshot(tree) {
@@ -155,6 +136,7 @@ async function main() {
     assert((await realpath(directory)).startsWith((await realpath(root)) + sep + 'artifacts' + sep), 'Artifact symlink escapes ignored directory');
     report.options = {...config, output: directory};
     report.backend = config.webgpu ? 'webgpu' : 'wasm';
+    report.environment.temporaryDirectory = tmpdir();
     const trees = {candidate: await realpath(resolve(config.candidate))};
     if (config.baseline) trees.baseline = await realpath(resolve(config.baseline));
     if (config.anchor) trees.anchor = await realpath(resolve(config.anchor));
@@ -165,7 +147,7 @@ async function main() {
     report.harness = {root, ...await snapshot(root), hashes: {}};
     for (const path of protectedHarness) report.harness.hashes[path] = digest(await readFile(join(root, path)));
     report.harness.sha256 = digest(JSON.stringify(report.harness.hashes));
-    report.environment.host.push(await host());
+    report.environment.host.push(await hostSample());
     const assets = new Map([['/', Buffer.from('<!doctype html><title>Local inference analysis</title>')],
       ['/probe.mjs', await readFile(join(root, 'scripts/inference-probe.mjs'))]]);
     for (const [name, tree] of Object.entries(trees)) {
@@ -246,7 +228,7 @@ async function main() {
       for (let trial = 0; trial < config.trials; trial++) {
         const names = Object.keys(trees);
         if (trial % 2) names.reverse();
-        report.environment.host.push(await host());
+        report.environment.host.push(await hostSample());
         for (const name of names) await withPage(name, async (page, initialization) => {
           const measurements = {trial, order: names, coldMs: initialization.coldMs, coldRuntimeCalls: initialization.coldRuntimeCalls};
           report.trees[name].probe = initialization;
@@ -259,7 +241,7 @@ async function main() {
           }
           report.trials[name].push(measurements);
         });
-        report.environment.host.push(await host());
+        report.environment.host.push(await hostSample());
         console.log(JSON.stringify({phase: 'unprofiled-timing', completedTrials: trial + 1, totalTrials: config.trials}));
       }
       for (const name of Object.keys(trees)) {
@@ -322,9 +304,9 @@ async function main() {
     }
     assert.deepEqual(await snapshot(root), Object.fromEntries(Object.entries(report.harness).filter(([key]) => !['root', 'hashes', 'sha256'].includes(key))), 'Trusted harness changed during analysis');
     for (const [path, hash] of Object.entries(report.harness.hashes)) assert.equal(digest(await readFile(join(root, path))), hash, 'Protected harness input changed');
-    report.environment.host.push(await host());
+    report.environment.host.push(await hostSample());
     const hosts = report.environment.host;
-    const swapChanged = hosts.some((row, index) => index > 0 && Object.entries(row.swap).some(([key, value]) => value > (hosts[index - 1].swap[key] ?? value)));
+    const swapChanged = hosts.some((row, index) => index > 0 && swapAdvanced(hosts[index - 1], row));
     report.environment.underPressure = hosts.some(row => row.underPressure) || swapChanged;
     let anchorGuard = true;
     if (trees.anchor) {

@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vite-plus/test';
 import {compareLogits, compareOutputs, digest, flamegraphSvg, policy, profileTree, sourceResolver,
-  timingGate, validateAssetSet, validateFrozenQuality} from '../scripts/inference-analysis.mjs';
+  timingGate, validateAssetSet, validateFrozenQuality, waitForQuietHost} from '../scripts/inference-analysis.mjs';
 
 const frame = (id, name, children = []) => ({id, callFrame: {functionName: name, url: 'engine.mjs', lineNumber: 0, columnNumber: 0}, children});
 const profile = overrides => ({nodes: [frame(1, '(root)', [2, 4]), frame(2, 'recursive <unsafe>', [3]),
@@ -9,6 +9,48 @@ const profile = overrides => ({nodes: [frame(1, '(root)', [2, 4]), frame(2, 'rec
 const output = (confidence = 0.9) => [{id: 'case', corrected: 'Fine.', suggestions: [{start: 0, end: 1, original: 'F', replacement: 'F', confidence}]}];
 const trials = ratios => ratios.map(ratio => ({coldMs: 100 * ratio,
   ...Object.fromEntries(['unchanged', 'edited', 'fresh', 'nearby'].map(name => [name, {medianMs: 10 * ratio, p95Ms: 11 * ratio}]))}));
+
+const host = (underPressure = false, swap = {pswpin: 0, pswpout: 0}) => ({underPressure, swap});
+function admissionClock(rows) {
+  let elapsed = 0, index = 0, stopped = false;
+  return {interrupt: () => { stopped = true; }, options: {
+    sample: async () => rows[Math.min(index++, rows.length - 1)], now: () => elapsed,
+    wait: async ms => { elapsed += ms; }, interrupted: () => stopped,
+  }};
+}
+
+describe('quiet host admission before timing', () => {
+  it('waits for installer pressure to decay before admitting any trial', async () => {
+    const clock = admissionClock([host(true), host(), host(), host()]);
+    const result = await waitForQuietHost(clock.options);
+    expect(result.passed).toBe(true);
+    expect(result.waitedMs).toBe(15000);
+    expect(result.samples.map(row => row.underPressure)).toEqual([true, false, false, false]);
+  });
+  it('requires a new quiet span if pressure returns between samples', async () => {
+    const clock = admissionClock([host(), host(), host(true), host(), host(), host()]);
+    expect((await waitForQuietHost(clock.options)).waitedMs).toBe(25000);
+  });
+  it('resets admission on either swap counter increasing', async () => {
+    for (const counter of ['pswpin', 'pswpout']) {
+      const clock = admissionClock([host(), ...Array.from({length: 4}, () => host(false, {pswpin: 0, pswpout: 0, [counter]: 1}))]);
+      expect((await waitForQuietHost(clock.options)).waitedMs).toBe(20000);
+    }
+  });
+  it('fails with its evidence after the bounded wait on a persistently busy host', async () => {
+    const clock = admissionClock([host(true)]);
+    await expect(waitForQuietHost(clock.options)).rejects.toMatchObject({
+      message: expect.stringMatching(/timed out/u), admission: {passed: false, waitedMs: 180000},
+    });
+  });
+  it('interrupts its wait promptly and preserves failure evidence', async () => {
+    const clock = admissionClock([host()]), wait = clock.options.wait;
+    clock.options.wait = async ms => { await wait(ms); clock.interrupt(); };
+    await expect(waitForQuietHost(clock.options)).rejects.toMatchObject({
+      message: expect.stringMatching(/interrupted/u), admission: {passed: false, waitedMs: 1000},
+    });
+  });
+});
 
 describe('trusted inference analysis', () => {
   it('keeps recursion and source refs while excluding idle from CPU width', () => {
