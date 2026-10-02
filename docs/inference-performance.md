@@ -104,6 +104,10 @@ for the frozen evaluation importer, provenance, license, and report format.
 
 ## Reproduction
 
+For optimization campaigns, use [trusted inference analysis](inference-analysis.md)
+for CPU flamegraphs, elapsed traces, frozen quality checks and promotion gates.
+The benchmark below remains a quick performance diagnostic.
+
 Run heavy commands sequentially. Use a separate unchanged worktree for the
 reference; install the pinned dependencies there or link the matching local
 installation. The benchmark uses only locally served model assets and fictional
