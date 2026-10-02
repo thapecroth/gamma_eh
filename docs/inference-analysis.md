@@ -31,7 +31,10 @@ seconds. It samples every five seconds, waits at most three minutes, records
 admission evidence, and fails on timeout or interruption. This lets installer I/O
 decay before any trial. The real pressure gates still apply to the full run;
 measured campaigns are never rerun to obtain a favorable result.
-CI drains installer filesystem writes and uses `/dev/shm` for Chromium's
+After fixture creation, the Linux verifier drains pending writes on the fixture
+filesystem with a bounded `sync -f`, records before/after host samples, then begins
+quiet admission. This also covers writes from the preceding campaign. CI uses
+`/dev/shm` for Chromium's
 temporary profiles/artifacts so browser scratch writes do not contend for disk
 with inference. Every report records its temporary directory; Linux host samples
 also record dirty/writeback memory in KiB. Assets remain served from memory in all

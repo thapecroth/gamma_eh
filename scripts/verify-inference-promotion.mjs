@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import {mkdir, readFile, realpath, symlink, writeFile} from 'node:fs/promises';
 import {join, relative} from 'node:path';
+import {platform} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {parseArgs} from 'node:util';
 import {acquireLock, changedProductPaths, git, jsonFile, runCommand, runId, sourceStamp} from './agent-runtime.mjs';
-import {digest, frozenQuality, policy, profileTree, validateFrozenQuality, waitForQuietHost} from './inference-analysis.mjs';
+import {digest, frozenQuality, hostSample, policy, profileTree, validateFrozenQuality, waitForQuietHost} from './inference-analysis.mjs';
 
 // Controlled delays exercise promotion plumbing; they are not an optimization.
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -25,6 +26,17 @@ async function admit(name) {
   phase = `${name}-admission`;
   evidence.admission ??= {};
   console.log(JSON.stringify({phase, status: 'waiting-for-quiet-host'}));
+  if (platform() === 'linux') {
+    // Fixture creation dirties the same filesystem after installer setup ends.
+    // Drain those writes before measuring; never alter kernel pressure policy.
+    evidence.filesystemDrain ??= {};
+    const before = await hostSample();
+    evidence.filesystemDrain[name] = {before};
+    assert(!interrupted, 'Promotion verification interrupted');
+    await runCommand('sync', ['-f', directory], {cwd: root, timeoutMs: 60000,
+      log: join(directory, `${name}-filesystem-drain.private.log`)});
+    evidence.filesystemDrain[name].after = await hostSample();
+  }
   try { evidence.admission[name] = await waitForQuietHost({interrupted: () => interrupted}); }
   catch (error) { evidence.admission[name] = error.admission; throw error; }
   console.log(JSON.stringify({phase, status: 'admitted', waitedMs: evidence.admission[name].waitedMs}));
