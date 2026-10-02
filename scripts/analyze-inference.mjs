@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {mkdir, readFile, realpath, writeFile} from 'node:fs/promises';
-import {platform, release} from 'node:os';
+import {platform, release, tmpdir} from 'node:os';
 import {dirname, isAbsolute, join, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parseArgs} from 'node:util';
@@ -136,6 +136,7 @@ async function main() {
     assert((await realpath(directory)).startsWith((await realpath(root)) + sep + 'artifacts' + sep), 'Artifact symlink escapes ignored directory');
     report.options = {...config, output: directory};
     report.backend = config.webgpu ? 'webgpu' : 'wasm';
+    report.environment.temporaryDirectory = tmpdir();
     const trees = {candidate: await realpath(resolve(config.candidate))};
     if (config.baseline) trees.baseline = await realpath(resolve(config.baseline));
     if (config.anchor) trees.anchor = await realpath(resolve(config.anchor));

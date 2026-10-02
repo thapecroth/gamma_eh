@@ -25,6 +25,9 @@ export async function hostSample() {
     }
     const vmstat = await readFile('/proc/vmstat', 'utf8');
     result.swap = Object.fromEntries([...vmstat.matchAll(/^(pswpin|pswpout) (\d+)$/gmu)].map(match => [match[1], Number(match[2])]));
+    const meminfo = await readFile('/proc/meminfo', 'utf8');
+    result.writebackKiB = Object.fromEntries([...meminfo.matchAll(/^(Dirty|Writeback):\s+(\d+) kB$/gmu)]
+      .map(match => [match[1], Number(match[2])]));
   }
   result.underPressure = result.load[0] >= result.logicalCpus * policy.hostPressure.loadCpuFraction ||
     (result.pressure.memory?.full?.avg10 ?? 0) > policy.hostPressure.memoryFullAvg10 ||

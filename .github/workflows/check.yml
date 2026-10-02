@@ -124,7 +124,13 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Import pinned evaluation corpus locally
         run: python3 training/import_jfleg.py --execute --output data/imported/jfleg-evaluation
+      - name: Drain installer filesystem writes before admission
+        timeout-minutes: 1
+        run: sync
       - name: Verify actual promotion and rejection exits on CPU
+        env:
+          # Browser scratch writes must not compete with inference timings.
+          TMPDIR: /dev/shm
         run: npm run test:inference-promotion
       - name: Preserve aggregate promotion evidence
         if: always()

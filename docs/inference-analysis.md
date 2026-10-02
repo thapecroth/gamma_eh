@@ -31,6 +31,15 @@ seconds. It samples every five seconds, waits at most three minutes, records
 admission evidence, and fails on timeout or interruption. This lets installer I/O
 decay before any trial. The real pressure gates still apply to the full run;
 measured campaigns are never rerun to obtain a favorable result.
+CI drains installer filesystem writes and uses `/dev/shm` for Chromium's
+temporary profiles/artifacts so browser scratch writes do not contend for disk
+with inference. Every report records its temporary directory; Linux host samples
+also record dirty/writeback memory in KiB. Assets remain served from memory in all
+variants, and each timed trial still starts a fresh context and model session.
+Retain the same temporary-storage configuration when comparing runs. Linux can
+defer disk writes after installers return; its
+[writeback documentation](https://docs.kernel.org/admin-guide/sysctl/vm.html#dirty-expire-centisecs)
+explains why a brief quiet sample cannot rule out pending writes.
 
 The same serial campaign rejects baseline-only corrupted weights, a development
 corpus with one row removed, reused output directories and a source change after
