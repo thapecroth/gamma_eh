@@ -18,6 +18,7 @@
 - [Dataset and training](dataset-and-training.md): provenance, deterministic generation, training, calibration, exports, evaluation limits.
 - [Rule data and RL](rule-data-and-rl.md): human conversational corrections, conservative synthetic errors, agent counterexamples, and matched supervised/RL experiments.
 - [LLM judge RL](llm-judge-rl.md): binary-rubric rewards, independent judge calibration, bounded synthetic-only judging, and matched local training.
+- [Continual judge RL](continual-judge-rl.md): fresh generated pairs, screened replay, paired updates, checkpoint rollback, and restart-safe continuous execution.
 - [Harder synthetic challenge](synthetic-challenge.md): separate adversarial evaluation, original training augmentation, and current full-engine baseline.
 - [Controlled model tuning](model-tuning.md): frozen CC0 training comparison, actual browser/natural evaluation, promotion gates and lexical safeguards.
 - [Scaling the dataset](massive-dataset.md): resumable teacher generation, pinned C4 streaming, and train-only weak supervision.
