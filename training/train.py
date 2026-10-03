@@ -208,10 +208,19 @@ def main(args):
     initial_hashes = validate_checkpoint_labels(initial_checkpoint, labels) if initial_checkpoint else None
     rows, evaluation_hashes = evaluation_populations(args)
     judge_training_rows = None
+    judge_source_pool_sha256 = None
     if objective == "llm-judge-reinforce" and coefficient:
         from judge import validate_calibration_training
         judge_training_rows = [json.loads(line) for line in (args.data / "train.jsonl").read_text().splitlines()]
         validate_calibration_training(judge_training_rows, args.judge_calibration_fixture)
+        if args.judge_source_pool:
+            from judge import canonical, digest
+            pool = [json.loads(line) for line in args.judge_source_pool.read_text().splitlines()]
+            training_identities = {digest(canonical(row)) for row in judge_training_rows}
+            if not pool or any(digest(canonical(row)) not in training_identities for row in pool):
+                raise ValueError("Judge source pool must contain exact rows from supervised training")
+            judge_training_rows = pool
+            judge_source_pool_sha256 = hash_file(args.judge_source_pool)
     label_to_id = {label: i for i, label in enumerate(labels)}
     source = str(initial_checkpoint) if initial_checkpoint else args.base_model
     load_options = {"local_files_only": True} if initial_checkpoint else {
@@ -270,6 +279,7 @@ def main(args):
                         "baseline": "Detached greedy self-critical reward from the same eval-mode policy",
                         "log_probability": "Sum over valid word-initial token actions; batch mean across sentences",
                         "calibration_sha256": hash_file(args.judge_calibration),
+                        "source_pool_sha256": judge_source_pool_sha256,
                         "budgets": {"max_requests": args.judge_max_requests, "max_pairs": args.judge_max_pairs}}
     best_score = None
     history = []
@@ -505,6 +515,8 @@ def main(args):
                                                         args.scorer, category_thresholds),
                              "diagnostic_metrics": evaluate_records(rows[export_split], records,
                                 deployed_calibration["best_unconstrained"]["threshold"], scorer=args.scorer),
+                             "diagnostic_by_origin": score_origins(rows[export_split], records,
+                                deployed_calibration["best_unconstrained"]["threshold"], False, args.scorer, {}),
                              "inference": inference, "max_logit_difference": parity["max_logit_difference"],
                              "argmax_agreement": parity["argmax_matching"] / parity["argmax_tokens"] if parity["argmax_tokens"] else None}
     report["exports"] = exports
@@ -568,6 +580,8 @@ def parser():
     result.add_argument("--judge-calibration-fixture", type=Path,
                         default=Path(__file__).resolve().parents[1] / "data/judge-calibration.json")
     result.add_argument("--judge-subset-sha256")
+    result.add_argument("--judge-source-pool", type=Path,
+                        help="Optional exact training-row subset for fresh/replay synthetic rollouts")
     result.add_argument("--judge-rl-rows", type=int, default=128)
     result.add_argument("--judge-rl-batch-size", type=int, default=16)
     result.add_argument("--judge-temperature", type=float, default=1.)

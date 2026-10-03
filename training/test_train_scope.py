@@ -10,6 +10,27 @@ from types import SimpleNamespace
 import pytest
 
 
+def test_direct_judge_training_rejects_source_pool_outside_ce_before_model_load(tmp_path, monkeypatch):
+    for dependency in ("torch", "onnx", "onnxruntime", "transformers"):
+        pytest.importorskip(dependency)
+    import train
+    from test_compare_judge_rl import prepared
+    data, evaluation, fixture, calibration = prepared(tmp_path, monkeypatch)
+    pool = tmp_path / "pool.jsonl"
+    row = json.loads((data / "train.jsonl").read_text())
+    row["source"] = "Unrecorded remote source."
+    pool.write_text(json.dumps(row) + "\n")
+    monkeypatch.setattr(train.AutoTokenizer, "from_pretrained",
+                        lambda *_args, **_kwargs: pytest.fail("Must reject pool before loading a model"))
+    args = train.parser().parse_args(["--data", str(data), "--evaluation-dir", str(evaluation),
+        "--output", str(tmp_path / "output"), "--checkpoint", str(tmp_path / "checkpoint"),
+        "--epochs", "1", "--device", "cpu", "--objective", "llm-judge-reinforce",
+        "--judge-calibration", str(calibration), "--judge-calibration-fixture", str(fixture),
+        "--judge-source-pool", str(pool)])
+    with pytest.raises(ValueError, match="exact rows from supervised training"): train.main(args)
+    assert not args.output.exists() and not args.checkpoint.exists()
+
+
 @pytest.mark.parametrize("fixture_field", ["source", "candidate"])
 @pytest.mark.parametrize("training_field", ["source", "target", "references"])
 def test_direct_judge_training_rejects_calibration_overlap_before_model_load(tmp_path, monkeypatch,

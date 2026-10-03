@@ -9,13 +9,23 @@ from judge import digest
 
 CONTACT = re.compile(r"https?://|\b[^\s@]+@[^\s@]+\.[^\s@]+|\b(?:sk-|AKIA)[A-Za-z0-9]{12,}", re.I)
 SEED_ORIGIN = "agent-authored-rule-seeds-v1"
+ONLINE_ORIGIN = "cliproxy-original-context-v1"
+
+
+def online_provenance(row):
+    fingerprint = row.get("generator_spec_sha256")
+    return (row.get("origin") == ONLINE_ORIGIN and row.get("license") == "provider-terms-unverified"
+            and row.get("machine_generated_original") is True and row.get("human_reviewed") is False
+            and row.get("publication_allowed") is False and row.get("generation_model") == "gpt-6-luna"
+            and isinstance(row.get("generation_request_id"), str) and bool(row["generation_request_id"])
+            and isinstance(fingerprint, str) and re.fullmatch(r"[0-9a-f]{64}", fingerprint) is not None)
 
 
 def eligible(row):
-    provenance = row.get("origin") == "original-template-v1" or (
-        row.get("origin") == "rule-corruption-v1" and row.get("seed_origin") == SEED_ORIGIN)
+    original = row.get("license") == "CC0-1.0" and (row.get("origin") == "original-template-v1" or (
+        row.get("origin") == "rule-corruption-v1" and row.get("seed_origin") == SEED_ORIGIN))
     source = row.get("source")
-    return (provenance and row.get("license") == "CC0-1.0" and not row.get("dialog_id")
+    return ((original or online_provenance(row)) and not row.get("dialog_id")
             and isinstance(source, str) and 3 <= len(source) <= 600 and source.isascii()
             and not CONTACT.search(source) and not protected_spans(source)
             and not any(ord(character) < 32 for character in source))
@@ -33,7 +43,7 @@ def select_rows(rows, limit=128, seed=42):
 def subset_spec(rows):
     return {"rows": len(rows), "source_sha256": [digest(row["source"]) for row in rows],
             "origins": sorted({row["origin"] for row in rows}),
-            "scope": "Original CC0 synthetic sources only; human corrections/references never sent to judge."}
+            "scope": "Original synthetic sources only: CC0 templates/seeds or provenance-recorded generated contexts; human corrections/references never sent to judge."}
 
 
 def encode_rows(rows, tokenizer, max_length):
