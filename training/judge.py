@@ -194,7 +194,8 @@ def live_response(url, payload, api_key, timeout):
         raise JudgeTransportError(f"Judge transport failed ({type(error).__name__}{status}); no rewards accepted") from None
 
 
-def response_verdicts(body, headers, spec, identities):
+def response_text(body, headers, spec):
+    """Validate the exact route and a completed Responses text result before parsing."""
     headers = {key.lower(): str(value) for key, value in headers.items()}
     provider, auth = headers.get(spec["provider_header"].lower()), headers.get(spec["auth_header"].lower())
     if provider != spec["expected_provider"] or auth != spec["expected_auth"]:
@@ -208,14 +209,18 @@ def response_verdicts(body, headers, spec, identities):
              if block.get("type") == "output_text" and isinstance(block.get("text"), str)]
     if len(texts) != 1 or any(block.get("type") == "refusal" for item in messages for block in item.get("content", [])):
         raise ValueError("Judge response requires one complete verdict JSON output")
-    verdicts = parse_verdicts(texts[0], identities)
     usage = body.get("usage")
     if not isinstance(usage, dict): raise ValueError("Invalid judge usage metadata")
     usage = {name: usage[name] for name in ("input_tokens", "output_tokens", "total_tokens") if name in usage}
     if len(usage) != 3 or any(type(value) is not int or value < 0 for value in usage.values()):
         raise ValueError("Invalid judge token usage")
-    return verdicts, {"request_id": body["id"], "model": body["model"], "provider": provider, "auth": auth,
-                      "usage": usage, "response_sha256": digest(canonical(body))}
+    return texts[0], {"request_id": body["id"], "model": body["model"], "provider": provider, "auth": auth,
+                     "usage": usage, "response_sha256": digest(canonical(body))}
+
+
+def response_verdicts(body, headers, spec, identities):
+    text, receipt = response_text(body, headers, spec)
+    return parse_verdicts(text, identities), receipt
 
 
 def pair_identity(source, candidate, spec):
@@ -248,7 +253,7 @@ def ledger_append(path, value, previous):
 
 class Judge:
     def __init__(self, directory, spec=None, batch_size=16, max_requests=256, max_pairs=8192, timeout=30,
-                 max_output_tokens=4096, transport=None, base_url=None):
+                 max_output_tokens=4096, transport=None, base_url=None, before_request=None):
         self.spec = spec or judge_spec()
         if self.spec != judge_spec(self.spec["model"], self.spec["expected_provider"], self.spec["expected_auth"],
                                    self.spec["provider_header"], self.spec["auth_header"]):
@@ -297,6 +302,7 @@ class Judge:
             self.cache[identity] = row
         self.cache_hits = 0
         self.transport = transport
+        self.before_request = before_request
 
     def close(self):
         if getattr(self, "lock", None): self.lock.close()
@@ -328,6 +334,7 @@ class Judge:
             raise ValueError("Judge request/pair budget exhausted")
         rows = list(pending.values())
         for start in range(0, len(rows), batch_size):
+            if self.before_request: self.before_request()
             batch = rows[start:start + batch_size]
             batch_id = uuid.uuid4().hex
             # Short batch-local IDs avoid asking the judge to copy 64-char hashes.
