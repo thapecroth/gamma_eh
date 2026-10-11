@@ -156,7 +156,7 @@ try {
     return response.json();
   });
   assert.equal(await page.getByRole('checkbox').isChecked(), true, 'Local AI must be enabled by default');
-  await page.getByRole('status').filter({hasText: /Local AI|Local rules/u}).first().waitFor({timeout: 90_000});
+  await page.locator('.status-dot.ready').waitFor({timeout: 90_000});
   evidence.web.initialBackend = await page.locator('.backend-status').textContent();
   evidence.web.modelWarning = await page.locator('.model-warning').count() ? await page.locator('.model-warning').textContent() : null;
   assert.match(evidence.web.initialBackend, /Local AI/u, 'Editor must execute the model, not silently pass via rules');
@@ -167,6 +167,8 @@ try {
   assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), 'She has a friend.');
   evidence.web.acceptAll = true;
   await page.getByLabel('Your writing', {exact: true}).fill('😀. The students has a notebook.');
+  await page.locator('.status-dot.ready').waitFor({timeout: 90_000});
+  assert((await page.locator('.suggestion-origin').allTextContents()).includes('LOCAL MODEL'));
   await page.waitForFunction(() => document.querySelector('.accept-all-button')?.disabled === false);
   await page.getByRole('button', {name: 'Accept all suggestions'}).click();
   assert.equal(await page.getByLabel('Your writing', {exact: true}).inputValue(), '😀. The students have a notebook.');
