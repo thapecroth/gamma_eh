@@ -41,7 +41,7 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium webkit
       - name: Check browser runtime capabilities
         timeout-minutes: 2
         run: npm run check:environment
@@ -73,6 +73,13 @@ jobs:
           GAMMA_WEB_BASE: /gamma_eh/
           GAMMA_TEST_WEBGPU: '0'
         run: npm run test:playground
+      - name: Verify stalled downloads and GPU recovery in Chromium and WebKit
+        env:
+          GAMMA_BUILD_PROFILE: pages
+          GAMMA_WEB_BASE: /gamma_eh/
+        run: |
+          npm run test:web-startup
+          GAMMA_STARTUP_BROWSER=webkit npm run test:web-startup
       - name: Verify Pages on WebGPU without an extension
         env:
           GAMMA_BUILD_PROFILE: pages
@@ -102,6 +109,7 @@ jobs:
             artifacts/playground-desktop.png
             artifacts/playground-mobile.png
             artifacts/pages/playground-smoke*.json
+            artifacts/pages/web-startup-*.json
             artifacts/pages/playground-desktop.png
             artifacts/pages/playground-mobile.png
             artifacts/agents/extension-*/browser.json

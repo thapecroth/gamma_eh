@@ -2,7 +2,7 @@
 
 - [GitHub Pages](github-pages.md): public playground URL, checked deployment, repository-path assets, live verification, and rollback.
 - [Local AI defaults](local-ai-defaults.md): automatic local inference, browser/device fallback, and saved opt-outs.
-- [Web playground](playground.md): standalone browser demo, red error underlines, default-enabled local AI, privacy, hosting, and extension-free verification.
+- [Web playground](playground.md): standalone browser demo, progressive rules/AI startup, bounded CPU recovery, WebKit checks, privacy, and hosting.
 - [Windows WebGPU initialization](windows-webgpu.md): adapter options, runtime warnings, and rebuilding an unpacked extension.
 - [Chrome Web Store](chrome-web-store.md): unlisted submission material and automated approved updates.
 - [Privacy policy](privacy.md): web and extension text processing, clipboard, hosting, settings, site access, and controls.

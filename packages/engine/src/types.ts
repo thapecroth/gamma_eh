@@ -23,10 +23,13 @@ export interface AnalysisResult {
   modelRuns?: number;
 }
 
+export type ModelLoadProgress = {stage: 'downloading'; loadedBytes: number} | {stage: 'initializing'};
+
 export interface EngineOptions {
   modelBaseUrl?: string;
   preferWebGPU?: boolean;
   confidenceThreshold?: number;
   mode?: 'combined' | 'model' | 'rules';
   maxPasses?: number;
+  onModelLoadProgress?: (progress: ModelLoadProgress) => void;
 }

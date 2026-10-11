@@ -4,12 +4,34 @@ import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import reference from './fixtures/onnx-reference.json';
 import regression from '../data/regression.json';
 import { JaxSession } from '../packages/engine/src/jax-runtime';
+import type { ModelLoadProgress } from '../packages/engine/src/types';
 import { analyzeText, applySuggestions } from '../packages/engine/src/index';
 
 const modelDirectory = new URL('../models/browser/', import.meta.url);
 afterEach(() => vi.unstubAllGlobals());
 
 describe('JAX model migration', () => {
+  it('reports streaming download progress and preserves the actual model bytes', async () => {
+    const progress: ModelLoadProgress[] = [];
+    const model = await readFile(new URL('model.onnx', modelDirectory));
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (!url.endsWith('model.onnx')) return new Response(await readFile(new URL(url.split('/').at(-1)!, modelDirectory)));
+      return new Response(new ReadableStream({start(controller) {
+        controller.enqueue(model.subarray(0, 12345));
+        controller.enqueue(model.subarray(12345));
+        controller.close();
+      }}));
+    });
+    const result = await analyzeText('The students has a notebook.', {
+      modelBaseUrl: '/jax-progress/', preferWebGPU: false, onModelLoadProgress: item => progress.push(item),
+    });
+    expect(progress).toEqual([{stage: 'downloading', loadedBytes: 0},
+      {stage: 'downloading', loadedBytes: 12345}, {stage: 'downloading', loadedBytes: model.length}, {stage: 'initializing'}]);
+    expect(result.modelError).toBeUndefined();
+    expect(applySuggestions(result.text, result.suggestions)).toBe('The students have a notebook.');
+    expect(result.suggestions.some(edit => edit.source === 'model')).toBe(true);
+  });
+
   it('matches FP32 ONNX Runtime logits at short and maximum context lengths on repeated runs', async () => {
     const bytes = new Uint8Array(await readFile(new URL('model.onnx', modelDirectory)));
     expect(createHash('sha256').update(bytes).digest('hex')).toBe(reference.modelSha256);

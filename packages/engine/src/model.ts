@@ -34,6 +34,26 @@ async function fetchAsset(base: string, filename: string): Promise<Response> {
   return response;
 }
 
+async function readModel(response: Response, onProgress: EngineOptions['onModelLoadProgress']): Promise<Uint8Array<ArrayBuffer>> {
+  if (!onProgress || !response.body) return new Uint8Array(await response.arrayBuffer());
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  try {
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      length += value.length;
+      if (value.length) onProgress({stage: 'downloading', loadedBytes: length});
+    }
+  } finally { reader.releaseLock(); }
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+  return bytes;
+}
+
 async function load(options: EngineOptions): Promise<LoadedModel> {
   const base = options.modelBaseUrl ?? '/models/';
   const [manifestResponse, labelsResponse, vocabResponse] = await Promise.all([
@@ -64,7 +84,9 @@ async function load(options: EngineOptions): Promise<LoadedModel> {
   const tokenizer = new WordPieceTokenizer(await vocabResponse.text());
   const logitsCache = new InferenceCache();
   if (policy.disableModelEdits) return {tokenizer, labels, manifest: policy, backend: 'rules', logitsCache};
-  const bytes = new Uint8Array(await (await fetchAsset(base, 'model.onnx')).arrayBuffer());
+  options.onModelLoadProgress?.({stage: 'downloading', loadedBytes: 0});
+  const bytes = await readModel(await fetchAsset(base, 'model.onnx'), options.onModelLoadProgress);
+  options.onModelLoadProgress?.({stage: 'initializing'});
   const session = await JaxSession.create(bytes, options.preferWebGPU !== false);
   const backend = session.backend;
   return {session, tokenizer, labels, manifest: manifest as ModelManifest, backend, logitsCache};

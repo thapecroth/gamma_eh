@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { applySuggestion, applySuggestions, type AnalysisResult, type Suggestion } from '@gamma/engine';
+import { applySuggestion, applySuggestions } from '../../../packages/engine/src/edits';
+import type { AnalysisResult, ModelLoadProgress, Suggestion } from '../../../packages/engine/src/types';
+import { WebChecker } from './checker';
 import { WritingEditor } from './WritingEditor';
 
 const EXAMPLES = [
@@ -24,8 +26,6 @@ const EXAMPLES = [
     text: 'The students has a notebook.\n\nMy teacher go to school every morning.',
   },
 ] as const;
-
-type WorkerResponse = { requestId: number; result?: AnalysisResult; error?: string };
 
 function Mark({ compact = false }: { compact?: boolean }) {
   return <a className="brand" href="#">
@@ -57,44 +57,45 @@ export default function App() {
   const [useAI, setUseAI] = useState(true);
   const [revision, setRevision] = useState(0);
   const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [status, setStatus] = useState<'checking' | 'ready' | 'error'>('checking');
+  const [status, setStatus] = useState<'checking' | 'loading-ai' | 'ready' | 'error'>('checking');
+  const [retryingCPU, setRetryingCPU] = useState(false);
+  const [modelProgress, setModelProgress] = useState<ModelLoadProgress>();
   const [error, setError] = useState('');
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [notice, setNotice] = useState('');
   const [undoText, setUndoText] = useState<string | null>(null);
-  const workerRef = useRef<Worker | null>(null);
+  const workerRef = useRef<WebChecker | null>(null);
   const requestId = useRef(0);
   const textRef = useRef(text);
   const editorRef = useRef<HTMLTextAreaElement>(null);
   textRef.current = text;
 
   useEffect(() => {
-    const worker = new Worker(new URL('./inference-worker.ts', import.meta.url), { type: 'module' });
-    workerRef.current = worker;
-    worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
-      const message = event.data;
+    const worker = new WebChecker((message) => {
       if (message.requestId !== requestId.current) return;
       if (message.result && message.result.text === textRef.current) {
         setResult(message.result);
-        setStatus('ready');
+        setStatus(message.pendingAI ? 'loading-ai' : 'ready');
+        setRetryingCPU(message.retryingCPU ?? false);
+        setModelProgress(message.progress);
         setError('');
       } else if (message.error) {
         setStatus('error');
         setError('The local checker could not check this draft. Try reloading this page.');
       }
-    };
-    worker.onerror = () => { setStatus('error'); setError('The local checker could not start. Try reloading this page.'); };
-    return () => { worker.terminate(); workerRef.current = null; };
+    });
+    workerRef.current = worker;
+    return () => { worker.dispose(); workerRef.current = null; };
   }, []);
 
   useEffect(() => {
     const id = ++requestId.current;
-    const timer = window.setTimeout(() => workerRef.current?.postMessage({ requestId: id, text, useAI }), 450);
+    const timer = window.setTimeout(() => workerRef.current?.check({ requestId: id, text, useAI }), 450);
     return () => window.clearTimeout(timer);
   }, [text, useAI, revision]);
 
   const example = EXAMPLES.find((item) => item.id === exampleId) ?? EXAMPLES[0];
-  const current = result?.text === text && status === 'ready';
+  const current = result?.text === text && (status === 'ready' || status === 'loading-ai');
   const suggestions = current ? result.suggestions.filter((suggestion) => !dismissed.has(suggestion.id)) : [];
   const words = text.trim() ? text.trim().split(/\s+/u).length : 0;
   const backendLabel = result?.backend === 'webgpu' ? 'Local AI · WebGPU' : result?.backend === 'wasm' ? 'Local AI · CPU' : 'Local rules';
@@ -183,10 +184,11 @@ export default function App() {
           <aside className="review-pane" aria-label="Writing suggestions">
             <div className="review-heading"><div><h2>A second pair of eyes <span aria-hidden="true">✧</span></h2><p>You choose what to change.</p></div><span className="issue-count" role="status" aria-label={`${suggestions.length} suggestions`}>{suggestions.length}</span></div>
             <div className="checker-settings">
-              <label className="toggle-label"><input type="checkbox" checked={useAI} onChange={(event) => { setUseAI(event.target.checked); invalidateCheck(); }} /><span className="switch" aria-hidden="true" />Local AI<span className="experimental">EXPERIMENTAL</span></label>
-              <div className="backend-status" role="status"><span className={`status-dot ${status}`} />{status === 'checking' ? useAI ? 'Checking on your device…' : 'Checking local rules…' : status === 'error' ? 'Checker unavailable' : backendLabel}{current && <span className="check-time">{Math.round(result.elapsedMs).toLocaleString()} ms</span>}</div>
+              <label className="toggle-label"><input type="checkbox" checked={useAI} onChange={(event) => { if (!event.target.checked) workerRef.current?.cancelAI(); setUseAI(event.target.checked); invalidateCheck(); }} /><span className="switch" aria-hidden="true" />Local AI<span className="experimental">EXPERIMENTAL</span></label>
+              <div className="backend-status" role="status"><span className={`status-dot ${status}`} />{status === 'checking' ? 'Checking local rules…' : status === 'loading-ai' ? retryingCPU ? 'Local rules ready · retrying AI on CPU…' : 'Local rules ready · checking AI…' : status === 'error' ? 'Checker unavailable' : backendLabel}{current && status === 'ready' && <span className="check-time">{Math.round(result.elapsedMs).toLocaleString()} ms</span>}</div>
             </div>
             {result?.modelError && current && <p className="model-warning">Local AI is unavailable here. Spelling and rule suggestions are running instead. You can switch Local AI off and on to retry.</p>}
+            {status === 'loading-ai' && <p className="model-loading">You can use these suggestions now. {modelProgress?.stage === 'downloading' ? `Downloading local AI: ${(modelProgress.loadedBytes / 1_000_000).toFixed(1)} MB received (about 18 MB total).` : 'Preparing local AI on your device. The first check downloads about 18 MB.'}</p>}
             {useAI && <p className="model-note">A tiny model trained on synthetic examples. Experimental suggestions may miss real-world errors.</p>}
             <div className="suggestion-list" aria-live="polite" aria-busy={status === 'checking'}>
               {status === 'checking' ? <div className="empty-state"><span className="checking-symbol" aria-hidden="true">✧</span><p>Giving your words a look.</p><span>{useAI ? 'The first local AI check may take a moment.' : 'Spelling and grammar checks run right here.'}</span></div>

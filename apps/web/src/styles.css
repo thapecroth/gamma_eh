@@ -85,9 +85,9 @@ svg { flex-shrink: 0; }
 .backend-status { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #627151; margin-top: 10px; }
 .check-time { margin-left: auto; font-variant-numeric: tabular-nums; }
 .status-dot { height: 5px; width: 5px; background: #849676; border-radius: 50%; flex-shrink: 0; }
-.status-dot.checking { background: #a78c4e; }
+.status-dot.checking, .status-dot.loading-ai { background: #a78c4e; }
 .status-dot.error { background: #a56451; }
-.model-note, .model-warning { font-size: 10px; line-height: 1.7; color: #68725b; margin: 0 22px 12px; }
+.model-note, .model-warning, .model-loading { font-size: 10px; line-height: 1.7; color: #68725b; margin: 0 22px 12px; }
 .model-warning { color: #79522f; background: #f5eddf; padding: 10px; border-radius: 5px; }
 .suggestion-list { padding: 0 14px 13px; overflow: auto; flex: 1; max-height: 365px; }
 .suggestion-card { border: 1px solid #e1e3d8; background: #fffefd; border-radius: 8px; padding: 15px 14px 12px; margin-bottom: 10px; }
