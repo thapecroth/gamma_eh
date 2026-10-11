@@ -48,7 +48,8 @@ export async function verifyWindowsWebGPU(context, origin, gpuRequired, scopes) 
           worker.onmessage = ({data}) => {
             if (data.adapterRequest) requests.push(data.adapterRequest);
             else if (data.ready) worker.postMessage({requestId: 'windows-check:1', text, useAI: true, modelBaseUrl: origin + '/models/'});
-            else finish(data.error, data.result);
+            // Download progress is not a completed inference response.
+            else if (data.result || data.error) finish(data.error, data.result);
           };
         }) : await engine.analyzeText(text, {
           modelBaseUrl: origin + '/models/', wasmBaseUrl: origin + '/runtime/', preferWebGPU: true,

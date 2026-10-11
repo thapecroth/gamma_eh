@@ -25,6 +25,7 @@
     "test:inference-analysis": "python3 scripts/agent-supervisor.py node scripts/verify-inference-analysis.mjs",
     "test:inference-promotion": "python3 scripts/agent-supervisor.py node scripts/verify-inference-promotion.mjs",
     "test:playground": "node scripts/verify-playground.mjs",
+    "test:web-startup": "node scripts/verify-web-startup.mjs",
     "data:synthetic": "python3 training/synthetic_challenge.py",
     "evaluate:synthetic": "npm run data:synthetic && node scripts/evaluate-synthetic.mjs",
     "test:agents": "python3 scripts/agent-supervisor.py node --test --test-isolation=none tests/agent-harness.node.mjs",

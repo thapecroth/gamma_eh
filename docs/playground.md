@@ -53,12 +53,30 @@ explicitly enables it. The page reports the actual WebGPU, WASM CPU, or rules
 backend and elapsed check time. If the model fails to load, rule and spelling
 suggestions still work and the page explains the fallback.
 
+Rules and spelling run in their own lightweight worker and appear while AI is
+loading. The AI runtime is imported only by the separate AI worker; the editor
+and rules worker do not initialize JAX. First use downloads about 18 MB of model
+weights, with received bytes shown during the download. Switching AI off
+immediately terminates its pending work, independently of the 450 ms typing
+debounce, so a stalled download cannot block local rules or a quick off/on retry.
+
+Download progress refreshes a 30-second inactivity deadline, so slow transfers
+can take longer than 30 seconds as long as bytes keep arriving. A stalled download
+leaves rules available and displays a retry notice. Once the weights arrive, an
+AI worker that stalls for 30 seconds is terminated and retried once in a fresh
+CPU worker, using the latest draft. A second 30-second timeout leaves rules
+available. These are recovery deadlines, not speed guarantees. The timer lives
+on the page so it also handles blocked worker compilation. Typing cannot extend
+a stalled operation's deadline, and terminated-worker replies are ignored.
+Successful CPU recovery remains selected for that tab until AI is switched off.
+Model failures suspend automatic retries until the visitor switches AI off/on.
+
 The bundled model is an experimental synthetic-template baseline. Its example
 corrections are demonstrations, not evidence of real-world grammar accuracy.
 
 ## Privacy and assets
 
-Checks execute in a browser worker. Typed text is never sent to a server,
+Checks execute in browser workers. Typed text is never sent to a server,
 analytics, or a remote model. Drafts and the one-step undo stay in memory and
 are discarded on reload or closing the tab. Copying explicitly writes the text
 to the visitor's clipboard. Fonts and interface assets need no external service.
@@ -105,9 +123,17 @@ After building and installing Chromium (`npx playwright install chromium`):
 ```sh
 npm run test:playground
 GAMMA_TEST_WEBGPU=1 npm run test:playground
+npm run test:web-startup
+# Install WebKit first: npx playwright install webkit
+GAMMA_STARTUP_BROWSER=webkit npm run test:web-startup
 ```
 
-Run the jobs sequentially. The first disables WebGPU to prove actual CPU model
+Run the jobs sequentially. Startup tests hold a model download open while editing
+and accepting rules, cancel/retry AI, run actual model corrections offline, and
+hang GPU adapter initialization (Chromium) or hold the preferred worker request
+(WebKit) to prove recovery using actual CPU inference.
+WebKit on Linux provides engine coverage; it does not replace a physical Mac test.
+The first playground command disables WebGPU to prove actual CPU model
 inference; the second requires actual WebGPU model inference. Both launch a
 fresh browser with extensions disabled and exercise examples, dismiss/reset,
 single/bulk acceptance, undo, UTF-16 offsets, clipboard success/failure, clear,

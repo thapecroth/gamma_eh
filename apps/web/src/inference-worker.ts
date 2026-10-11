@@ -1,6 +1,7 @@
-import { analyzeRules, analyzeText, type AnalysisResult } from '@gamma/engine';
+import { analyzeRules } from '../../../packages/engine/src/rules';
+import type { AnalysisResult } from '../../../packages/engine/src/types';
+import type { CheckRequest } from './checker';
 
-interface CheckRequest { requestId: number; text: string; useAI: boolean }
 let pending: CheckRequest | null = null;
 let busy = false;
 
@@ -9,12 +10,15 @@ async function drain() {
   busy = true;
   try {
     while (pending) {
-      const { requestId, text, useAI } = pending;
+      const { requestId, text, useAI, preferWebGPU } = pending;
       pending = null;
       try {
         const started = performance.now();
         const result: AnalysisResult = useAI
-          ? await analyzeText(text, { modelBaseUrl: `${import.meta.env.BASE_URL}models/` })
+          ? await (await import('@gamma/engine')).analyzeText(text, {
+            modelBaseUrl: `${import.meta.env.BASE_URL}models/`, preferWebGPU,
+            onModelLoadProgress: progress => self.postMessage({requestId, progress}),
+          })
           : { text, suggestions: analyzeRules(text), backend: 'rules', elapsedMs: performance.now() - started };
         self.postMessage({ requestId, result });
       } catch (error) {
