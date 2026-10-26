@@ -1,5 +1,9 @@
 # Project documentation
 
+New here? Start with the [project README](../README.md) to try the playground,
+install the Chrome extension, or run Gamma EH locally. Benchmark plots and
+evaluation details live in the [public benchmark report](public-benchmark.md).
+
 - [GitHub Pages](github-pages.md): public playground URL, checked deployment, repository-path assets, live verification, and rollback.
 - [Local AI defaults](local-ai-defaults.md): automatic local inference, browser/device fallback, and saved opt-outs.
 - [Web playground](playground.md): standalone browser demo, progressive rules/AI startup, bounded CPU recovery, WebKit checks, privacy, and hosting.
